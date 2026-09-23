@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <a th:href="@{/admin/users}">Users</a> / <span th:text="${employee.employeeNo}">E1</span></div>
+        <h1 th:text="${employee.displayName}">Name</h1>
+        <p class="page-sub" th:text="${employee.employeeNo + (employee.samAccountName != null ? ' · ' + employee.samAccountName : '')}">E1</p>
+      </div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-grid">
+            <div class="form-group"><label>Email</label><div th:text="${employee.email} ?: '—'">—</div></div>
+            <div class="form-group"><label>Designation</label><div th:text="${employee.designation} ?: '—'">—</div></div>
+            <div class="form-group"><label>Portal access</label>
+                <span class="badge" th:classappend="${employee.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${employee.portalActive} ? 'Active' : 'Disabled'">Active</span>
+            </div>
+            <div class="form-group"><label>Last LDAP sync (UTC)</label><div class="mono" th:text="${employee.lastLdapSyncUtc} ?: 'Never'">Never</div></div>
+        </div>
+        <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post" style="margin-top:12px;">
+            <input type="hidden" name="active" th:value="${!employee.portalActive}"/>
+            <button type="submit" class="btn btn-outline btn-sm" th:text="${employee.portalActive} ? 'Propose disable' : 'Propose enable'">Propose</button>
+        </form>
+    </div>
+    <div class="card">
+        <div class="card-head"><div><h3>Roles</h3><div class="ch-sub">Assigned only after checker approval. Employees cannot self-provision.</div></div></div>
+        <div class="empty-state" th:if="${allRoles == null or #lists.isEmpty(allRoles)}"><p>No roles in catalogue.</p></div>
+        <div class="table-wrap" th:if="${allRoles != null and !#lists.isEmpty(allRoles)}">
+            <table class="data-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="role : ${allRoles}">
+                    <td class="mono" th:text="${role.code}">EMPLOYEE</td>
+                    <td th:text="${role.name}">Employee</td>
+                    <td th:text="${assignedRoleIds.contains(role.roleId)} ? 'Assigned' : 'Not assigned'">Assigned</td>
+                    <td sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')">
+                        <form th:action="@{/admin/users/{id}/propose-role(id=${employee.employeeId})}" method="post">
+                            <input type="hidden" name="roleId" th:value="${role.roleId}"/>
+                            <input type="hidden" name="assign" th:value="${!assignedRoleIds.contains(role.roleId)}"/>
+                            <button type="submit" class="btn btn-outline btn-xs"
+                                    th:text="${assignedRoleIds.contains(role.roleId)} ? 'Propose remove' : 'Propose assign'">Propose</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

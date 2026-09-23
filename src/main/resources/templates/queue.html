@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Queue</span></div>
+        <h1 th:text="${pageTitle}">Queue</h1>
+        <p class="page-sub">Service desk assignment and implementor fulfilment queues.</p>
+      </div>
+    </div>
+    <div class="card" th:if="${tickets != null and !tickets.empty}">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th><th>Assignee</th></tr></thead>
+          <tbody>
+          <tr th:each="t : ${tickets}">
+            <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
+            <td th:text="${t.subject}">s</td>
+            <td th:text="${t.ticketType.name}">t</td>
+            <td th:text="${t.statusCode}">st</td>
+            <td th:text="${t.priorityCode}">p</td>
+            <td th:text="${t.assignedImplementor != null} ? ${t.assignedImplementor.displayName} : 'Unassigned'">a</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div th:if="${tickets == null or tickets.empty}">
+      <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

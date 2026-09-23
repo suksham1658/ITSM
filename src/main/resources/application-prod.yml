@@ -1,0 +1,28 @@
+# Production — all secrets from env. Do not enable sample data.
+spring:
+  flyway:
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.nbfc.itsm: INFO

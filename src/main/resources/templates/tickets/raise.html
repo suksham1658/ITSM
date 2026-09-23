@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span>Raise Request</span></div>
+        <h1>Raise IT Request</h1>
+        <p class="page-sub">Lookups and routing come from the database. Submit starts numbering, SLA and the matched workflow.</p>
+      </div>
+    </div>
+    <div class="grid raise-layout">
+      <form class="card card-pad" id="raiseForm" th:action="@{/tickets/raise}" method="post">
+        <div class="form-section-title">Request Classification</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Ticket Type <span class="req">*</span></label>
+            <select class="form-control" name="ticketTypeId" required="required">
+              <option value="">Select type</option>
+              <option th:each="t : ${ticketTypes}" th:value="${t.ticketTypeId}" th:text="${t.name}">Incident</option>
+            </select></div>
+          <div class="form-group"><label>Category <span class="req">*</span></label>
+            <select class="form-control" name="categoryId" id="categorySelect" required="required">
+              <option value="">Select category</option>
+              <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}">Hardware</option>
+            </select></div>
+          <div class="form-group"><label>Sub Category <span class="req">*</span></label>
+            <select class="form-control" name="subCategoryId" id="subCategorySelect" required="required">
+              <option value="">Select category first</option>
+              <option th:each="s : ${subCategories}" th:value="${s.subCategoryId}"
+                      th:attr="data-category-id=${s.category.categoryId}" th:text="${s.name}">Laptop</option>
+            </select></div>
+          <div class="form-group"><label>Confidentiality</label>
+            <select class="form-control" name="confidentialityCode">
+              <option>Normal</option><option>Confidential</option><option>Highly Confidential</option>
+            </select></div>
+        </div>
+        <div class="form-section-title">Request Details</div>
+        <div class="form-grid">
+          <div class="form-group span-2"><label>Subject <span class="req">*</span></label>
+            <input type="text" class="form-control" name="subject" required="required" maxlength="256" placeholder="Brief summary"/></div>
+          <div class="form-group span-2"><label>Description <span class="req">*</span></label>
+            <textarea class="form-control" name="description" required="required" placeholder="Details and business justification"></textarea></div>
+          <div class="form-group"><label>Priority <span class="req">*</span></label>
+            <select class="form-control" name="priorityCode">
+              <option>Medium</option><option>Critical</option><option>High</option><option>Low</option>
+            </select></div>
+          <div class="form-group"><label>Impact</label>
+            <select class="form-control" name="impactCode">
+              <option>Individual</option><option>Department</option>
+              <option>Multiple Departments</option><option>Organization-wide</option>
+            </select></div>
+          <div class="form-group"><label>Urgency</label>
+            <select class="form-control" name="urgencyCode">
+              <option>Medium</option><option>Critical</option><option>High</option><option>Low</option>
+            </select></div>
+          <div class="form-group"><label>Location</label>
+            <input type="text" class="form-control" name="location" maxlength="128"/></div>
+        </div>
+        <p class="phase-note">Save as draft stores the ticket without a workflow instance or SLA. Submit allocates ITSM-year-sequence and starts clocks.</p>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-accent" name="intent" value="submit"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
+          <button type="submit" class="btn btn-outline" name="intent" value="draft">Save draft</button>
+          <a class="btn btn-outline" th:href="@{/tickets}">Cancel</a>
+        </div>
+      </form>
+      <div class="card card-pad">
+        <h3 style="font-size:14px;margin-bottom:14px;">How routing works</h3>
+        <p class="page-sub" style="margin:0 0 12px;">The matcher picks the first <strong>Active</strong> rule by priority. Incident → Service Desk then Implementor. Service Request → manager hops to HOD, CISO, Implementor. Direct-to-implementor Incident is Inactive.</p>
+        <p class="phase-note">H2 preview: this login is treated as HOD of self so the hierarchy stage is skipped; you still approve as CISO, fulfil, and confirm.</p>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+<div th:if="${detail != null}">
+    <div class="ticket-hero">
+      <div class="ticket-hero-top">
+        <div>
+          <div class="ticket-hero-id" th:text="${detail.ticket.publicNumber}">ITSM-2026-000001</div>
+          <div class="ticket-hero-title" th:text="${detail.ticket.subject}">Subject</div>
+          <div class="ticket-hero-badges">
+            <span class="badge badge-navy" th:text="${detail.ticket.statusCode}">Open</span>
+            <span class="badge badge-outline" th:text="${detail.ticket.ticketType.name}">Type</span>
+            <span class="badge" th:text="${detail.ticket.priorityCode}">Medium</span>
+          </div>
+        </div>
+        <div class="ticket-hero-sla" th:if="${detail.sla != null}"
+             th:classappend="${detail.sla.stateCode == 'BREACHED'} ? ' breach' : (${detail.sla.stateCode == 'NEAR'} ? ' near' : ' ok')">
+          <div class="sla-label">SLA</div>
+          <div class="sla-count" th:text="${detail.sla.stateCode}">WITHIN</div>
+        </div>
+      </div>
+      <div class="status-progress" th:if="${detail.stages != null}">
+        <th:block th:each="s, iter : ${detail.stages}">
+          <div class="sp-step" th:classappend="${s.statusCode == 'Completed'} ? ' done' : (${s.statusCode == 'Current'} ? ' current' : '')">
+            <div class="sp-dot"></div>
+            <div class="sp-label" th:text="${s.label}">Stage</div>
+          </div>
+          <div class="sp-bar" th:if="${!iter.last}" th:classappend="${s.statusCode == 'Completed'} ? ' done'"></div>
+        </th:block>
+      </div>
+    </div>
+
+    <div class="ticket-detail-grid">
+      <div>
+        <div class="card card-pad" style="margin-bottom:16px;">
+          <h3 style="font-size:14px;margin-bottom:12px;">Details</h3>
+          <div class="info-list">
+            <div class="info-item"><div class="il-label">Requester</div><div class="il-value" th:text="${detail.ticket.requester.displayName}">A</div></div>
+            <div class="info-item"><div class="il-label">Category</div><div class="il-value" th:text="${detail.ticket.category.name}">C</div></div>
+            <div class="info-item"><div class="il-label">Sub-category</div><div class="il-value" th:text="${detail.ticket.subCategory.name}">S</div></div>
+            <div class="info-item"><div class="il-label">Confidentiality</div><div class="il-value" th:text="${detail.ticket.confidentialityCode}">N</div></div>
+            <div class="info-item span-2"><div class="il-label">Description</div><div class="il-value" style="font-weight:500;white-space:pre-wrap;" th:text="${detail.ticket.description}">D</div></div>
+          </div>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}">
+          <h3 style="font-size:14px;margin-bottom:8px;">Take action</h3>
+          <p class="phase-note">Approve, Reject and Send Back require remarks of at least 10 characters (UI and server).</p>
+          <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="action-form" id="ticketActionForm">
+            <div class="form-group">
+              <label>Action</label>
+              <select class="form-control" name="actionCode" id="actionCode" required="required">
+                <option th:each="a : ${detail.allowed}" th:value="${a.actionCode}" th:text="${a.actionCode}">APPROVE</option>
+              </select>
+            </div>
+            <div class="form-group" th:if="${!assignees.empty}">
+              <label>Assignee</label>
+              <select class="form-control" name="assigneeId">
+                <option value="">Select</option>
+                <option th:each="e : ${assignees}" th:value="${e.employeeId}" th:text="${e.displayName}">Name</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Remarks <span class="req" id="remarksReq">*</span></label>
+              <textarea class="form-control" name="remarks" id="actionRemarks" minlength="10" placeholder="Mandatory on Approve / Reject / Send Back"></textarea>
+            </div>
+            <button type="submit" class="btn btn-accent">Submit action</button>
+          </form>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:16px;">
+          <h3 style="font-size:14px;margin-bottom:12px;">Comments</h3>
+          <div th:if="${detail.comments.empty}" class="empty-state" style="padding:12px;"><p>No comments yet.</p></div>
+          <div class="comment-item" th:each="c : ${detail.comments}" th:classappend="${c.internal} ? ' internal'">
+            <div class="avatar" th:text="${#strings.substring(c.author.displayName,0,1)}">A</div>
+            <div class="comment-bubble">
+              <span class="comment-tag" th:if="${c.internal}">Internal</span>
+              <div class="comment-top">
+                <div class="comment-author" th:text="${c.author.displayName}">Author</div>
+                <div class="comment-time" th:text="${c.createdAtUtc}">t</div>
+              </div>
+              <div class="comment-text" th:text="${c.body}">text</div>
+            </div>
+          </div>
+          <form th:action="@{/tickets/{id}/comments(id=${detail.ticket.ticketId})}" method="post" style="margin-top:12px;">
+            <textarea class="form-control" name="body" required="required" placeholder="Add a comment"></textarea>
+            <label class="phase-note" th:if="${detail.canCommentInternal}" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+              <input type="checkbox" name="internal" value="true"/> Internal (not visible to requester-only viewers)
+            </label>
+            <button type="submit" class="btn btn-outline" style="margin-top:8px;">Post comment</button>
+          </form>
+        </div>
+
+        <div class="card card-pad">
+          <h3 style="font-size:14px;margin-bottom:12px;">Attachments</h3>
+          <ul class="file-list">
+            <li th:each="f : ${detail.attachments}">
+              <a th:href="@{/tickets/{id}/attachments/{aid}(id=${detail.ticket.ticketId},aid=${f.ticketAttachmentId})}" th:text="${f.originalName}">file</a>
+              <span class="phase-note" th:text="${f.byteLength + ' bytes'}">size</span>
+            </li>
+          </ul>
+          <p class="phase-note" th:if="${detail.attachments.empty}">No files. Executables are blocked. Max size follows attachment_policy (10 MB seed).</p>
+          <form th:action="@{/tickets/{id}/attachments(id=${detail.ticket.ticketId})}" method="post" enctype="multipart/form-data">
+            <input class="form-control" type="file" name="file" required="required"/>
+            <button type="submit" class="btn btn-outline" style="margin-top:8px;">Upload</button>
+          </form>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-pad sla-box" th:if="${detail.sla != null}" style="margin-bottom:16px;">
+          <h3 style="font-size:14px;margin-bottom:8px;">SLA clock</h3>
+          <div class="sla-row"><span class="sr-label">State</span><span class="sr-val" th:text="${detail.sla.stateCode}">WITHIN</span></div>
+          <div class="sla-row"><span class="sr-label">Response due (UTC)</span><span class="sr-val" th:text="${detail.sla.responseDueUtc}">t</span></div>
+          <div class="sla-row"><span class="sr-label">Resolve due (UTC)</span><span class="sr-val" th:text="${detail.sla.resolveDueUtc}">t</span></div>
+        </div>
+        <div class="card card-pad">
+          <h3 style="font-size:14px;margin-bottom:12px;">Workflow</h3>
+          <ol class="wf-rail">
+            <li th:each="s : ${detail.stages}">
+              <strong th:text="${s.label}">Stage</strong>
+              <span class="badge" th:text="${s.statusCode}">Pending</span>
+              <div class="phase-note" th:if="${s.resolvedEmployee != null}" th:text="${s.resolvedEmployee.displayName}">who</div>
+              <div class="phase-note" th:if="${s.remarks != null}" th:text="${s.remarks}">remarks</div>
+            </li>
+          </ol>
+          <p class="phase-note" th:if="${detail.stages.empty}">Draft — no instance until submit.</p>
+        </div>
+      </div>
+    </div>
+</div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

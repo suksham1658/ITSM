@@ -1,0 +1,44 @@
+<header id="topHeader" xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+    <button type="button" class="header-burger" onclick="toggleSidebar()" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+    <div class="header-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="search" id="globalSearchInput" placeholder="Search tickets, employees, assets…" aria-label="Global search" autocomplete="off"/>
+        <div class="search-results" id="searchResultsBox" role="listbox"></div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-right" th:if="${currentUser != null}">
+        <button type="button" class="header-icon-btn" onclick="toggleNotifPanel()" aria-label="Notifications">
+            <i class="fa-regular fa-bell"></i>
+        </button>
+        <button type="button" class="user-menu" onclick="toggleUserPanel()" aria-haspopup="true">
+            <div class="avatar" th:text="${currentUser.initials}">IT</div>
+            <div class="u-info">
+                <div class="u-name" th:text="${currentUser.displayName}">User</div>
+                <div class="u-role" th:text="${currentUser.primaryRoleLabel}">Employee</div>
+            </div>
+            <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--slate-400)"></i>
+        </button>
+    </div>
+    <div class="dropdown-panel" id="notifPanel" role="menu">
+        <div class="dropdown-head"><h4>Notifications</h4></div>
+        <div class="dropdown-body">
+            <div class="empty-state" style="padding:20px"><p>No notifications.</p></div>
+        </div>
+    </div>
+    <div class="dropdown-panel user-menu-panel" id="userPanel" th:if="${currentUser != null}">
+        <div class="umenu-profile">
+            <div class="avatar" th:text="${currentUser.initials}">IT</div>
+            <div>
+                <div class="u-name" th:text="${currentUser.displayName}">User</div>
+                <div class="u-id" th:text="${currentUser.employeeNo}">E1</div>
+            </div>
+        </div>
+        <div class="umenu-item text-muted"><i class="fa-regular fa-user"></i> Profile (Phase 6)</div>
+        <div class="umenu-divider"></div>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="umenu-item" style="width:100%;text-align:left;color:var(--danger);background:none;border:0;">
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--danger)"></i> Logout
+            </button>
+        </form>
+    </div>
+</header>

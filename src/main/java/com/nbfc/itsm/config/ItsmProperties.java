@@ -1,0 +1,191 @@
+package com.nbfc.itsm.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "itsm")
+public class ItsmProperties {
+
+    private final Ldap ldap = new Ldap();
+    private final Storage storage = new Storage();
+    private final Mail mail = new Mail();
+    private final Security security = new Security();
+
+    public Ldap getLdap() {
+        return ldap;
+    }
+
+    public Storage getStorage() {
+        return storage;
+    }
+
+    public Mail getMail() {
+        return mail;
+    }
+
+    public Security getSecurity() {
+        return security;
+    }
+
+    public static class Ldap {
+        private String url = "";
+        private String baseDn = "";
+        private String bindDn = "";
+        private String bindPassword = "";
+        private String userSearchFilter = "(sAMAccountName={0})";
+        private String userDnPattern = "";
+        private String employeeIdAttribute = "employeeID";
+        private String managerAttribute = "manager";
+        private int connectTimeoutMs = 3000;
+        private int readTimeoutMs = 5000;
+
+        public boolean isConfigured() {
+            return url != null && url.trim().length() > 0;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getBaseDn() {
+            return baseDn;
+        }
+
+        public void setBaseDn(String baseDn) {
+            this.baseDn = baseDn;
+        }
+
+        public String getBindDn() {
+            return bindDn;
+        }
+
+        public void setBindDn(String bindDn) {
+            this.bindDn = bindDn;
+        }
+
+        public String getBindPassword() {
+            return bindPassword;
+        }
+
+        public void setBindPassword(String bindPassword) {
+            this.bindPassword = bindPassword;
+        }
+
+        public String getUserSearchFilter() {
+            return userSearchFilter;
+        }
+
+        public void setUserSearchFilter(String userSearchFilter) {
+            this.userSearchFilter = userSearchFilter;
+        }
+
+        public String getUserDnPattern() {
+            return userDnPattern;
+        }
+
+        public void setUserDnPattern(String userDnPattern) {
+            this.userDnPattern = userDnPattern;
+        }
+
+        public String getEmployeeIdAttribute() {
+            return employeeIdAttribute;
+        }
+
+        public void setEmployeeIdAttribute(String employeeIdAttribute) {
+            this.employeeIdAttribute = employeeIdAttribute;
+        }
+
+        public String getManagerAttribute() {
+            return managerAttribute;
+        }
+
+        public void setManagerAttribute(String managerAttribute) {
+            this.managerAttribute = managerAttribute;
+        }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+        }
+    }
+
+    public static class Storage {
+        private String root = "";
+        private String type = "filesystem";
+
+        public String getRoot() {
+            return root;
+        }
+
+        public void setRoot(String root) {
+            this.root = root;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+    }
+
+    public static class Mail {
+        private String from = "";
+
+        public String getFrom() {
+            return from;
+        }
+
+        public void setFrom(String from) {
+            this.from = from;
+        }
+    }
+
+    public static class Security {
+        private boolean testLoginEnabled = false;
+        /** Idle timeout is server.servlet.session.timeout. This is absolute max session age. */
+        private java.time.Duration sessionAbsoluteTimeout = java.time.Duration.ofHours(8);
+
+        public boolean isTestLoginEnabled() {
+            return testLoginEnabled;
+        }
+
+        public void setTestLoginEnabled(boolean testLoginEnabled) {
+            this.testLoginEnabled = testLoginEnabled;
+        }
+
+        /** H2 preview only. Never used in uat/prod. Sourced from H2_PREVIEW_PASSWORD. */
+        private String previewPassword = "";
+
+        public String getPreviewPassword() {
+            return previewPassword;
+        }
+
+        public void setPreviewPassword(String previewPassword) {
+            this.previewPassword = previewPassword;
+        }
+
+        public java.time.Duration getSessionAbsoluteTimeout() {
+            return sessionAbsoluteTimeout;
+        }
+
+        public void setSessionAbsoluteTimeout(java.time.Duration sessionAbsoluteTimeout) {
+            this.sessionAbsoluteTimeout = sessionAbsoluteTimeout;
+        }
+    }
+}

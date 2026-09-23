@@ -1,0 +1,28 @@
+# Test profile — H2 in-memory, Flyway off (SQL Server 2016 scripts are not H2-compatible).
+spring:
+  flyway:
+    enabled: false
+  datasource:
+    url: jdbc:h2:mem:itsm;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC
+  sql:
+    init:
+      mode: never
+
+itsm:
+  ldap:
+    url:
+  storage:
+    root: /tmp/itsm-test-files
+  security:
+    test-login-enabled: true

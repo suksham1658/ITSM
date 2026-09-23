@@ -1,0 +1,12 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="flash">
+    <div class="alert-banner ok" th:if="${message}" th:text="${message}">Saved</div>
+    <div class="alert-banner error" th:if="${errorMessage}" th:text="${errorMessage}">Error</div>
+</div>
+
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="empty(title, body)" class="card">
+    <div class="empty-state">
+        <i class="fa-regular fa-folder-open"></i>
+        <h3 th:text="${title}">Nothing here yet</h3>
+        <p th:text="${body}">No records.</p>
+    </div>
+</div>

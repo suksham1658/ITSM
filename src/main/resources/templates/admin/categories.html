@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Admin / <span>Categories</span></div>
+        <h1>Categories</h1>
+        <p class="page-sub">Live masters used by Raise Request. Inline create/edit of codes is not in this phase — change via SQL / maker-checker later.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Name</th><th>Sort</th></tr></thead>
+          <tbody>
+          <tr th:each="c : ${categories}">
+            <td class="cell-id" th:text="${c.code}">c</td>
+            <td th:text="${c.name}">n</td>
+            <td th:text="${c.sortOrder}">1</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Sub-categories</h3></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Category</th><th>Code</th><th>Name</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${subCategories}">
+            <td th:text="${s.category.name}">c</td>
+            <td class="cell-id" th:text="${s.code}">c</td>
+            <td th:text="${s.name}">n</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# UAT — secrets only via environment variables.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

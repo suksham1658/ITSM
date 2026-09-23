@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, nav)" lang="en">
+<!-- Not used as a decorator; kept as documentation of the shell include order. -->
+<head th:replace="fragments/head :: head(${title})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+</body>
+</html>

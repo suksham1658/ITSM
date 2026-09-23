@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">SLA</span></div>
+        <h1 th:text="${pageTitle}">SLA</h1>
+        <p class="page-sub">Clocks are computed in the SLA service from seeded policies and IST business hours.</p>
+      </div>
+    </div>
+    <div class="card" th:if="${clocks != null and !clocks.empty}">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Ticket</th><th>State</th><th>Response due</th><th>Resolve due</th><th>Paused</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${clocks}">
+            <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${s.ticket.ticketId})}" th:text="${s.ticket.publicNumber}">n</a></td>
+            <td th:text="${s.stateCode}">WITHIN</td>
+            <td th:text="${s.responseDueUtc}">t</td>
+            <td th:text="${s.resolveDueUtc}">t</td>
+            <td th:text="${s.paused}">false</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div th:if="${clocks == null or clocks.empty}">
+      <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

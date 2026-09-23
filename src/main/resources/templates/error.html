@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head('Error')"></head>
+<body>
+<div id="loginScreen" style="align-items:center;justify-content:center;">
+  <div class="login-panel">
+    <h2>Something went wrong</h2>
+    <p class="login-sub mono" th:text="${status}">500</p>
+    <p th:text="${message}">Unexpected error</p>
+    <p style="margin-top:16px;"><a class="btn btn-primary" th:href="@{/}">Back to portal</a></p>
+  </div>
+</div>
+</body>
+</html>

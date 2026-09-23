@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Admin / Workflow / <span th:text="${definition.code}">code</span></div>
+        <h1 th:text="${definition.name}">Workflow</h1>
+        <p class="page-sub" th:text="${definition.description}">desc</p>
+      </div>
+      <div class="page-header-actions"><a class="btn btn-outline" th:href="@{/admin/workflow}">Back to matrix</a></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Order</th><th>Code</th><th>Label</th><th>Type</th><th>Strategy</th><th>Role / group</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${stages}">
+            <td th:text="${s.stageOrder}">10</td>
+            <td class="cell-id" th:text="${s.code}">c</td>
+            <td th:text="${s.label}">l</td>
+            <td th:text="${s.stageType}">t</td>
+            <td th:text="${s.actorStrategy}">a</td>
+            <td>
+              <span th:if="${s.role != null}" th:text="${s.role.code}">CISO</span>
+              <span th:if="${s.assignmentGroup != null}" th:text="${s.assignmentGroup.code}">G</span>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

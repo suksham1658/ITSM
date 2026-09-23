@@ -1,0 +1,220 @@
+package com.nbfc.itsm.admin;
+
+import com.nbfc.itsm.audit.AuditRecorder;
+import com.nbfc.itsm.domain.ConfigChangeRequest;
+import com.nbfc.itsm.domain.ConfigChangeRequestRepository;
+import com.nbfc.itsm.domain.Employee;
+import com.nbfc.itsm.domain.EmployeeRepository;
+import com.nbfc.itsm.domain.EmployeeRoleAssignment;
+import com.nbfc.itsm.domain.EmployeeRoleAssignmentRepository;
+import com.nbfc.itsm.domain.EmployeeRoleId;
+import com.nbfc.itsm.domain.Role;
+import com.nbfc.itsm.domain.RoleRepository;
+import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.security.ItsmUserPrincipal;
+import com.nbfc.itsm.util.TimeUtc;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * User administration. Sensitive changes go through {@code config_change_request}
+ * (maker-checker). Employees cannot assign their own roles.
+ */
+@Service
+public class AdminUserService {
+
+    private final EmployeeRepository employeeRepository;
+    private final RoleRepository roleRepository;
+    private final EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository;
+    private final ConfigChangeRequestRepository configChangeRequestRepository;
+    private final AuditRecorder auditRecorder;
+
+    public AdminUserService(EmployeeRepository employeeRepository,
+                            RoleRepository roleRepository,
+                            EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository,
+                            ConfigChangeRequestRepository configChangeRequestRepository,
+                            AuditRecorder auditRecorder) {
+        this.employeeRepository = employeeRepository;
+        this.roleRepository = roleRepository;
+        this.employeeRoleAssignmentRepository = employeeRoleAssignmentRepository;
+        this.configChangeRequestRepository = configChangeRequestRepository;
+        this.auditRecorder = auditRecorder;
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    @Transactional(readOnly = true)
+    public List<Employee> list(String q) {
+        if (q == null || q.trim().length() == 0) {
+            return employeeRepository.findAll();
+        }
+        String t = q.trim();
+        return employeeRepository
+                .findByDisplayNameContainingIgnoreCaseOrEmployeeNoContainingIgnoreCaseOrSamAccountNameContainingIgnoreCase(
+                        t, t, t);
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    @Transactional(readOnly = true)
+    public Employee get(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found"));
+        if (employee.getRoleAssignments() != null) {
+            employee.getRoleAssignments().size();
+            for (EmployeeRoleAssignment assignment : employee.getRoleAssignments()) {
+                if (assignment.getRole() != null) {
+                    assignment.getRole().getCode();
+                }
+            }
+        }
+        return employee;
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    @Transactional(readOnly = true)
+    public List<Role> roles() {
+        return roleRepository.findAll();
+    }
+
+    private Employee requireEmployee(Long id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found"));
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
+    @Transactional
+    public ConfigChangeRequest proposePortalActive(Long employeeId, boolean active, ItsmUserPrincipal maker) {
+        Employee target = requireEmployee(employeeId);
+        Employee makerEmp = requireEmployee(maker.getEmployeeId());
+        ConfigChangeRequest ccr = new ConfigChangeRequest();
+        ccr.setChangeType("USER_PORTAL_ACTIVE");
+        ccr.setEntityName("employee");
+        ccr.setEntityKey(String.valueOf(employeeId));
+        ccr.setPayloadJson("{\"portalActive\":" + active + ",\"employeeId\":" + employeeId + "}");
+        ccr.setPreviousJson("{\"portalActive\":" + target.isPortalActive() + "}");
+        ccr.setDescription((active ? "Enable" : "Disable") + " portal access for " + target.getEmployeeNo());
+        ccr.setStatusCode("PendingApproval");
+        ccr.setRequestedBy(makerEmp);
+        ccr.setRequestedAtUtc(TimeUtc.now());
+        configChangeRequestRepository.save(ccr);
+        auditRecorder.record("ADMIN", "PROPOSE", ccr.getDescription(), "SUCCESS");
+        return ccr;
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
+    @Transactional
+    public ConfigChangeRequest proposeRole(Long employeeId, Long roleId, boolean assign, ItsmUserPrincipal maker) {
+        Employee target = requireEmployee(employeeId);
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ItsmException("ROLE_NOT_FOUND", "Role not found"));
+        Employee makerEmp = requireEmployee(maker.getEmployeeId());
+        ConfigChangeRequest ccr = new ConfigChangeRequest();
+        ccr.setChangeType(assign ? "USER_ROLE_ASSIGN" : "USER_ROLE_REMOVE");
+        ccr.setEntityName("employee_role");
+        ccr.setEntityKey(employeeId + ":" + roleId);
+        ccr.setPayloadJson("{\"employeeId\":" + employeeId + ",\"roleId\":" + roleId + ",\"assign\":" + assign + "}");
+        ccr.setDescription((assign ? "Assign " : "Remove ") + role.getCode() + " for " + target.getEmployeeNo());
+        ccr.setStatusCode("PendingApproval");
+        ccr.setRequestedBy(makerEmp);
+        ccr.setRequestedAtUtc(TimeUtc.now());
+        configChangeRequestRepository.save(ccr);
+        auditRecorder.record("ADMIN", "PROPOSE", ccr.getDescription(), "SUCCESS");
+        return ccr;
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_APPROVE')")
+    @Transactional(readOnly = true)
+    public List<ConfigChangeRequest> pending() {
+        List<ConfigChangeRequest> list =
+                configChangeRequestRepository.findByStatusCodeOrderByRequestedAtUtcDesc("PendingApproval");
+        touchRequester(list);
+        return list;
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_APPROVE')")
+    @Transactional(readOnly = true)
+    public List<ConfigChangeRequest> allChanges() {
+        List<ConfigChangeRequest> list = configChangeRequestRepository.findAllByOrderByRequestedAtUtcDesc();
+        touchRequester(list);
+        return list;
+    }
+
+    private void touchRequester(List<ConfigChangeRequest> list) {
+        for (ConfigChangeRequest ccr : list) {
+            if (ccr.getRequestedBy() != null) {
+                ccr.getRequestedBy().getEmployeeNo();
+            }
+        }
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_APPROVE')")
+    @Transactional
+    public void approve(Long ccrId, ItsmUserPrincipal checker) {
+        ConfigChangeRequest ccr = configChangeRequestRepository.findById(ccrId)
+                .orElseThrow(() -> new ItsmException("CCR_NOT_FOUND", "Change request not found"));
+        if (!"PendingApproval".equals(ccr.getStatusCode())) {
+            throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
+        }
+        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId())) {
+            throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
+        }
+        apply(ccr, checker);
+        ccr.setStatusCode("Applied");
+        ccr.setReviewedBy(requireEmployee(checker.getEmployeeId()));
+        ccr.setReviewedAtUtc(TimeUtc.now());
+        auditRecorder.record("ADMIN", "APPROVE", ccr.getDescription(), "SUCCESS");
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_APPROVE')")
+    @Transactional
+    public void reject(Long ccrId, String reason, ItsmUserPrincipal checker) {
+        ConfigChangeRequest ccr = configChangeRequestRepository.findById(ccrId)
+                .orElseThrow(() -> new ItsmException("CCR_NOT_FOUND", "Change request not found"));
+        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId())) {
+            throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
+        }
+        if (reason == null || reason.trim().length() == 0) {
+            throw new ItsmException("REASON_REQUIRED", "Rejection remarks are required");
+        }
+        ccr.setStatusCode("Rejected");
+        ccr.setRejectReason(reason.trim());
+        ccr.setReviewedBy(requireEmployee(checker.getEmployeeId()));
+        ccr.setReviewedAtUtc(TimeUtc.now());
+        auditRecorder.record("ADMIN", "REJECT", ccr.getDescription(), "SUCCESS");
+    }
+
+    private void apply(ConfigChangeRequest ccr, ItsmUserPrincipal checker) {
+        String payload = ccr.getPayloadJson();
+        if ("USER_PORTAL_ACTIVE".equals(ccr.getChangeType())) {
+            Long employeeId = Long.valueOf(ccr.getEntityKey());
+            boolean active = payload.indexOf("\"portalActive\":true") >= 0;
+            Employee e = requireEmployee(employeeId);
+            e.setPortalActive(active);
+            return;
+        }
+        if ("USER_ROLE_ASSIGN".equals(ccr.getChangeType()) || "USER_ROLE_REMOVE".equals(ccr.getChangeType())) {
+            String[] parts = ccr.getEntityKey().split(":");
+            Long employeeId = Long.valueOf(parts[0]);
+            Long roleId = Long.valueOf(parts[1]);
+            Employee e = requireEmployee(employeeId);
+            Role role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new ItsmException("ROLE_NOT_FOUND", "Role not found"));
+            boolean assign = "USER_ROLE_ASSIGN".equals(ccr.getChangeType());
+            if (assign) {
+                if (!employeeRoleAssignmentRepository.findByEmployeeAndRole(e, role).isPresent()) {
+                    EmployeeRoleAssignment row = new EmployeeRoleAssignment();
+                    row.setId(new EmployeeRoleId(employeeId, roleId));
+                    row.setEmployee(e);
+                    row.setRole(role);
+                    row.setAssignedAtUtc(TimeUtc.now());
+                    row.setAssignedBy(requireEmployee(checker.getEmployeeId()));
+                    employeeRoleAssignmentRepository.save(row);
+                }
+            } else {
+                employeeRoleAssignmentRepository.deleteByEmployeeAndRole(e, role);
+            }
+        }
+    }
+}

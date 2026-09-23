@@ -1,0 +1,12 @@
+# Local / developer profile. No secrets. Loads sample Flyway scripts.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    com.nbfc.itsm: DEBUG

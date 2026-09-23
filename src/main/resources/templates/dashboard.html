@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span>Dashboard</span></div>
+        <h1 th:text="${dash.title}">Executive Dashboard</h1>
+        <p class="page-sub">Live counts from the database, scoped to <span th:text="${dash.scopeLabel}">your tickets</span>. Trends compare the last 30 days with the 30 days before that. n/a means the prior window had zero matching tickets.</p>
+      </div>
+      <div class="page-header-actions">
+        <a class="btn btn-accent btn-sm" sec:authorize="hasAuthority('TICKET_CREATE')" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i> Raise Request</a>
+      </div>
+    </div>
+    <div class="grid grid-4" style="margin-bottom:18px;">
+      <div class="kpi-card" th:each="k : ${dash.kpis}">
+        <div class="kpi-top">
+          <div class="kpi-icon" th:style="'background:var(--'+${k.color}+'-light);color:var(--'+${k.color}+');'">
+            <i class="fa-solid" th:classappend="${k.icon}"></i>
+          </div>
+        </div>
+        <div class="kpi-label" th:text="${k.label}">KPI</div>
+        <div class="kpi-value" th:text="${k.value}">0</div>
+        <div class="kpi-trend" th:classappend="${k.trendClass}" th:if="${k.trend != null}">
+          <i class="fa-solid fa-minus" th:if="${k.trendClass == 'na' or k.trendClass == 'live'}"></i>
+          <i class="fa-solid fa-arrow-up" th:if="${k.trendClass != null and k.trendClass.startsWith('up')}"></i>
+          <i class="fa-solid fa-arrow-down" th:if="${k.trendClass != null and k.trendClass.startsWith('down')}"></i>
+          <span th:text="${k.trend}">n/a</span>
+          <span class="kt-ctx" th:text="${k.context}">vs prior</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:18px;">
+      <div class="card">
+        <div class="card-head"><div><h3>Ticket status</h3><div class="ch-sub">Draft shows as New. Empty when there are no tickets in scope.</div></div></div>
+        <div class="chart-box">
+          <canvas id="chartStatus" height="230" data-chart="chartStatusJson"></canvas>
+          <script type="application/json" id="chartStatusJson" th:text="${statusChartJson}">{}</script>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Tickets by category</h3><div class="ch-sub">Volume in your current scope</div></div></div>
+        <div class="chart-box">
+          <canvas id="chartCategory" height="230" data-chart="chartCategoryJson"></canvas>
+          <script type="application/json" id="chartCategoryJson" th:text="${categoryChartJson}">{}</script>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:18px;">
+      <div class="card">
+        <div class="card-head"><div><h3>Monthly ticket trend</h3><div class="ch-sub">Opened vs resolved vs closed — last 6 months (IST)</div></div></div>
+        <div class="chart-box">
+          <canvas id="chartTrend" height="230" data-chart="chartTrendJson"></canvas>
+          <script type="application/json" id="chartTrendJson" th:text="${trendChartJson}">{}</script>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Tickets by priority</h3><div class="ch-sub">Current pipeline in scope</div></div></div>
+        <div class="chart-box">
+          <canvas id="chartPriority" height="230" data-chart="chartPriorityJson"></canvas>
+          <script type="application/json" id="chartPriorityJson" th:text="${priorityChartJson}">{}</script>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-head"><div><h3>Recent tickets</h3></div><a th:href="@{/tickets}">View all</a></div>
+        <div th:if="${recentTickets == null or recentTickets.empty}" class="empty-state">
+          <i class="fa-solid fa-ticket"></i><h3>No tickets yet</h3>
+          <p>Raise a Service Request or Incident to start the engine.</p>
+        </div>
+        <div class="table-wrap" th:if="${recentTickets != null and !recentTickets.empty}">
+          <table class="data-table">
+            <tbody>
+            <tr th:each="t : ${recentTickets}">
+              <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
+              <td th:text="${t.subject}">s</td>
+              <td th:text="${t.statusCode}">st</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Pending approvals</h3></div><a th:href="@{/approvals}" sec:authorize="hasAuthority('TICKET_APPROVE_ASSIGNED_STAGE')">View all</a></div>
+        <div th:if="${pendingApprovals == null or pendingApprovals.empty}" class="empty-state">
+          <i class="fa-solid fa-check-double"></i><h3>Inbox empty</h3>
+          <p>Assigned approval stages appear here.</p>
+        </div>
+        <div class="table-wrap" th:if="${pendingApprovals != null and !pendingApprovals.empty}">
+          <table class="data-table">
+            <tbody>
+            <tr th:each="t : ${pendingApprovals}">
+              <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
+              <td th:text="${t.subject}">s</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

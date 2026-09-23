@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Administration / <span>Config approvals</span></div>
+        <h1>Config approvals</h1>
+        <p class="page-sub">Maker and checker must be different administrators. Rejection remarks are required.</p>
+      </div>
+    </div>
+    <h3 style="margin:0 0 10px;">Pending</h3>
+    <div class="card" th:if="${pending == null or #lists.isEmpty(pending)}">
+        <div class="empty-state"><p>No pending change requests.</p></div>
+    </div>
+    <div class="card" th:if="${pending != null and !#lists.isEmpty(pending)}" style="margin-bottom:18px;">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead><tr><th>When (UTC)</th><th>Type</th><th>Description</th><th>Maker</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${pending}">
+                    <td class="mono" th:text="${c.requestedAtUtc}">—</td>
+                    <td th:text="${c.changeType}">TYPE</td>
+                    <td th:text="${c.description}">desc</td>
+                    <td th:text="${c.requestedBy.employeeNo}">E1</td>
+                    <td>
+                        <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-accent btn-xs">Approve</button>
+                        </form>
+                        <form th:action="@{/admin/change-requests/{id}/reject(id=${c.configChangeRequestId})}" method="post" style="display:inline-flex;gap:6px;margin-top:6px;">
+                            <input type="text" class="form-control" name="reason" required="required" placeholder="Rejection remarks" aria-label="Rejection remarks" style="min-width:160px;"/>
+                            <button type="submit" class="btn btn-danger-outline btn-xs">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <h3 style="margin:18px 0 10px;">History</h3>
+    <div class="card" th:if="${history == null or #lists.isEmpty(history)}">
+        <div class="empty-state"><p>No change requests yet.</p></div>
+    </div>
+    <div class="card" th:if="${history != null and !#lists.isEmpty(history)}">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead><tr><th>Status</th><th>Type</th><th>Description</th><th>Reviewed (UTC)</th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${history}">
+                    <td th:text="${c.statusCode}">Pending</td>
+                    <td th:text="${c.changeType}">TYPE</td>
+                    <td th:text="${c.description}">desc</td>
+                    <td class="mono" th:text="${c.reviewedAtUtc} ?: '—'">—</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

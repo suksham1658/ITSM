@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Admin / <span>Workflow</span></div>
+        <h1>Workflow configuration</h1>
+        <p class="page-sub" th:text="${designerNote}">Note</p>
+      </div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h3 style="font-size:14px;margin-bottom:10px;">Templates</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Name</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          <tr th:each="d : ${definitions}">
+            <td class="cell-id" th:text="${d.code}">code</td>
+            <td th:text="${d.name}">name</td>
+            <td th:text="${d.statusCode}">Active</td>
+            <td><a class="cell-link" th:href="@{/admin/workflow/{id}(id=${d.workflowDefinitionId})}">Stages</a></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card card-pad">
+      <h3 style="font-size:14px;margin-bottom:10px;">Rule matrix</h3>
+      <p class="phase-note">Lowest Active priority wins. Empty JSON is the catch-all. CISO is removed by pointing a category at SR_CHAIN_TO_HOD_IMPL — not by Java.</p>
+      <div th:each="r : ${rules}" class="rule-edit">
+        <form th:action="@{/admin/workflow/rules/{id}(id=${r.workflowRuleId})}" method="post" class="card card-pad" style="margin-bottom:12px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Name</label><input class="form-control" name="name" th:value="${r.name}"/></div>
+            <div class="form-group"><label>Priority</label><input class="form-control" th:value="${r.priority}" disabled="disabled"/></div>
+            <div class="form-group"><label>Status</label>
+              <select class="form-control" name="statusCode">
+                <option th:selected="${r.statusCode == 'Active'}">Active</option>
+                <option th:selected="${r.statusCode == 'Inactive'}">Inactive</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Template</label><input class="form-control" th:value="${r.workflowDefinition.code}" disabled="disabled"/></div>
+            <div class="form-group span-2"><label>condition_json</label>
+              <textarea class="form-control" name="conditionJson" th:text="${r.conditionJson}">{}</textarea></div>
+          </div>
+          <button type="submit" class="btn btn-outline" style="margin-top:10px;">Save rule</button>
+        </form>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

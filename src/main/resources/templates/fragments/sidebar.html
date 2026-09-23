@@ -1,0 +1,53 @@
+<aside id="sidebar" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:fragment="sidebar(nav)">
+    <div class="sidebar-brand">
+        <div class="brand-mark">IT</div>
+        <div class="brand-txt"><strong>ITSM Portal</strong><small>ENTERPRISE EDITION</small></div>
+        <button type="button" class="sidebar-mobile-close" onclick="closeMobileSidebar()" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="sidebar-role-tag" th:if="${currentUser != null}">
+        <span class="r-label">Assigned roles</span>
+        <span class="r-name" th:text="${currentUser.primaryRoleLabel}">Employee</span>
+        <span class="text-muted" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:4px;display:block;"
+              th:if="${currentUser.roleCodes != null and !#lists.isEmpty(currentUser.roleCodes)}"
+              th:text="${#strings.listJoin(currentUser.roleCodes, ', ')}">EMPLOYEE</span>
+    </div>
+    <nav class="sidebar-nav" aria-label="Main">
+        <div class="sidebar-section-label">Main</div>
+        <a class="nav-item" th:classappend="${nav == 'dashboard'} ? ' active'" th:href="@{/}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_CREATE')" th:classappend="${nav == 'raise'} ? ' active'" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i><span>Raise Request</span></a>
+        <a class="nav-item" th:classappend="${nav == 'myTickets'} ? ' active'" th:href="@{/tickets}"><i class="fa-solid fa-ticket"></i><span>My Tickets</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_TEAM')" th:classappend="${nav == 'teamRequests'} ? ' active'" th:href="@{/tickets/team}"><i class="fa-solid fa-people-group"></i><span>Team Requests</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_DEPARTMENT')" th:classappend="${nav == 'deptRequests'} ? ' active'" th:href="@{/tickets/department}"><i class="fa-solid fa-building"></i><span>Department Requests</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_SECURITY')" th:classappend="${nav == 'securityRequests'} ? ' active'" th:href="@{/tickets/security}"><i class="fa-solid fa-shield-halved"></i><span>Security Requests</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_APPROVE_ASSIGNED_STAGE')" th:classappend="${nav == 'approvals'} ? ' active'" th:href="@{/approvals}"><i class="fa-solid fa-check-double"></i><span>Approvals</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_QUEUE_ALL')" th:classappend="${nav == 'ticketQueue'} ? ' active'" th:href="@{/queue/desk}"><i class="fa-solid fa-layer-group"></i><span>Ticket Queue</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_ASSIGN')" th:classappend="${nav == 'assignment'} ? ' active'" th:href="@{/queue/assignment}"><i class="fa-solid fa-user-plus"></i><span>Assignment</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('SLA_MONITOR')" th:classappend="${nav == 'slaMonitoring'} ? ' active'" th:href="@{/sla}"><i class="fa-solid fa-stopwatch"></i><span>SLA Monitoring</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('SLA_MONITOR')" th:classappend="${nav == 'escalations'} ? ' active'" th:href="@{/escalations}"><i class="fa-solid fa-bolt"></i><span>Escalations</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'myQueue'} ? ' active'" th:href="@{/queue/mine}"><i class="fa-solid fa-list-check"></i><span>My Assigned Tickets</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'workQueue'} ? ' active'" th:href="@{/queue/work}"><i class="fa-solid fa-toolbox"></i><span>Work Queue</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'changeRequests'} ? ' active'" th:href="@{/tickets/changes}"><i class="fa-solid fa-code-compare"></i><span>Change Requests</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_SECURITY')" th:classappend="${nav == 'risk'} ? ' active'" th:href="@{/risk}"><i class="fa-solid fa-triangle-exclamation"></i><span>Risk Dashboard</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('REPORT_VIEW')" th:classappend="${nav == 'reports'} ? ' active'" th:href="@{/reports}"><i class="fa-solid fa-chart-line"></i><span>Reports</span></a>
+
+        <div class="sidebar-section-label" sec:authorize="hasAnyAuthority('ADMIN_USER_MANAGE','ADMIN_MASTERDATA_PROPOSE','ADMIN_MASTERDATA_APPROVE','AUDIT_VIEW','ASSET_MANAGE')">Administration</div>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminUsers'} ? ' active'" th:href="@{/admin/users}"><i class="fa-solid fa-users"></i><span>Users</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminRoles'} ? ' active'" th:href="@{/admin/roles}"><i class="fa-solid fa-user-shield"></i><span>Roles</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminCategories'} ? ' active'" th:href="@{/admin/categories}"><i class="fa-solid fa-tags"></i><span>Categories</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminSLA'} ? ' active'" th:href="@{/admin/sla}"><i class="fa-solid fa-stopwatch"></i><span>SLA Config</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminWorkflow'} ? ' active'" th:href="@{/admin/workflow}"><i class="fa-solid fa-diagram-project"></i><span>Workflow Config</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_APPROVE')" th:classappend="${nav == 'adminChangeQueue'} ? ' active'" th:href="@{/admin/change-requests}"><i class="fa-solid fa-user-check"></i><span>Config approvals</span>
+            <span class="nav-badge" th:if="${pendingConfigCount != null and pendingConfigCount > 0}" th:text="${pendingConfigCount}">0</span>
+        </a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminConfig'} ? ' active'" th:href="@{/admin/config}"><i class="fa-solid fa-gears"></i><span>Configuration</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('AUDIT_VIEW')" th:classappend="${nav == 'auditTrail'} ? ' active'" th:href="@{/audit}"><i class="fa-solid fa-clipboard-list"></i><span>Audit Trail</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ASSET_MANAGE')" th:classappend="${nav == 'assets'} ? ' active'" th:href="@{/assets}"><i class="fa-solid fa-laptop"></i><span>Asset Management</span></a>
+
+        <div class="sidebar-section-label">Resources</div>
+        <a class="nav-item" sec:authorize="hasAuthority('KB_READ')" th:classappend="${nav == 'kb'} ? ' active'" th:href="@{/kb}"><i class="fa-solid fa-book"></i><span>Knowledge Base</span></a>
+        <a class="nav-item" th:classappend="${nav == 'notifications'} ? ' active'" th:href="@{/notifications}"><i class="fa-solid fa-bell"></i><span>Notifications</span></a>
+    </nav>
+    <div class="sidebar-foot">
+        <div class="sidebar-collapse-btn" onclick="toggleSidebar()" role="button" tabindex="0"><i class="fa-solid fa-angles-left" id="collapseIcon"></i> <span id="collapseLbl">Collapse</span></div>
+    </div>
+</aside>

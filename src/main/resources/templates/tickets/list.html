@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Tickets</span></div>
+        <h1 th:text="${pageTitle}">Tickets</h1>
+        <p class="page-sub">Server-side pagination. Filter by status, priority or number.</p>
+      </div>
+      <div class="page-header-actions">
+        <a class="btn btn-accent btn-sm" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i> Raise Request</a>
+      </div>
+    </div>
+    <form class="filter-bar card card-pad" method="get" th:action="@{${listPath}}">
+      <div class="fb-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Number or subject"/>
+      </div>
+      <select class="form-control" name="status">
+        <option value="">All statuses</option>
+        <option th:selected="${status == 'Draft'}">Draft</option>
+        <option th:selected="${status == 'Pending Approval'}">Pending Approval</option>
+        <option th:selected="${status == 'In Progress'}">In Progress</option>
+        <option th:selected="${status == 'Resolved'}">Resolved</option>
+        <option th:selected="${status == 'Closed'}">Closed</option>
+        <option th:selected="${status == 'Rejected'}">Rejected</option>
+      </select>
+      <select class="form-control" name="priority">
+        <option value="">All priorities</option>
+        <option th:selected="${priority == 'Critical'}">Critical</option>
+        <option th:selected="${priority == 'High'}">High</option>
+        <option th:selected="${priority == 'Medium'}">Medium</option>
+        <option th:selected="${priority == 'Low'}">Low</option>
+      </select>
+      <button type="submit" class="btn btn-outline">Filter</button>
+    </form>
+
+    <div class="card" th:if="${tickets != null and !tickets.content.empty}">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+          <tr>
+            <th>Number</th>
+            <th>Subject</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Requester</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="t : ${tickets.content}">
+            <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">ITSM</a></td>
+            <td th:text="${t.subject}">Subject</td>
+            <td th:text="${t.ticketType.name}">Type</td>
+            <td><span class="badge" th:text="${t.statusCode}">Open</span></td>
+            <td th:text="${t.priorityCode}">Medium</td>
+            <td th:text="${t.requester.displayName}">User</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <a class="btn btn-outline btn-sm" th:if="${tickets.hasPrevious()}"
+           th:href="@{''(q=${q},status=${status},priority=${priority},page=${tickets.number - 1})}">Previous</a>
+        <span class="page-sub" th:text="'Page ' + ${tickets.number + 1} + ' of ' + ${tickets.totalPages}">Page</span>
+        <a class="btn btn-outline btn-sm" th:if="${tickets.hasNext()}"
+           th:href="@{''(q=${q},status=${status},priority=${priority},page=${tickets.number + 1})}">Next</a>
+      </div>
+    </div>
+    <div th:if="${tickets == null or tickets.content.empty}">
+      <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

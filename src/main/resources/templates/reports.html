@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span>Reports</span></div>
+        <h1>Reports &amp; Analytics</h1>
+        <p class="page-sub">Named operational reports. Figures are queried on the server and limited to tickets you are allowed to see. Export caps at 5,000 rows.</p>
+      </div>
+    </div>
+    <div class="grid grid-3">
+      <a class="kb-card" th:each="r : ${reports}" th:href="@{/reports/{code}(code=${r.code})}">
+        <div class="kb-cat-icon"><i class="fa-solid" th:classappend="${r.icon}"></i></div>
+        <h4 th:text="${r.title}">Report</h4>
+        <p th:text="${r.description}">Description</p>
+        <div class="kb-meta"><span>Server-side query</span><span class="cell-link">View →</span></div>
+      </a>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>
