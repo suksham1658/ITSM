@@ -105,6 +105,27 @@ class PageShellTest {
     }
 
     @Test
+    void noDeveloperPlaceholderTextIsShownToUsers() throws IOException {
+        Pattern devText = Pattern.compile("Phase\\s*\\d|this phase|not wired|out of scope|seeded in SQL|view stub",
+                Pattern.CASE_INSENSITIVE);
+        List<String> hits = new ArrayList<String>();
+        List<Path> files;
+        try (Stream<Path> walk = Stream.concat(Files.walk(Paths.get("src/main/resources/templates")),
+                Stream.of(Paths.get("src/main/resources/static/js/itsm.js"),
+                        Paths.get("src/main/java/com/nbfc/itsm/web/PortalPageController.java"),
+                        Paths.get("src/main/java/com/nbfc/itsm/web/AdminCatalogController.java")))) {
+            files = walk.filter(p -> Files.isRegularFile(p)).collect(Collectors.toList());
+        }
+        for (Path file : files) {
+            Matcher m = devText.matcher(new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+            while (m.find()) {
+                hits.add(file.getFileName() + ": " + m.group());
+            }
+        }
+        assertTrue(hits.isEmpty(), "Developer placeholder text visible to users: " + hits);
+    }
+
+    @Test
     void shellControlsAreWiredThroughDataActions() throws Exception {
         mockMvc.perform(get("/tickets").with(authentication(token(user))))
                 .andExpect(status().isOk())

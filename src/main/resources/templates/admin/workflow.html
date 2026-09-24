@@ -34,7 +34,7 @@
     </div>
     <div class="card card-pad">
       <h3 style="font-size:14px;margin-bottom:10px;">Rule matrix</h3>
-      <p class="phase-note">Lowest Active priority wins. Empty JSON is the catch-all. CISO is removed by pointing a category at SR_CHAIN_TO_HOD_IMPL — not by Java.</p>
+      <p class="phase-note">The active rule with the lowest priority number wins; an empty condition <code>{}</code> matches every ticket. To skip CISO approval for a category, point its rule at SR_CHAIN_TO_HOD_IMPL.</p>
       <div th:each="r : ${rules}" class="rule-edit">
         <form th:action="@{/admin/workflow/rules/{id}(id=${r.workflowRuleId})}" method="post" class="card card-pad" style="margin-bottom:12px;">
           <div class="form-grid">

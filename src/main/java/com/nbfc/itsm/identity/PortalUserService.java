@@ -125,6 +125,30 @@ public class PortalUserService {
     }
 
     /**
+     * Current view of a signed-in user, re-read from the database so role assignments, role
+     * permission edits and portal disable take effect without a new login. Keeps the "View as"
+     * role while it is still assigned. Returns {@code null} when the employee no longer exists or
+     * is no longer portal-active (the session must then end).
+     */
+    @Transactional(readOnly = true)
+    public ItsmUserPrincipal refresh(ItsmUserPrincipal current) {
+        Employee employee = employeeRepository.findById(current.getEmployeeId()).orElse(null);
+        if (employee == null || !employee.isPortalActive()) {
+            return null;
+        }
+        ItsmUserPrincipal fresh = toPrincipal(employee, null);
+        String active = current.getActiveRoleCode();
+        if (active != null) {
+            for (ItsmUserPrincipal.AssignedRole role : fresh.getAssignedRoles()) {
+                if (role.getCode().equals(active)) {
+                    return toPrincipal(employee, active);
+                }
+            }
+        }
+        return fresh;
+    }
+
+    /**
      * Re-reads the employee and their roles, then selects {@code roleCode} as the active role
      * ({@code null} or blank = all roles). Only roles currently assigned and active can be chosen.
      */

@@ -97,6 +97,16 @@ public class ItsmUserPrincipal implements UserDetails {
         return activeRoleCode;
     }
 
+    /** Identity of everything that drives access and the UI; used to detect role/permission changes. */
+    public String fingerprint() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(employeeId).append('|').append(displayName).append('|').append(activeRoleCode);
+        for (AssignedRole r : assignedRoles) {
+            sb.append('|').append(r.getCode()).append('=').append(r.getName()).append(r.getPermissionCodes());
+        }
+        return sb.toString();
+    }
+
     public boolean isRoleSwitchAvailable() {
         return assignedRoles.size() > 1;
     }

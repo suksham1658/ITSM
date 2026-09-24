@@ -2,12 +2,14 @@ package com.nbfc.itsm.security;
 
 import com.nbfc.itsm.audit.AuditRecorder;
 import com.nbfc.itsm.config.ItsmProperties;
+import com.nbfc.itsm.identity.PortalUserService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
@@ -28,17 +30,20 @@ public class SecurityConfig {
     private final ObjectProvider<H2PreviewAuthenticationProvider> h2PreviewAuthenticationProvider;
     private final ItsmProperties properties;
     private final AuditRecorder auditRecorder;
+    private final PortalUserService portalUserService;
 
     public SecurityConfig(FailClosedLdapAuthenticationProvider ldapAuthenticationProvider,
                           FailClosedFallbackAuthenticationProvider fallbackAuthenticationProvider,
                           ObjectProvider<H2PreviewAuthenticationProvider> h2PreviewAuthenticationProvider,
                           ItsmProperties properties,
-                          AuditRecorder auditRecorder) {
+                          AuditRecorder auditRecorder,
+                          PortalUserService portalUserService) {
         this.ldapAuthenticationProvider = ldapAuthenticationProvider;
         this.fallbackAuthenticationProvider = fallbackAuthenticationProvider;
         this.h2PreviewAuthenticationProvider = h2PreviewAuthenticationProvider;
         this.properties = properties;
         this.auditRecorder = auditRecorder;
+        this.portalUserService = portalUserService;
     }
 
     @Bean
@@ -110,7 +115,9 @@ public class SecurityConfig {
                 .sessionManagement()
                     .sessionFixation().migrateSession()
                 .and()
-                .addFilterBefore(new AbsoluteSessionTimeoutFilter(properties), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new AbsoluteSessionTimeoutFilter(properties), UsernamePasswordAuthenticationFilter.class)
+                // Re-read roles/permissions each request so admin changes apply without a new login.
+                .addFilterBefore(new PrincipalRefreshFilter(portalUserService), ExceptionTranslationFilter.class);
         return http.build();
     }
 }

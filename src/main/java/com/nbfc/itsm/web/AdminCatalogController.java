@@ -68,7 +68,7 @@ public class AdminCatalogController {
         model.addAttribute("nav", "adminSLA");
         model.addAttribute("pageTitle", "SLA configuration");
         model.addAttribute("emptyMessage",
-                "SLA matrix is seeded (Critical/High/Medium/Low). Editing still goes through maker-checker; this page is a view stub. Live clocks are under SLA Monitoring.");
+                "To see live SLA clocks for tickets, open SLA Monitoring.");
         return "admin/stub";
     }
 
@@ -86,7 +86,7 @@ public class AdminCatalogController {
         model.addAttribute("definitions", defs);
         model.addAttribute("rules", rules);
         model.addAttribute("designerNote",
-                "There is no drag-and-drop designer in this phase. Templates and the rule matrix below are the live engine data. INCIDENT_DIRECT_IMPL stays Inactive with no rule.");
+                "Open a template to see its stages. Edit a rule below to change which workflow a ticket follows.");
         return "admin/workflow";
     }
 
@@ -140,7 +140,7 @@ public class AdminCatalogController {
         model.addAttribute("nav", "adminConfig");
         model.addAttribute("pageTitle", "Configuration");
         model.addAttribute("emptyMessage",
-                "Non-secret system settings (remarks minimum, hop cap) are seeded. Database and LDAP bind settings stay in environment variables.");
+                "");
         return "admin/stub";
     }
 }

@@ -148,31 +148,31 @@ public class PortalPageController {
     @GetMapping("/risk")
     public String risk(Model model) {
         return listPage(model, "risk", "Risk Dashboard", "risk",
-                "Risk KPIs use live ticket data. Charts are omitted so we do not invent metrics.");
+                "To review security tickets, open Security Requests.");
     }
 
     @GetMapping("/kb")
     public String kb(Model model) {
         return listPage(model, "kb", "Knowledge Base", "kb",
-                "No knowledge articles are published in this environment.");
+                "No knowledge articles have been published yet.");
     }
 
     @GetMapping("/notifications")
     public String notifications(Model model) {
         return listPage(model, "notifications", "Notifications", "notifications",
-                "In-app notification delivery is not wired. Ticket audit records actions.");
+                "You have no notifications.");
     }
 
     @GetMapping("/audit")
     public String audit(Model model) {
         return listPage(model, "auditTrail", "Audit Trail", "audit",
-                "Open a ticket to see create/status/assignment/approval events. Login events are in audit_log.");
+                "Open a ticket to see its history of status changes, assignments and approvals.");
     }
 
     @GetMapping("/assets")
     public String assets(Model model) {
         return listPage(model, "assets", "Asset Management", "assets",
-                "No assets loaded. Asset feed is out of scope for this phase.");
+                "No assets have been added.");
     }
 
     private String queue(Model model, String nav, String title, String stageType, String empty) {

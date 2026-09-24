@@ -32,7 +32,10 @@
         </form>
     </div>
     <div class="card">
-        <div class="card-head"><div><h3>Roles</h3><div class="ch-sub">Assigned only after checker approval. Employees cannot self-provision.</div></div></div>
+        <div class="card-head"><div><h3>Roles</h3>
+            <div class="ch-sub" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">As System Administrator your assign/remove takes effect immediately; no approval is needed.</div>
+            <div class="ch-sub" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Assigned only after checker approval. Employees cannot self-provision.</div>
+        </div></div>
         <div class="empty-state" th:if="${allRoles == null or #lists.isEmpty(allRoles)}"><p>No roles in catalogue.</p></div>
         <div class="table-wrap" th:if="${allRoles != null and !#lists.isEmpty(allRoles)}">
             <table class="data-table">
@@ -46,7 +49,9 @@
                         <form th:action="@{/admin/users/{id}/propose-role(id=${employee.employeeId})}" method="post">
                             <input type="hidden" name="roleId" th:value="${role.roleId}"/>
                             <input type="hidden" name="assign" th:value="${!assignedRoleIds.contains(role.roleId)}"/>
-                            <button type="submit" class="btn btn-outline btn-xs"
+                            <button type="submit" class="btn btn-outline btn-xs" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+                                    th:text="${assignedRoleIds.contains(role.roleId)} ? 'Remove' : 'Assign'">Assign</button>
+                            <button type="submit" class="btn btn-outline btn-xs" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
                                     th:text="${assignedRoleIds.contains(role.roleId)} ? 'Propose remove' : 'Propose assign'">Propose</button>
                         </form>
                     </td>

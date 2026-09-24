@@ -54,7 +54,7 @@
 
         <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}">
           <h3 style="font-size:14px;margin-bottom:8px;">Take action</h3>
-          <p class="phase-note">Approve, Reject and Send Back require remarks of at least 10 characters (UI and server).</p>
+          <p class="phase-note">Enter remarks of at least 10 characters to Approve, Reject or Send Back.</p>
           <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="action-form" id="ticketActionForm">
             <div class="form-group">
               <label>Action</label>
@@ -108,7 +108,7 @@
               <span class="phase-note" th:text="${f.byteLength + ' bytes'}">size</span>
             </li>
           </ul>
-          <p class="phase-note" th:if="${detail.attachments.empty}">No files. Executables are blocked. Max size follows attachment_policy (10 MB seed).</p>
+          <p class="phase-note" th:if="${detail.attachments.empty}">No files yet. Executable and script files cannot be uploaded.</p>
           <form th:action="@{/tickets/{id}/attachments(id=${detail.ticket.ticketId})}" method="post" enctype="multipart/form-data">
             <input class="form-control" type="file" name="file" required="required"/>
             <button type="submit" class="btn btn-outline" style="margin-top:8px;">Upload</button>
@@ -133,7 +133,7 @@
               <div class="phase-note" th:if="${s.remarks != null}" th:text="${s.remarks}">remarks</div>
             </li>
           </ol>
-          <p class="phase-note" th:if="${detail.stages.empty}">Draft — no instance until submit.</p>
+          <p class="phase-note" th:if="${detail.stages.empty}">This is a draft. Submit it to start the approval workflow.</p>
         </div>
       </div>
     </div>

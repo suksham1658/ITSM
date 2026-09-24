@@ -135,18 +135,6 @@
     }
   });
 
-  var search = $("globalSearchInput");
-  var box = $("searchResultsBox");
-  if (search && box) {
-    search.addEventListener("focus", function () {
-      box.classList.add("show");
-      box.innerHTML = "<div class=\"empty-state\" style=\"padding:18px\"><p>Ticket, employee and asset search is connected in Phase 6. No live results yet.</p></div>";
-    });
-    search.addEventListener("input", function () {
-      box.classList.add("show");
-    });
-  }
-
   var cat = document.getElementById("categorySelect");
   var sub = document.getElementById("subCategorySelect");
   if (cat && sub) {

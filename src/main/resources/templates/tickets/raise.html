@@ -64,7 +64,7 @@
           <div class="form-group"><label>Location</label>
             <input type="text" class="form-control" name="location" maxlength="128"/></div>
         </div>
-        <p class="phase-note">Save as draft stores the ticket without a workflow instance or SLA. Submit allocates ITSM-year-sequence and starts clocks.</p>
+        <p class="phase-note">Use <b>Save draft</b> to finish later. <b>Submit Request</b> sends it for approval and starts the SLA clock.</p>
         <div class="form-actions">
           <button type="submit" class="btn btn-accent" name="intent" value="submit"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
           <button type="submit" class="btn btn-outline" name="intent" value="draft">Save draft</button>
@@ -72,9 +72,13 @@
         </div>
       </form>
       <div class="card card-pad">
-        <h3 style="font-size:14px;margin-bottom:14px;">How routing works</h3>
-        <p class="page-sub" style="margin:0 0 12px;">The matcher picks the first <strong>Active</strong> rule by priority. Incident → Service Desk then Implementor. Service Request → manager hops to HOD, CISO, Implementor. Direct-to-implementor Incident is Inactive.</p>
-        <p class="phase-note">H2 preview: this login is treated as HOD of self so the hierarchy stage is skipped; you still approve as CISO, fulfil, and confirm.</p>
+        <h3 style="font-size:14px;margin-bottom:14px;">Before you submit</h3>
+        <ul class="page-sub" style="margin:0;padding-left:18px;line-height:1.8;">
+            <li>Choose <strong>Incident</strong> when something is broken, or <strong>Service Request</strong> when you need something new (access, software, hardware).</li>
+            <li>Pick the category and sub-category closest to your issue.</li>
+            <li>Describe what happened, any error message, and since when.</li>
+            <li>Service Requests go to your manager for approval first.</li>
+        </ul>
       </div>
     </div>
 </main>

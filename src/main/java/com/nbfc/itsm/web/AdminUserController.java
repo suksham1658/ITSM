@@ -1,6 +1,7 @@
 package com.nbfc.itsm.web;
 
 import com.nbfc.itsm.admin.AdminUserService;
+import com.nbfc.itsm.domain.ConfigChangeRequest;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.Role;
 import com.nbfc.itsm.exception.ItsmException;
@@ -75,8 +76,17 @@ public class AdminUserController {
                               @RequestParam("assign") boolean assign,
                               @AuthenticationPrincipal ItsmUserPrincipal maker,
                               RedirectAttributes ra) {
-        adminUserService.proposeRole(id, roleId, assign, maker);
-        ra.addFlashAttribute("message", "Role change submitted for checker approval.");
+        try {
+            ConfigChangeRequest ccr = adminUserService.proposeRole(id, roleId, assign, maker);
+            if ("Applied".equals(ccr.getStatusCode())) {
+                ra.addFlashAttribute("message", (assign ? "Role assigned. " : "Role removed. ")
+                        + "The change is in effect now; the user gets it on their next page load.");
+            } else {
+                ra.addFlashAttribute("message", "Role change submitted for checker approval.");
+            }
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/admin/users/" + id;
     }
 

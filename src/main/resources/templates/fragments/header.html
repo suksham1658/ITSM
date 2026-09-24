@@ -1,10 +1,5 @@
 <header id="topHeader" xmlns:th="http://www.thymeleaf.org" th:fragment="header">
     <button type="button" class="header-burger" data-action="toggle-sidebar" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
-    <div class="header-search">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="search" id="globalSearchInput" placeholder="Search tickets, employees, assets…" aria-label="Global search" autocomplete="off"/>
-        <div class="search-results" id="searchResultsBox" role="listbox"></div>
-    </div>
     <div class="header-spacer"></div>
     <div class="header-right" th:if="${currentUser != null}">
         <form class="role-switcher" th:if="${currentUser.roleSwitchAvailable}" th:action="@{/session/active-role}" method="post">
@@ -42,7 +37,6 @@
                 <div class="u-id" th:text="${currentUser.employeeNo}">E1</div>
             </div>
         </div>
-        <div class="umenu-item text-muted"><i class="fa-regular fa-user"></i> Profile (Phase 6)</div>
         <div class="umenu-divider"></div>
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="umenu-item" style="width:100%;text-align:left;color:var(--danger);background:none;border:0;">

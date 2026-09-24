@@ -122,12 +122,61 @@ public class AdminUserService {
         ccr.setEntityKey(employeeId + ":" + roleId);
         ccr.setPayloadJson("{\"employeeId\":" + employeeId + ",\"roleId\":" + roleId + ",\"assign\":" + assign + "}");
         ccr.setDescription((assign ? "Assign " : "Remove ") + role.getCode() + " for " + target.getEmployeeNo());
-        ccr.setStatusCode("PendingApproval");
         ccr.setRequestedBy(makerEmp);
         ccr.setRequestedAtUtc(TimeUtc.now());
+
+        if (isSystemAdministrator(maker)) {
+            // Top of the admin tier: applied at once, nothing is forwarded for approval. Still recorded
+            // as an Applied change request (maker = reviewer) so Config approvals keeps the history.
+            ccr.setDescription(ccr.getDescription() + " (applied directly by System Administrator)");
+            apply(ccr, maker);
+            ccr.setStatusCode("Applied");
+            ccr.setReviewedBy(makerEmp);
+            ccr.setReviewedAtUtc(TimeUtc.now());
+            configChangeRequestRepository.save(ccr);
+            auditRecorder.record("ADMIN", assign ? "ROLE_ASSIGN" : "ROLE_REMOVE", ccr.getDescription(), "SUCCESS");
+            return ccr;
+        }
+
+        ccr.setStatusCode("PendingApproval");
         configChangeRequestRepository.save(ccr);
         auditRecorder.record("ADMIN", "PROPOSE", ccr.getDescription(), "SUCCESS");
         return ccr;
+    }
+
+    /**
+     * Removing {@code role} from {@code employee} must not leave the portal without an active
+     * employee who can manage users and approve changes.
+     */
+    private void assertAdminsRemainWithout(Employee employee, Role role) {
+        List<EmployeeRoleAssignment> all = employeeRoleAssignmentRepository.findAll();
+        for (String permission : RoleAdminService.GUARDED_PERMISSIONS) {
+            boolean before = false;
+            boolean after = false;
+            for (EmployeeRoleAssignment a : all) {
+                Employee holder = a.getEmployee();
+                Role r = a.getRole();
+                if (holder == null || r == null || !holder.isPortalActive() || !r.isActive()
+                        || !RoleAdminService.codes(r).contains(permission)) {
+                    continue;
+                }
+                before = true;
+                boolean removed = holder.getEmployeeId().equals(employee.getEmployeeId())
+                        && r.getRoleId().equals(role.getRoleId());
+                if (!removed) {
+                    after = true;
+                }
+            }
+            if (before && !after) {
+                throw new ItsmException("ROLE_LOCKOUT", "Removing " + role.getCode() + " from "
+                        + employee.getEmployeeNo() + " would leave no active employee with " + permission + ".");
+            }
+        }
+    }
+
+    /** System Administrator (as the active role) is the top of the admin tier. */
+    public static boolean isSystemAdministrator(ItsmUserPrincipal principal) {
+        return principal != null && principal.getRoleCodes().contains("SYSTEM_ADMINISTRATOR");
     }
 
     @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_APPROVE')")
@@ -226,6 +275,7 @@ public class AdminUserService {
                     employeeRoleAssignmentRepository.save(row);
                 }
             } else {
+                assertAdminsRemainWithout(e, role);
                 employeeRoleAssignmentRepository.deleteByEmployeeAndRole(e, role);
             }
         }
