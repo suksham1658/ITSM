@@ -4,6 +4,7 @@ import com.nbfc.itsm.config.ItsmProperties;
 import com.nbfc.itsm.identity.LdapDirectoryClient;
 import com.nbfc.itsm.identity.LdapPerson;
 import com.nbfc.itsm.identity.PortalUserService;
+import com.nbfc.itsm.validation.FieldLimits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -40,6 +41,10 @@ public class FailClosedLdapAuthenticationProvider implements AuthenticationProvi
         String username = authentication.getName();
         String password = authentication.getCredentials() == null ? "" : authentication.getCredentials().toString();
         if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+        if (username.length() > FieldLimits.USERNAME_MAX || password.length() > FieldLimits.PASSWORD_MAX) {
+            log.warn("Login rejected before LDAP: username or password longer than allowed");
             throw new BadCredentialsException("Invalid credentials");
         }
         if (!properties.getLdap().isConfigured()) {

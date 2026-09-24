@@ -1,5 +1,8 @@
 package com.nbfc.itsm.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nbfc.itsm.domain.Category;
 import com.nbfc.itsm.domain.CategoryRepository;
 import com.nbfc.itsm.domain.SubCategory;
@@ -11,6 +14,8 @@ import com.nbfc.itsm.domain.WorkflowRuleRepository;
 import com.nbfc.itsm.domain.WorkflowStage;
 import com.nbfc.itsm.domain.WorkflowStageRepository;
 import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.validation.FieldLimits;
+import com.nbfc.itsm.validation.Validation;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,17 +38,20 @@ public class AdminCatalogController {
     private final WorkflowRuleRepository ruleRepository;
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
+    private final ObjectMapper objectMapper;
 
     public AdminCatalogController(WorkflowDefinitionRepository definitionRepository,
                                   WorkflowStageRepository stageRepository,
                                   WorkflowRuleRepository ruleRepository,
                                   CategoryRepository categoryRepository,
-                                  SubCategoryRepository subCategoryRepository) {
+                                  SubCategoryRepository subCategoryRepository,
+                                  ObjectMapper objectMapper) {
         this.definitionRepository = definitionRepository;
         this.stageRepository = stageRepository;
         this.ruleRepository = ruleRepository;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/categories")
@@ -122,13 +130,28 @@ public class AdminCatalogController {
                              RedirectAttributes ra) {
         WorkflowRule rule = ruleRepository.findById(id)
                 .orElseThrow(() -> new ItsmException("RULE_NOT_FOUND", "Rule not found."));
-        if (!"Active".equals(statusCode) && !"Inactive".equals(statusCode)) {
-            ra.addFlashAttribute("errorMessage", "Status must be Active or Inactive.");
+        Validation v = new Validation();
+        String cleanName = v.text(name, "Rule name", FieldLimits.RULE_NAME_MIN, FieldLimits.RULE_NAME_MAX, true);
+        v.oneOf(statusCode, "Status", java.util.Arrays.asList("Active", "Inactive"));
+        String json = conditionJson == null || conditionJson.trim().isEmpty() ? "{}" : conditionJson.trim();
+        if (json.length() > FieldLimits.RULE_JSON_MAX) {
+            v.check(false, "Condition JSON must be at most " + FieldLimits.RULE_JSON_MAX + " characters.");
+        } else {
+            try {
+                JsonNode node = objectMapper.readTree(json);
+                v.check(node != null && node.isObject(),
+                        "Condition must be a JSON object, for example {} or {\"ticket_type\":[\"Incident\"]}.");
+            } catch (JsonProcessingException ex) {
+                v.check(false, "Condition is not valid JSON: " + ex.getOriginalMessage());
+            }
+        }
+        if (v.hasErrors()) {
+            ra.addFlashAttribute("errorMessage", Validation.message(v.errors()));
             return "redirect:/admin/workflow";
         }
         rule.setStatusCode(statusCode);
-        rule.setConditionJson(conditionJson == null ? "{}" : conditionJson.trim());
-        rule.setName(name);
+        rule.setConditionJson(json);
+        rule.setName(cleanName);
         ruleRepository.save(rule);
         ra.addFlashAttribute("message", "Rule '" + rule.getName() + "' saved. The matcher reads this on the next submit.");
         return "redirect:/admin/workflow";

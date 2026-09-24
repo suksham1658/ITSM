@@ -18,7 +18,7 @@
     </div>
     <form class="filter-bar" method="get" th:action="@{/admin/users}">
         <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
-            <input type="search" name="q" th:value="${q}" placeholder="Name, employee no, or SAM" aria-label="Search users"/>
+            <input type="search" name="q" th:value="${q}" th:attr="maxlength=${limits.searchMax}" placeholder="Name, employee no, or SAM" aria-label="Search users"/>
         </div>
         <button type="submit" class="btn btn-outline btn-sm">Search</button>
     </form>

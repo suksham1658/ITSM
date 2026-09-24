@@ -13,6 +13,8 @@ import com.nbfc.itsm.domain.RoleRepository;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.util.TimeUtc;
+import com.nbfc.itsm.validation.FieldLimits;
+import com.nbfc.itsm.validation.Validation;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -236,6 +238,9 @@ public class AdminUserService {
         if (reason == null || reason.trim().length() == 0) {
             throw new ItsmException("REASON_REQUIRED", "Rejection remarks are required");
         }
+        Validation v = new Validation();
+        v.text(reason, "Rejection remarks", FieldLimits.REJECT_REASON_MIN, FieldLimits.REJECT_REASON_MAX, true);
+        v.throwIfInvalid("REASON_INVALID");
         ccr.setStatusCode("Rejected");
         ccr.setRejectReason(reason.trim());
         ccr.setReviewedBy(requireEmployee(checker.getEmployeeId()));

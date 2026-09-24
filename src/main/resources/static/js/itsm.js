@@ -164,6 +164,71 @@
     filterSubs();
   }
 
+  // ---- Form validation (mirrors the server rules; the server still re-checks everything) ----
+
+  // Plain HTML required/minlength accepts spaces-only text and skips pre-filled values, so check
+  // the trimmed value of every text field on submit and let the browser show the message.
+  function trimmedProblem(f) {
+    var v = (f.value || "").replace(/^\s+|\s+$/g, "");
+    var min = parseInt(f.getAttribute("minlength") || "0", 10);
+    var max = parseInt(f.getAttribute("maxlength") || "0", 10);
+    if (f.required && !v) { return "Please fill in this field."; }
+    if (v && min && v.length < min) { return "Enter at least " + min + " characters (currently " + v.length + ")."; }
+    if (v && max && v.length > max) { return "Enter at most " + max + " characters (currently " + v.length + ")."; }
+    return "";
+  }
+
+  var allForms = document.querySelectorAll("form");
+  for (var fi = 0; fi < allForms.length; fi++) {
+    allForms[fi].addEventListener("submit", function (ev) {
+      var form = this;
+      var fields = form.querySelectorAll("input[type='text'], input[type='search'], input:not([type]), textarea");
+      for (var k = 0; k < fields.length; k++) {
+        fields[k].setCustomValidity(fields[k].disabled ? "" : trimmedProblem(fields[k]));
+      }
+      if (!form.checkValidity()) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        form.reportValidity();
+      }
+    }, true);
+    allForms[fi].addEventListener("input", function (ev) {
+      if (ev.target && ev.target.setCustomValidity) { ev.target.setCustomValidity(""); }
+    });
+  }
+
+  // "n / max" counter under long text fields.
+  var counted = document.querySelectorAll("[data-counter][maxlength]");
+  for (var ci = 0; ci < counted.length; ci++) {
+    (function (field) {
+      var out = document.createElement("small");
+      out.className = "text-muted field-counter";
+      field.parentNode.appendChild(out);
+      function update() {
+        var len = (field.value || "").length;
+        out.textContent = len + " / " + field.getAttribute("maxlength");
+      }
+      field.addEventListener("input", update);
+      update();
+    })(counted[ci]);
+  }
+
+  // Date ranges: keep "from" on or before "to".
+  var fromDates = document.querySelectorAll("input[type='date'][name='from']");
+  for (var di = 0; di < fromDates.length; di++) {
+    (function (fromEl) {
+      var toEl = fromEl.form ? fromEl.form.querySelector("input[type='date'][name='to']") : null;
+      if (!toEl) { return; }
+      function sync() {
+        toEl.min = fromEl.value || "";
+        fromEl.max = toEl.value || "";
+      }
+      fromEl.addEventListener("change", sync);
+      toEl.addEventListener("change", sync);
+      sync();
+    })(fromDates[di]);
+  }
+
   var actionForm = document.getElementById("ticketActionForm");
   if (actionForm) {
     actionForm.addEventListener("submit", function (ev) {

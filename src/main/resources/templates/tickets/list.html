@@ -22,7 +22,7 @@
     <form class="filter-bar card card-pad" method="get" th:action="@{${listPath}}">
       <div class="fb-search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Number or subject"/>
+        <input class="form-control" type="search" name="q" th:value="${q}" th:attr="maxlength=${limits.searchMax}" placeholder="Number or subject"/>
       </div>
       <select class="form-control" name="status">
         <option value="">All statuses</option>

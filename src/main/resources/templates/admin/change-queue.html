@@ -38,7 +38,7 @@
                             <button type="submit" class="btn btn-accent btn-xs">Approve</button>
                         </form>
                         <form th:action="@{/admin/change-requests/{id}/reject(id=${c.configChangeRequestId})}" method="post" style="display:inline-flex;gap:6px;margin-top:6px;">
-                            <input type="text" class="form-control" name="reason" required="required" placeholder="Rejection remarks" aria-label="Rejection remarks" style="min-width:160px;"/>
+                            <input type="text" class="form-control" name="reason" required="required" th:attr="minlength=${limits.rejectReasonMin},maxlength=${limits.rejectReasonMax}" placeholder="Reason (at least 10 characters)" aria-label="Rejection remarks" style="min-width:200px;"/>
                             <button type="submit" class="btn btn-danger-outline btn-xs">Reject</button>
                         </form>
                     </td>

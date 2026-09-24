@@ -39,14 +39,14 @@
           <label for="username">Domain username <span class="req">*</span></label>
           <div class="input-icon-wrap">
             <i class="fa-solid fa-user"></i>
-            <input id="username" name="username" type="text" class="form-control" autocomplete="username" required="required" placeholder="CORP\\your.id"/>
+            <input id="username" name="username" type="text" class="form-control" autocomplete="username" required="required" maxlength="256" placeholder="CORP\\your.id"/>
           </div>
         </div>
         <div class="form-group">
           <label for="password">Password <span class="req">*</span></label>
           <div class="input-icon-wrap">
             <i class="fa-solid fa-lock"></i>
-            <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required="required"/>
+            <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required="required" maxlength="256"/>
           </div>
         </div>
         <p class="login-sub" style="margin-top:-8px;">Password reset is not available here. Use the corporate AD process or raise a Service Desk ticket.</p>

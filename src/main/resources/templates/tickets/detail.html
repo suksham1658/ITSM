@@ -71,7 +71,7 @@
             </div>
             <div class="form-group">
               <label>Remarks <span class="req" id="remarksReq">*</span></label>
-              <textarea class="form-control" name="remarks" id="actionRemarks" minlength="10" placeholder="Mandatory on Approve / Reject / Send Back"></textarea>
+              <textarea class="form-control" name="remarks" id="actionRemarks" th:attr="maxlength=${limits.remarksMax}" data-counter="true" placeholder="Required for Approve, Reject and Send Back (at least 10 characters)"></textarea>
             </div>
             <button type="submit" class="btn btn-accent">Submit action</button>
           </form>
@@ -92,7 +92,7 @@
             </div>
           </div>
           <form th:action="@{/tickets/{id}/comments(id=${detail.ticket.ticketId})}" method="post" style="margin-top:12px;">
-            <textarea class="form-control" name="body" required="required" placeholder="Add a comment"></textarea>
+            <textarea class="form-control" name="body" required="required" th:attr="minlength=${limits.commentMin},maxlength=${limits.commentMax}" data-counter="true" placeholder="Add a comment"></textarea>
             <label class="phase-note" th:if="${detail.canCommentInternal}" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
               <input type="checkbox" name="internal" value="true"/> Internal (not visible to requester-only viewers)
             </label>

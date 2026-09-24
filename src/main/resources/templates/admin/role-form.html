@@ -26,7 +26,9 @@
             <div class="form-group">
                 <label for="roleName">Role Name <span class="req">*</span></label>
                 <input class="form-control" id="roleName" type="text" th:field="*{name}" required="required"
-                       minlength="3" maxlength="128" placeholder="e.g. Procurement Approver"/>
+                       minlength="3" maxlength="128" pattern="[A-Za-z0-9 &amp;\(\)\/\._\-]+"
+                       title="Letters, digits, spaces and &amp; ( ) / . _ - only"
+                       placeholder="e.g. Procurement Approver"/>
                 <small class="text-muted" th:if="${role == null}">The role code is generated from the name (e.g. PROCUREMENT_APPROVER) and cannot be changed later.</small>
                 <small class="text-muted mono" th:if="${role != null}" th:text="'Code: ' + ${role.code}">Code</small>
             </div>

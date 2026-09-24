@@ -21,6 +21,7 @@ import com.nbfc.itsm.ticket.TicketService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -127,7 +129,9 @@ public class TicketController {
     public String raise(Model model, HttpServletRequest request) {
         model.addAttribute("nav", "raise");
         model.addAttribute("pageTitle", "Raise Request");
-        model.addAttribute("form", new TicketForm());
+        if (!model.containsAttribute("form")) {
+            model.addAttribute("form", new TicketForm());
+        }
         populateLookups(model);
         BackLinks.addTo(model, request, "/tickets", "Back to My Tickets", "itsm.back.raise");
         return "tickets/raise";
@@ -148,6 +152,8 @@ public class TicketController {
             return "redirect:/tickets/" + ticket.getTicketId();
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());
+            // Keep what the user typed so they only fix the flagged fields.
+            ra.addFlashAttribute("form", form);
             return "redirect:/tickets/raise";
         }
     }
@@ -230,7 +236,8 @@ public class TicketController {
         byte[] data = Files.readAllBytes(attachmentService.resolveFile(att));
         String ct = att.getContentType() == null ? MediaType.APPLICATION_OCTET_STREAM_VALUE : att.getContentType();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + att.getOriginalName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(att.getOriginalName(), StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.parseMediaType(ct))
                 .body(data);
     }
@@ -239,6 +246,7 @@ public class TicketController {
                         String priority, Long typeId, int page, int size, Model model) {
         int safeSize = size < 1 ? 20 : Math.min(size, 100);
         int safePage = Math.max(page, 0);
+        q = SearchText.clean(q);
         Page<Ticket> result = ticketService.search(user, scope, q, status, priority, typeId,
                 PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAtUtc")));
         model.addAttribute("nav", nav);

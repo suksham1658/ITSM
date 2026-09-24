@@ -24,6 +24,8 @@ import com.nbfc.itsm.domain.WorkflowInstanceStageRepository;
 import com.nbfc.itsm.domain.WorkflowStageTransition;
 import com.nbfc.itsm.domain.WorkflowStageTransitionRepository;
 import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.validation.FieldLimits;
+import com.nbfc.itsm.validation.Validation;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.sla.SlaService;
 import com.nbfc.itsm.util.TimeUtc;
@@ -142,15 +144,22 @@ public class TicketService {
     @Transactional
     public Ticket applyAction(ItsmUserPrincipal principal, Long ticketId, String action, String remarks, Long assigneeId) {
         requireView(principal, ticketId);
-        return workflowEngine.applyAction(ticketId, principal, action, remarks, assigneeId);
+        if (remarks != null && remarks.trim().length() > FieldLimits.REMARKS_MAX) {
+            throw new ItsmException("REMARKS_TOO_LONG",
+                    "Remarks must be at most " + FieldLimits.REMARKS_MAX + " characters.");
+        }
+        return workflowEngine.applyAction(ticketId, principal, action, remarks == null ? null : remarks.trim(), assigneeId);
     }
 
     @Transactional
     public TicketComment addComment(ItsmUserPrincipal principal, Long ticketId, String body, boolean internal) {
         Ticket ticket = requireView(principal, ticketId);
-        if (!StringUtils.hasText(body) || body.trim().length() < 2) {
+        if (!StringUtils.hasText(body)) {
             throw new ItsmException("COMMENT_EMPTY", "Comment text is required.");
         }
+        Validation v = new Validation();
+        v.text(body, "Comment", FieldLimits.COMMENT_MIN, FieldLimits.COMMENT_MAX, true);
+        v.throwIfInvalid("COMMENT_INVALID");
         boolean staff = canSeeInternal(principal);
         if (internal && !staff) {
             throw new AccessDeniedException("Internal comments are for service desk / implementors / approvers.");
@@ -455,29 +464,49 @@ public class TicketService {
     }
 
     private Ticket applyForm(Ticket ticket, TicketForm form, Employee requester) {
-        if (!StringUtils.hasText(form.getSubject()) || !StringUtils.hasText(form.getDescription())) {
-            throw new ItsmException("TICKET_INVALID", "Subject and description are required.");
+        Validation lookups = new Validation();
+        TicketType type = form.getTicketTypeId() == null ? null
+                : ticketTypeRepository.findById(form.getTicketTypeId()).filter(TicketType::isActive).orElse(null);
+        lookups.required(type, "Select a ticket type.");
+        Category category = form.getCategoryId() == null ? null
+                : categoryRepository.findById(form.getCategoryId()).filter(Category::isActive).orElse(null);
+        lookups.required(category, "Select a category.");
+        SubCategory sub = form.getSubCategoryId() == null ? null
+                : subCategoryRepository.findById(form.getSubCategoryId()).filter(SubCategory::isActive).orElse(null);
+        lookups.required(sub, "Select a sub-category.");
+        if (category != null && sub != null) {
+            lookups.check(sub.getCategory().getCategoryId().equals(category.getCategoryId()),
+                    "Sub-category does not belong to the selected category.");
         }
-        TicketType type = ticketTypeRepository.findById(form.getTicketTypeId())
-                .orElseThrow(() -> new ItsmException("LOOKUP", "Select a ticket type."));
-        Category category = categoryRepository.findById(form.getCategoryId())
-                .orElseThrow(() -> new ItsmException("LOOKUP", "Select a category."));
-        SubCategory sub = subCategoryRepository.findById(form.getSubCategoryId())
-                .orElseThrow(() -> new ItsmException("LOOKUP", "Select a sub-category."));
-        if (!sub.getCategory().getCategoryId().equals(category.getCategoryId())) {
-            throw new ItsmException("LOOKUP", "Sub-category does not belong to the selected category.");
+        Validation v = new Validation();
+        String subject = v.text(form.getSubject(), "Subject", FieldLimits.SUBJECT_MIN, FieldLimits.SUBJECT_MAX, true);
+        String description = v.text(form.getDescription(), "Description",
+                FieldLimits.DESCRIPTION_MIN, FieldLimits.DESCRIPTION_MAX, true);
+        String priority = v.oneOf(nz(form.getPriorityCode(), "Medium"), "Priority", FieldLimits.PRIORITIES);
+        String impact = v.oneOf(nz(form.getImpactCode(), "Individual"), "Impact", FieldLimits.IMPACTS);
+        String urgency = v.oneOf(nz(form.getUrgencyCode(), nz(form.getPriorityCode(), "Medium")), "Urgency",
+                FieldLimits.PRIORITIES);
+        String confidentiality = v.oneOf(nz(form.getConfidentialityCode(), "Normal"), "Confidentiality",
+                FieldLimits.CONFIDENTIALITY);
+        String location = v.text(form.getLocation(), "Location", 0, FieldLimits.LOCATION_MAX, false);
+        String application = v.text(form.getApplicationName(), "Application", 0, FieldLimits.APPLICATION_MAX, false);
+        if (lookups.hasErrors() || v.hasErrors()) {
+            List<String> all = new ArrayList<String>(lookups.errors());
+            all.addAll(v.errors());
+            throw new ItsmException(lookups.hasErrors() ? "LOOKUP" : "TICKET_INVALID", Validation.message(all));
         }
+
         ticket.setTicketType(type);
         ticket.setCategory(category);
         ticket.setSubCategory(sub);
-        ticket.setSubject(form.getSubject().trim());
-        ticket.setDescription(form.getDescription().trim());
-        ticket.setPriorityCode(nz(form.getPriorityCode(), "Medium"));
-        ticket.setImpactCode(nz(form.getImpactCode(), "Individual"));
-        ticket.setUrgencyCode(nz(form.getUrgencyCode(), form.getPriorityCode()));
-        ticket.setConfidentialityCode(nz(form.getConfidentialityCode(), "Normal"));
-        ticket.setLocation(form.getLocation());
-        ticket.setApplicationName(form.getApplicationName());
+        ticket.setSubject(subject);
+        ticket.setDescription(description);
+        ticket.setPriorityCode(priority);
+        ticket.setImpactCode(impact);
+        ticket.setUrgencyCode(urgency);
+        ticket.setConfidentialityCode(confidentiality);
+        ticket.setLocation(location);
+        ticket.setApplicationName(application);
         ticket.setMajorIncident(form.isMajorIncident());
         ticket.setRequester(requester);
         ticket.setDepartment(requester.getDepartment());

@@ -21,48 +21,62 @@
       <form class="card card-pad" id="raiseForm" th:action="@{/tickets/raise}" method="post">
         <div class="form-section-title">Request Classification</div>
         <div class="form-grid">
-          <div class="form-group"><label>Ticket Type <span class="req">*</span></label>
-            <select class="form-control" name="ticketTypeId" required="required">
+          <div class="form-group"><label for="ticketTypeId">Ticket Type <span class="req">*</span></label>
+            <select class="form-control" id="ticketTypeId" name="ticketTypeId" required="required">
               <option value="">Select type</option>
-              <option th:each="t : ${ticketTypes}" th:value="${t.ticketTypeId}" th:text="${t.name}">Incident</option>
+              <option th:each="t : ${ticketTypes}" th:value="${t.ticketTypeId}" th:text="${t.name}"
+                      th:selected="${form.ticketTypeId == t.ticketTypeId}">Incident</option>
             </select></div>
-          <div class="form-group"><label>Category <span class="req">*</span></label>
+          <div class="form-group"><label for="categorySelect">Category <span class="req">*</span></label>
             <select class="form-control" name="categoryId" id="categorySelect" required="required">
               <option value="">Select category</option>
-              <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}">Hardware</option>
+              <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}"
+                      th:selected="${form.categoryId == c.categoryId}">Hardware</option>
             </select></div>
-          <div class="form-group"><label>Sub Category <span class="req">*</span></label>
+          <div class="form-group"><label for="subCategorySelect">Sub Category <span class="req">*</span></label>
             <select class="form-control" name="subCategoryId" id="subCategorySelect" required="required">
               <option value="">Select category first</option>
               <option th:each="s : ${subCategories}" th:value="${s.subCategoryId}"
-                      th:attr="data-category-id=${s.category.categoryId}" th:text="${s.name}">Laptop</option>
+                      th:attr="data-category-id=${s.category.categoryId}" th:text="${s.name}"
+                      th:selected="${form.subCategoryId == s.subCategoryId}">Laptop</option>
             </select></div>
-          <div class="form-group"><label>Confidentiality</label>
-            <select class="form-control" name="confidentialityCode">
-              <option>Normal</option><option>Confidential</option><option>Highly Confidential</option>
+          <div class="form-group"><label for="confidentialityCode">Confidentiality</label>
+            <select class="form-control" id="confidentialityCode" name="confidentialityCode">
+              <option th:each="o : ${limits.confidentiality}" th:value="${o}" th:text="${o}"
+                      th:selected="${form.confidentialityCode == o}">Normal</option>
             </select></div>
         </div>
         <div class="form-section-title">Request Details</div>
         <div class="form-grid">
-          <div class="form-group span-2"><label>Subject <span class="req">*</span></label>
-            <input type="text" class="form-control" name="subject" required="required" maxlength="256" placeholder="Brief summary"/></div>
-          <div class="form-group span-2"><label>Description <span class="req">*</span></label>
-            <textarea class="form-control" name="description" required="required" placeholder="Details and business justification"></textarea></div>
-          <div class="form-group"><label>Priority <span class="req">*</span></label>
-            <select class="form-control" name="priorityCode">
-              <option>Medium</option><option>Critical</option><option>High</option><option>Low</option>
+          <div class="form-group span-2"><label for="subject">Subject <span class="req">*</span></label>
+            <input type="text" class="form-control" id="subject" name="subject" required="required"
+                   th:attr="minlength=${limits.subjectMin},maxlength=${limits.subjectMax}"
+                   th:value="${form.subject}" data-counter="true"
+                   placeholder="Brief summary, e.g. Laptop does not start after update"/></div>
+          <div class="form-group span-2"><label for="description">Description <span class="req">*</span></label>
+            <textarea class="form-control" id="description" name="description" required="required" rows="5"
+                      th:attr="minlength=${limits.descriptionMin},maxlength=${limits.descriptionMax}"
+                      th:text="${form.description}" data-counter="true"
+                      placeholder="What happened, any error message, and since when"></textarea></div>
+          <div class="form-group"><label for="priorityCode">Priority <span class="req">*</span></label>
+            <select class="form-control" id="priorityCode" name="priorityCode" required="required">
+              <option th:each="o : ${limits.priorities}" th:value="${o}" th:text="${o}"
+                      th:selected="${form.priorityCode == o}">Medium</option>
             </select></div>
-          <div class="form-group"><label>Impact</label>
-            <select class="form-control" name="impactCode">
-              <option>Individual</option><option>Department</option>
-              <option>Multiple Departments</option><option>Organization-wide</option>
+          <div class="form-group"><label for="impactCode">Impact</label>
+            <select class="form-control" id="impactCode" name="impactCode">
+              <option th:each="o : ${limits.impacts}" th:value="${o}" th:text="${o}"
+                      th:selected="${form.impactCode == o}">Individual</option>
             </select></div>
-          <div class="form-group"><label>Urgency</label>
-            <select class="form-control" name="urgencyCode">
-              <option>Medium</option><option>Critical</option><option>High</option><option>Low</option>
+          <div class="form-group"><label for="urgencyCode">Urgency</label>
+            <select class="form-control" id="urgencyCode" name="urgencyCode">
+              <option th:each="o : ${limits.priorities}" th:value="${o}" th:text="${o}"
+                      th:selected="${form.urgencyCode == o}">Medium</option>
             </select></div>
-          <div class="form-group"><label>Location</label>
-            <input type="text" class="form-control" name="location" maxlength="128"/></div>
+          <div class="form-group"><label for="location">Location</label>
+            <input type="text" class="form-control" id="location" name="location"
+                   th:attr="maxlength=${limits.locationMax}" th:value="${form.location}"
+                   placeholder="e.g. Head office, 3rd floor"/></div>
         </div>
         <p class="phase-note">Use <b>Save draft</b> to finish later. <b>Submit Request</b> sends it for approval and starts the SLA clock.</p>
         <div class="form-actions">

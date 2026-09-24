@@ -11,6 +11,7 @@ import com.nbfc.itsm.reporting.ReportFilter;
 import com.nbfc.itsm.reporting.ReportRow;
 import com.nbfc.itsm.reporting.ReportingService;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
+import com.nbfc.itsm.validation.FieldLimits;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -71,7 +72,14 @@ public class ReportController {
                        @RequestParam(defaultValue = "0") int page,
                        Model model) {
         NamedReport report = reportingService.run(user, code, filter(from, to, typeId, status, departmentId, categoryId, priority),
-                page, ReportingService.PAGE_SIZE);
+                Math.max(page, 0), ReportingService.PAGE_SIZE);
+        String warning = dateRangeWarning(from, to);
+        if (warning != null) {
+            model.addAttribute("errorMessage", warning);
+            LocalDate swap = from;
+            from = to;
+            to = swap;
+        }
         bindFilters(model, from, to, typeId, status, departmentId, categoryId, priority);
         model.addAttribute("nav", "reports");
         model.addAttribute("pageTitle", report.getTitle());
@@ -168,14 +176,29 @@ public class ReportController {
     private ReportFilter filter(LocalDate from, LocalDate to, Long typeId, String status,
                                 Long departmentId, Long categoryId, String priority) {
         ReportFilter f = new ReportFilter();
-        f.setFrom(from != null ? from : LocalDate.now(ReportingService.IST).minusDays(90));
-        f.setTo(to != null ? to : LocalDate.now(ReportingService.IST));
+        LocalDate start = from != null ? from : LocalDate.now(ReportingService.IST).minusDays(90);
+        LocalDate end = to != null ? to : LocalDate.now(ReportingService.IST);
+        if (start.isAfter(end)) {
+            LocalDate swap = start;
+            start = end;
+            end = swap;
+        }
+        f.setFrom(start);
+        f.setTo(end);
         f.setTypeId(typeId);
-        f.setStatus(status);
+        f.setStatus(status == null || status.trim().isEmpty() ? null : status.trim());
         f.setDepartmentId(departmentId);
         f.setCategoryId(categoryId);
-        f.setPriority(priority);
+        f.setPriority(priority != null && FieldLimits.PRIORITIES.contains(priority) ? priority : null);
         return f;
+    }
+
+    /** Message for the page when the date range had to be corrected, else null. */
+    private static String dateRangeWarning(LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            return "'From' date was after 'To' date, so the two dates were swapped.";
+        }
+        return null;
     }
 
     private String toJson(Object o) {

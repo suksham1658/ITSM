@@ -34,6 +34,7 @@ public class AdminUserController {
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
     public String users(@RequestParam(value = "q", required = false) String q, Model model) {
+        q = SearchText.clean(q);
         model.addAttribute("employees", adminUserService.list(q));
         model.addAttribute("q", q);
         model.addAttribute("nav", "adminUsers");

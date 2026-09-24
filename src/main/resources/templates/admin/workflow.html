@@ -38,7 +38,7 @@
       <div th:each="r : ${rules}" class="rule-edit">
         <form th:action="@{/admin/workflow/rules/{id}(id=${r.workflowRuleId})}" method="post" class="card card-pad" style="margin-bottom:12px;">
           <div class="form-grid">
-            <div class="form-group"><label>Name</label><input class="form-control" name="name" th:value="${r.name}"/></div>
+            <div class="form-group"><label>Name</label><input class="form-control" name="name" th:value="${r.name}" required="required" th:attr="minlength=${limits.ruleNameMin},maxlength=${limits.ruleNameMax}"/></div>
             <div class="form-group"><label>Priority</label><input class="form-control" th:value="${r.priority}" disabled="disabled"/></div>
             <div class="form-group"><label>Status</label>
               <select class="form-control" name="statusCode">
@@ -48,7 +48,7 @@
             </div>
             <div class="form-group"><label>Template</label><input class="form-control" th:value="${r.workflowDefinition.code}" disabled="disabled"/></div>
             <div class="form-group span-2"><label>condition_json</label>
-              <textarea class="form-control" name="conditionJson" th:text="${r.conditionJson}">{}</textarea></div>
+              <textarea class="form-control mono" name="conditionJson" th:text="${r.conditionJson}" th:attr="maxlength=${limits.ruleJsonMax}" placeholder="{} matches every ticket">{}</textarea></div>
           </div>
           <button type="submit" class="btn btn-outline" style="margin-top:10px;">Save rule</button>
         </form>
