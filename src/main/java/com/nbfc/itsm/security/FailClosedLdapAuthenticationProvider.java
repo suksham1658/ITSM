@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -48,17 +49,25 @@ public class FailClosedLdapAuthenticationProvider implements AuthenticationProvi
         try {
             person = ldapDirectoryClient.authenticateAndLoad(username, password);
         } catch (NamingException ex) {
-            log.warn("LDAP authentication failed (fail-closed): {}", ex.getClass().getSimpleName());
+            // Full stack trace in the server log; the login page still only says "Sign-in failed".
+            log.warn("LDAP authentication failed for user '{}' (url={}): {}",
+                    username, properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
             throw new BadCredentialsException("Invalid credentials");
         } catch (RuntimeException ex) {
-            log.warn("LDAP authentication failed (fail-closed): {}", ex.getClass().getSimpleName());
+            log.warn("LDAP authentication failed for user '{}' (url={}) with an unexpected error: {}",
+                    username, properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
             throw new BadCredentialsException("Invalid credentials");
         }
         try {
             ItsmUserPrincipal principal = portalUserService.loadActivePrincipal(person);
             return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         } catch (DisabledException ex) {
+            log.warn("LDAP bind OK for user '{}' but portal access is disabled: {}", username, ex.getMessage());
             throw ex;
+        } catch (RuntimeException ex) {
+            log.error("LDAP bind OK for user '{}' but loading/creating the portal employee profile failed "
+                    + "(database step, not LDAP): {}", username, ex.toString(), ex);
+            throw new InternalAuthenticationServiceException("Portal profile could not be loaded", ex);
         }
     }
 

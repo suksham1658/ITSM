@@ -1,0 +1,5 @@
+<!-- Back link shown above the page title on detail/sub pages.
+     Usage: <a th:replace="fragments/back :: back(href=@{/admin/roles}, label='Back to Roles')"></a> -->
+<a xmlns:th="http://www.thymeleaf.org" th:fragment="back(href, label)" class="page-back" th:href="${href}">
+    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span th:text="${label}">Back</span>
+</a>

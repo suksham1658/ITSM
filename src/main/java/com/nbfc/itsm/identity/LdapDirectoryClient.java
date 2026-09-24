@@ -47,22 +47,30 @@ public class LdapDirectoryClient {
 
     private String resolveUserDn(String username, String password, ItsmProperties.Ldap ldap) throws NamingException {
         if (username.indexOf('=') >= 0 && username.indexOf(',') >= 0) {
-            bind(username, password, ldap).close();
+            bind(STAGE_USER_BIND, username, password, ldap).close();
             return username;
         }
         if (StringUtils.hasText(ldap.getUserDnPattern())) {
             String dn = ldap.getUserDnPattern().replace("{0}", sanitize(username));
-            bind(dn, password, ldap).close();
+            bind(STAGE_USER_BIND, dn, password, ldap).close();
             return dn;
         }
         if (StringUtils.hasText(ldap.getBindDn()) && StringUtils.hasText(ldap.getBindPassword())) {
-            DirContext service = bind(ldap.getBindDn(), ldap.getBindPassword(), ldap);
+            DirContext service = bind(STAGE_SERVICE_BIND, ldap.getBindDn(), ldap.getBindPassword(), ldap);
             try {
-                String found = searchDn(service, username, ldap);
-                if (!StringUtils.hasText(found)) {
-                    throw new NamingException("User not found");
+                String found;
+                try {
+                    found = searchDn(service, username, ldap);
+                } catch (NamingException ex) {
+                    logStageFailure(STAGE_USER_SEARCH, ldap.getBaseDn(), ldap, ex);
+                    throw ex;
                 }
-                DirContext check = bind(found, password, ldap);
+                if (!StringUtils.hasText(found)) {
+                    NamingException ex = new NamingException("User not found");
+                    logStageFailure(STAGE_USER_SEARCH, ldap.getBaseDn(), ldap, ex);
+                    throw ex;
+                }
+                DirContext check = bind(STAGE_USER_BIND, found, password, ldap);
                 closeQuietly(check);
                 return found;
             } finally {
@@ -71,13 +79,18 @@ public class LdapDirectoryClient {
         }
         if (StringUtils.hasText(ldap.getBaseDn())) {
             String dn = "CN=" + sanitize(username) + "," + ldap.getBaseDn();
-            bind(dn, password, ldap).close();
+            bind(STAGE_USER_BIND, dn, password, ldap).close();
             return dn;
         }
         throw new NamingException("Cannot resolve user DN");
     }
 
     private DirContext bind(String principal, String password, ItsmProperties.Ldap ldap) throws NamingException {
+        return bind(STAGE_USER_BIND, principal, password, ldap);
+    }
+
+    private DirContext bind(String stage, String principal, String password, ItsmProperties.Ldap ldap)
+            throws NamingException {
         Hashtable<String, String> env = new Hashtable<String, String>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, ldap.getUrl());
@@ -86,7 +99,101 @@ public class LdapDirectoryClient {
         env.put(Context.SECURITY_CREDENTIALS, password);
         env.put("com.sun.jndi.ldap.connect.timeout", String.valueOf(ldap.getConnectTimeoutMs()));
         env.put("com.sun.jndi.ldap.read.timeout", String.valueOf(ldap.getReadTimeoutMs()));
-        return new InitialDirContext(env);
+        try {
+            return new InitialDirContext(env);
+        } catch (NamingException ex) {
+            logStageFailure(stage, principal, ldap, ex);
+            throw ex;
+        }
+    }
+
+    // ------------------------------------------------------------------ diagnostics
+
+    static final String STAGE_SERVICE_BIND = "service-account bind (LDAP_BIND_DN)";
+    static final String STAGE_USER_SEARCH = "user search (LDAP_BASE_DN + LDAP_USER_SEARCH_FILTER)";
+    static final String STAGE_USER_BIND = "user bind (the password typed on the login page)";
+
+    /** One line naming the failing step and the likely cause. The password is never logged. */
+    private static void logStageFailure(String stage, String principal, ItsmProperties.Ldap ldap, NamingException ex) {
+        log.warn("LDAP step failed: {} | url={} | principal/base={} | cause: {}",
+                stage, ldap.getUrl(), principal, diagnose(ex));
+    }
+
+    /**
+     * Human-readable cause for an LDAP failure: unreachable server, bad credentials (with the
+     * Active Directory sub-code such as {@code data 52e}), locked/disabled/expired account, etc.
+     */
+    public static String diagnose(Throwable ex) {
+        Throwable root = rootCause(ex);
+        if (ex instanceof javax.naming.CommunicationException || ex instanceof javax.naming.ServiceUnavailableException
+                || root instanceof java.net.ConnectException || root instanceof java.net.UnknownHostException
+                || root instanceof java.net.SocketTimeoutException || root instanceof java.net.NoRouteToHostException
+                || root instanceof javax.net.ssl.SSLException) {
+            return "CANNOT CONNECT to the LDAP server (" + root.getClass().getSimpleName() + ": " + root.getMessage()
+                    + "). Check LDAP_URL host/port, DNS, firewall, and ldaps:// certificate trust.";
+        }
+        String msg = String.valueOf(ex.getMessage());
+        if (ex instanceof javax.naming.AuthenticationException) {
+            String code = adSubCode(msg);
+            if ("525".equals(code)) {
+                return "BIND REJECTED: user/principal not found in AD (AD code 525).";
+            }
+            if ("52e".equals(code)) {
+                return "BIND REJECTED: wrong username or password (AD code 52e).";
+            }
+            if ("530".equals(code) || "531".equals(code)) {
+                return "BIND REJECTED: logon not permitted at this time/workstation (AD code " + code + ").";
+            }
+            if ("532".equals(code)) {
+                return "BIND REJECTED: password expired (AD code 532).";
+            }
+            if ("533".equals(code)) {
+                return "BIND REJECTED: account disabled (AD code 533).";
+            }
+            if ("701".equals(code)) {
+                return "BIND REJECTED: account expired (AD code 701).";
+            }
+            if ("773".equals(code)) {
+                return "BIND REJECTED: user must reset password (AD code 773).";
+            }
+            if ("775".equals(code)) {
+                return "BIND REJECTED: account locked out (AD code 775).";
+            }
+            return "BIND REJECTED: invalid credentials (" + msg + ").";
+        }
+        if (ex instanceof javax.naming.NameNotFoundException) {
+            return "ENTRY NOT FOUND: the base DN or user DN does not exist (" + msg + "). Check LDAP_BASE_DN.";
+        }
+        if (ex instanceof javax.naming.InvalidNameException) {
+            return "INVALID DN syntax (" + msg + "). Check LDAP_BIND_DN / LDAP_USER_DN_PATTERN.";
+        }
+        if (ex instanceof javax.naming.NoPermissionException) {
+            return "NO PERMISSION: the bound account may not search here (" + msg + ").";
+        }
+        if ("User not found".equals(msg)) {
+            return "USER NOT FOUND: the search filter matched no entry under the base DN. Check the username, "
+                    + "LDAP_BASE_DN and LDAP_USER_SEARCH_FILTER.";
+        }
+        return ex.getClass().getSimpleName() + ": " + msg;
+    }
+
+    private static String adSubCode(String message) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("data ([0-9a-fA-F]{3})").matcher(message);
+        return m.find() ? m.group(1).toLowerCase(java.util.Locale.ROOT) : null;
+    }
+
+    private static Throwable rootCause(Throwable ex) {
+        Throwable t = ex;
+        for (int i = 0; i < 10; i++) {
+            Throwable next = t instanceof NamingException && ((NamingException) t).getRootCause() != null
+                    ? ((NamingException) t).getRootCause()
+                    : t.getCause();
+            if (next == null || next == t) {
+                return t;
+            }
+            t = next;
+        }
+        return t;
     }
 
     private String searchDn(DirContext ctx, String username, ItsmProperties.Ldap ldap) throws NamingException {

@@ -97,7 +97,12 @@
     "toggle-notif-panel": function () { window.toggleNotifPanel(); },
     "toggle-user-panel": function () { window.toggleUserPanel(); },
     "close-modal": function () { window.closeModal(); },
-    "print": function () { window.print(); }
+    "print": function () { window.print(); },
+    // Error page: return to the previous page when there is one, else follow the link (portal home).
+    "history-back": function (el) {
+      if (document.referrer && window.history.length > 1) { window.history.back(); }
+      else { window.location.href = el.getAttribute("href"); }
+    }
   };
 
   document.addEventListener("click", function (ev) {

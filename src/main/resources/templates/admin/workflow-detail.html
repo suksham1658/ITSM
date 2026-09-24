@@ -11,11 +11,11 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
-        <div class="breadcrumb">ITSM Portal / Admin / Workflow / <span th:text="${definition.code}">code</span></div>
+        <a th:replace="fragments/back :: back(href=@{/admin/workflow}, label='Back to Workflow Config')"></a>
+        <div class="breadcrumb">ITSM Portal / Admin / <a th:href="@{/admin/workflow}">Workflow</a> / <span th:text="${definition.code}">code</span></div>
         <h1 th:text="${definition.name}">Workflow</h1>
         <p class="page-sub" th:text="${definition.description}">desc</p>
       </div>
-      <div class="page-header-actions"><a class="btn btn-outline" th:href="@{/admin/workflow}">Back to matrix</a></div>
     </div>
     <div class="card">
       <div class="table-wrap">

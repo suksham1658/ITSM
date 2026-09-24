@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -123,11 +124,12 @@ public class TicketController {
 
     @GetMapping("/tickets/raise")
     @PreAuthorize("hasAuthority('TICKET_CREATE')")
-    public String raise(Model model) {
+    public String raise(Model model, HttpServletRequest request) {
         model.addAttribute("nav", "raise");
         model.addAttribute("pageTitle", "Raise Request");
         model.addAttribute("form", new TicketForm());
         populateLookups(model);
+        BackLinks.addTo(model, request, "/tickets", "Back to My Tickets", "itsm.back.raise");
         return "tickets/raise";
     }
 
@@ -152,8 +154,10 @@ public class TicketController {
 
     @GetMapping("/tickets/{id}")
     @Transactional(readOnly = true)
-    public String detail(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id, Model model) {
+    public String detail(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id, Model model,
+                         HttpServletRequest request) {
         TicketDetail detail = ticketService.detail(user, id);
+        BackLinks.addTo(model, request, "/tickets", "Back to My Tickets", "itsm.back.ticket");
         model.addAttribute("nav", "myTickets");
         model.addAttribute("pageTitle", detail.getTicket().getPublicNumber());
         model.addAttribute("detail", detail);

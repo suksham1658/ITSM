@@ -11,6 +11,7 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
+        <a th:replace="fragments/back :: back(href=@{/admin/roles}, label='Back to Roles &amp; Permissions')"></a>
         <div class="breadcrumb">ITSM Portal / <a th:href="@{/admin/roles}">Roles &amp; Permissions</a> / <span th:text="${role.name}">Role</span></div>
         <h1 th:text="${role.name}">Role</h1>
         <p class="page-sub">

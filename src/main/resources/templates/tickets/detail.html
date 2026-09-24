@@ -10,6 +10,7 @@
 <main id="pageContent">
 <div th:replace="fragments/alerts :: flash"></div>
 <div th:if="${detail != null}">
+    <a th:replace="fragments/back :: back(href=@{${backHref}}, label=${backLabel})"></a>
     <div class="ticket-hero">
       <div class="ticket-hero-top">
         <div>

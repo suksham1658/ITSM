@@ -158,6 +158,28 @@ class AdminRolePagesTest {
                 .andExpect(content().string(containsString("seeded system role")));
     }
 
+    @Test
+    void everyRoleSubPageHasABackLink() throws Exception {
+        Role itAdmin = roleRepository.findByCode("IT_ADMIN").orElseThrow(IllegalStateException::new);
+        ItsmUserPrincipal sysAdmin = principal("E-PGSYS4", "pages.sys4", "Pages SysAdmin Four", "SYSTEM_ADMINISTRATOR");
+        mockMvc.perform(get("/admin/roles/{id}", itAdmin.getRoleId()).with(as(admin)))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/roles\"")))
+                .andExpect(content().string(containsString("Back to Roles &amp; Permissions")));
+        mockMvc.perform(get("/admin/roles/new").with(as(admin)))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/roles\"")));
+        mockMvc.perform(get("/admin/roles/{id}/edit", itAdmin.getRoleId()).with(as(admin)))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/roles/" + itAdmin.getRoleId() + "\"")))
+                .andExpect(content().string(containsString("Back to IT Admin")));
+        mockMvc.perform(get("/admin/roles/{id}/delete", itAdmin.getRoleId()).with(as(sysAdmin)))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/roles/" + itAdmin.getRoleId() + "\"")));
+        mockMvc.perform(get("/admin/users/{id}", admin.getEmployeeId()).with(as(admin))
+                        .header("Referer", "http://localhost/admin/roles/" + itAdmin.getRoleId()))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/roles/" + itAdmin.getRoleId() + "\"")))
+                .andExpect(content().string(containsString("Back to Role")));
+        mockMvc.perform(get("/admin/users/{id}", admin.getEmployeeId()).with(as(admin)))
+                .andExpect(content().string(containsString("class=\"page-back\" href=\"/admin/users\"")));
+    }
+
     private ItsmUserPrincipal principal(String no, String sam, String name, String roleCode) {
         Employee e = new Employee();
         e.setEmployeeNo(no);

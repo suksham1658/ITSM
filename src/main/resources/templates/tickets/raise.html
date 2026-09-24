@@ -11,6 +11,7 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
+        <a th:replace="fragments/back :: back(href=@{${backHref}}, label=${backLabel})"></a>
         <div class="breadcrumb">ITSM Portal / <span>Raise Request</span></div>
         <h1>Raise IT Request</h1>
         <p class="page-sub">Lookups and routing come from the database. Submit starts numbering, SLA and the matched workflow.</p>
@@ -67,7 +68,7 @@
         <div class="form-actions">
           <button type="submit" class="btn btn-accent" name="intent" value="submit"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
           <button type="submit" class="btn btn-outline" name="intent" value="draft">Save draft</button>
-          <a class="btn btn-outline" th:href="@{/tickets}">Cancel</a>
+          <a class="btn btn-outline" th:href="@{${backHref}}">Cancel</a>
         </div>
       </form>
       <div class="card card-pad">

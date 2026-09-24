@@ -279,6 +279,14 @@ select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3C
   font-size:12px;cursor:pointer;padding:6px 4px;
 }
 .sidebar-collapse-btn:hover{color:#fff;}
+.page-back{
+  display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;padding:5px 10px 5px 8px;
+  font-size:12px;font-weight:600;color:var(--slate-600);text-decoration:none;
+  border:1px solid var(--slate-200);border-radius:var(--radius-sm);background:#fff;
+}
+.page-back:hover{color:var(--navy-900);background:var(--slate-100);}
+.page-back i{font-size:11px;}
+@media print{.page-back{display:none !important;}}
 button.sidebar-collapse-btn{width:100%;background:none;border:0;font-family:inherit;text-align:left;}
 button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:2px;border-radius:6px;}
 .sidebar-logout-btn:hover{color:#FFB4AB;}

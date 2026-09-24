@@ -7,8 +7,12 @@
     <h2>Something went wrong</h2>
     <p class="login-sub mono" th:text="${status}">500</p>
     <p th:text="${message}">Unexpected error</p>
-    <p style="margin-top:16px;"><a class="btn btn-primary" th:href="@{/}">Back to portal</a></p>
+    <p style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-outline" th:href="@{/}" data-action="history-back"><i class="fa-solid fa-arrow-left"></i> Go back</a>
+      <a class="btn btn-primary" th:href="@{/}">Back to portal</a>
+    </p>
   </div>
 </div>
+<script th:src="@{/js/itsm.js}"></script>
 </body>
 </html>

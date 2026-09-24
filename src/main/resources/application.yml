@@ -83,8 +83,8 @@ itsm:
   ldap:
     url: ${LDAP_URL:ldap://AUTHADC.Authum.local:389}
     base-dn: ${LDAP_BASE_DN:dc=Authum,dc=local}
-    bind-dn: ${LDAP_BIND_DN:50058036@Authum.local}
-    bind-password: ${LDAP_BIND_PASSWORD:Authum@165815}
+    bind-dn: ${LDAP_BIND_DN:70902907@Authum.local}
+    bind-password: ${LDAP_BIND_PASSWORD:D!v!t@2024}
     user-search-filter: "${LDAP_USER_SEARCH_FILTER:(sAMAccountName={0})}"
     user-dn-pattern: ${LDAP_USER_DN_PATTERN:}
     employee-id-attribute: ${LDAP_EMPLOYEE_ID_ATTRIBUTE:employeeID}

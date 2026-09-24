@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,8 +42,9 @@ public class AdminUserController {
 
     @GetMapping("/users/{id}")
     @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
-    public String user(@PathVariable("id") Long id, Model model) {
+    public String user(@PathVariable("id") Long id, Model model, HttpServletRequest request) {
         Employee employee = adminUserService.get(id);
+        BackLinks.addTo(model, request, "/admin/users", "Back to Users", "itsm.back.user");
         Set<Long> assignedRoleIds = new HashSet<Long>();
         for (Role role : employee.getRoles()) {
             assignedRoleIds.add(role.getRoleId());
