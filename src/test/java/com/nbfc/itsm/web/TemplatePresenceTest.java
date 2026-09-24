@@ -25,6 +25,10 @@ class TemplatePresenceTest {
         assertTemplate("templates/fragments/header.html");
         assertTemplate("templates/fragments/sidebar.html");
         assertTemplate("templates/admin/users.html");
+        assertTemplate("templates/admin/roles.html");
+        assertTemplate("templates/admin/role-detail.html");
+        assertTemplate("templates/admin/role-form.html");
+        assertTemplate("templates/admin/role-delete.html");
         assertTemplate("templates/error.html");
     }
 

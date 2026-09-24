@@ -11,4 +11,8 @@ public interface ConfigChangeRequestRepository extends JpaRepository<ConfigChang
     List<ConfigChangeRequest> findAllByOrderByRequestedAtUtcDesc();
 
     long countByStatusCode(String statusCode);
+
+    List<ConfigChangeRequest> findByEntityNameAndStatusCodeOrderByRequestedAtUtcDesc(String entityName, String statusCode);
+
+    boolean existsByEntityNameAndEntityKeyAndStatusCode(String entityName, String entityKey, String statusCode);
 }

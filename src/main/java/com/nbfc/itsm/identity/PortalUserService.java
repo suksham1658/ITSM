@@ -9,13 +9,18 @@ import com.nbfc.itsm.domain.Role;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.util.TimeUtc;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 @Service
 public class PortalUserService {
@@ -81,26 +86,64 @@ public class PortalUserService {
     }
 
     public ItsmUserPrincipal toPrincipal(Employee employee) {
-        Set<String> perms = new LinkedHashSet<String>();
-        Set<String> roleCodes = new LinkedHashSet<String>();
-        java.util.List<EmployeeRoleAssignment> assignments = employeeRoleAssignmentRepository.findByEmployee(employee);
-        for (EmployeeRoleAssignment assignment : assignments) {
+        return toPrincipal(employee, null);
+    }
+
+    /**
+     * Builds the principal from the employee's active role assignments. {@code activeRoleCode}
+     * narrows authorities to that one role (role switcher); {@code null} combines all roles.
+     */
+    public ItsmUserPrincipal toPrincipal(Employee employee, String activeRoleCode) {
+        List<Role> roles = new ArrayList<Role>();
+        for (EmployeeRoleAssignment assignment : employeeRoleAssignmentRepository.findByEmployee(employee)) {
             Role role = assignment.getRole();
-            if (role == null || !role.isActive()) {
-                continue;
+            if (role != null && role.isActive()) {
+                roles.add(role);
             }
-            roleCodes.add(role.getCode());
+        }
+        Collections.sort(roles, new Comparator<Role>() {
+            @Override
+            public int compare(Role a, Role b) {
+                return a.getName().compareToIgnoreCase(b.getName());
+            }
+        });
+        List<ItsmUserPrincipal.AssignedRole> assigned = new ArrayList<ItsmUserPrincipal.AssignedRole>();
+        for (Role role : roles) {
+            Set<String> perms = new TreeSet<String>();
             if (role.getPermissions() != null) {
                 for (Permission p : role.getPermissions()) {
                     perms.add(p.getCode());
                 }
             }
+            assigned.add(new ItsmUserPrincipal.AssignedRole(role.getCode(), role.getName(), perms));
         }
         String username = StringUtils.hasText(employee.getSamAccountName())
                 ? employee.getSamAccountName()
                 : employee.getEmployeeNo();
         return new ItsmUserPrincipal(employee.getEmployeeId(), employee.getEmployeeNo(), username,
-                employee.getDisplayName(), perms, roleCodes);
+                employee.getDisplayName(), assigned, activeRoleCode);
+    }
+
+    /**
+     * Re-reads the employee and their roles, then selects {@code roleCode} as the active role
+     * ({@code null} or blank = all roles). Only roles currently assigned and active can be chosen.
+     */
+    @Transactional(readOnly = true)
+    public ItsmUserPrincipal switchActiveRole(Long employeeId, String roleCode) {
+        Employee employee = require(employeeId);
+        if (!employee.isPortalActive()) {
+            throw new DisabledException("portal-inactive");
+        }
+        ItsmUserPrincipal all = toPrincipal(employee, null);
+        if (!StringUtils.hasText(roleCode)) {
+            return all;
+        }
+        for (ItsmUserPrincipal.AssignedRole role : all.getAssignedRoles()) {
+            if (role.getCode().equals(roleCode.trim())) {
+                return toPrincipal(employee, role.getCode());
+            }
+        }
+        throw new AccessDeniedException("Role " + roleCode + " is not assigned to you");
     }
 
     public Employee require(Long id) {

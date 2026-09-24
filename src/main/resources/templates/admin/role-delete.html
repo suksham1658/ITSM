@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <a th:href="@{/admin/roles}">Roles &amp; Permissions</a> /
+            <a th:href="@{/admin/roles/{id}(id=${role.roleId})}" th:text="${role.name}">Role</a> / <span>Delete</span></div>
+        <h1 th:text="${#lists.isEmpty(blockers)} ? 'Delete Role' : 'Cannot Delete Role'">Delete Role</h1>
+        <p class="page-sub"><span class="mono" th:text="${role.code}">CODE</span>
+            <span th:text="${role.system} ? ' · seeded role' : ' · custom role'"> · custom role</span></p>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;" th:if="${!#lists.isEmpty(blockers)}">
+        <p style="font-size:13px;color:var(--slate-600);line-height:1.7;margin:0 0 8px;">
+            "<b th:text="${role.name}">Role</b>" cannot be deleted because:</p>
+        <ul style="font-size:13px;color:var(--slate-600);line-height:1.7;margin:0 0 14px 18px;">
+            <li th:each="b : ${blockers}" th:text="${b}">reason</li>
+        </ul>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <a class="btn btn-outline" th:href="@{/admin/users}">Admin → Users</a>
+            <a class="btn btn-accent" th:href="@{/admin/roles/{id}(id=${role.roleId})}">OK</a>
+        </div>
+    </div>
+
+    <form class="card card-pad" method="post" th:if="${#lists.isEmpty(blockers)}"
+          th:action="@{/admin/roles/{id}/delete(id=${role.roleId})}" style="margin-bottom:18px;">
+        <p style="font-size:13px;color:var(--slate-600);line-height:1.7;margin:0 0 14px;">
+            Delete "<b th:text="${role.name}">Role</b>" and its permission mappings? No employees currently hold this role,
+            so this takes effect immediately and <b>cannot be undone</b>. The deletion is recorded in the audit log.</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <a class="btn btn-outline" th:href="@{/admin/roles/{id}(id=${role.roleId})}">Cancel</a>
+            <button type="submit" class="btn btn-danger-outline"><i class="fa-regular fa-trash-can"></i> Delete Role</button>
+        </div>
+    </form>
+
+    <div class="card card-pad">
+        <div class="form-section-title">Permissions that will be removed with this role</div>
+        <p class="text-muted" style="font-size:12px;" th:if="${#lists.isEmpty(permissionGroups)}">This role grants no permissions.</p>
+        <div th:each="g : ${permissionGroups}" style="margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 6px;" th:text="${g.name}">General</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <span class="badge badge-outline" th:each="p : ${g.options}" th:title="${p.pages}" th:text="${p.label}">Raise requests</span>
+            </div>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

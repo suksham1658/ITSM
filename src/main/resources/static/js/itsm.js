@@ -15,13 +15,32 @@
       if (bd) { bd.classList.toggle("show"); }
       return;
     }
-    sb.classList.toggle("collapsed");
+    setCollapsed(!sb.classList.contains("collapsed"));
+    try { window.localStorage.setItem(COLLAPSE_KEY, sb.classList.contains("collapsed") ? "1" : "0"); } catch (e) { /* storage blocked */ }
+  };
+
+  var COLLAPSE_KEY = "itsm.sidebarCollapsed";
+
+  function setCollapsed(collapsed) {
+    var sb = $("sidebar");
+    if (!sb) { return; }
+    sb.classList.toggle("collapsed", collapsed);
     var icon = $("collapseIcon");
     var lbl = $("collapseLbl");
-    var collapsed = sb.classList.contains("collapsed");
     if (icon) { icon.className = collapsed ? "fa-solid fa-angles-right" : "fa-solid fa-angles-left"; }
     if (lbl) { lbl.textContent = collapsed ? "Expand" : "Collapse"; }
-  };
+    var btn = document.querySelector(".sidebar-foot [data-action='toggle-sidebar']");
+    if (btn) {
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+      btn.title = collapsed ? "Expand" : "Collapse";
+    }
+  }
+
+  // Restore the desktop collapsed state chosen on a previous page.
+  try {
+    if (window.innerWidth > MOBILE && window.localStorage.getItem(COLLAPSE_KEY) === "1") { setCollapsed(true); }
+  } catch (e) { /* storage blocked */ }
 
   window.closeMobileSidebar = function () {
     var sb = $("sidebar");
@@ -69,6 +88,27 @@
       if (el.parentNode) { el.parentNode.removeChild(el); }
     }, 4200);
   };
+
+  // The CSP (script-src 'self') blocks inline onclick="…" handlers, so every shell control
+  // declares data-action="…" and is wired here.
+  var ACTIONS = {
+    "toggle-sidebar": function () { window.toggleSidebar(); },
+    "close-mobile-sidebar": function () { window.closeMobileSidebar(); },
+    "toggle-notif-panel": function () { window.toggleNotifPanel(); },
+    "toggle-user-panel": function () { window.toggleUserPanel(); },
+    "close-modal": function () { window.closeModal(); },
+    "print": function () { window.print(); }
+  };
+
+  document.addEventListener("click", function (ev) {
+    var el = ev.target.closest ? ev.target.closest("[data-action]") : null;
+    if (!el) { return; }
+    var fn = ACTIONS[el.getAttribute("data-action")];
+    if (fn) {
+      ev.preventDefault();
+      fn(el);
+    }
+  });
 
   document.addEventListener("click", function (ev) {
     var t = ev.target;
@@ -145,6 +185,14 @@
           window.showToast("error", "Remarks are mandatory (at least 10 characters) for Approve, Reject and Send Back.");
         }
       }
+    });
+  }
+
+  // Role switcher and other selects that post their form on change (CSP forbids inline onchange).
+  var autoSubmits = document.querySelectorAll("select[data-autosubmit]");
+  for (var a = 0; a < autoSubmits.length; a++) {
+    autoSubmits[a].addEventListener("change", function () {
+      if (this.form) { this.form.submit(); }
     });
   }
 })();

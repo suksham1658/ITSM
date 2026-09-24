@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
-<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
 <div id="app">
 <aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
 <div id="mainCol">
@@ -29,8 +29,11 @@
                     <td class="mono" th:text="${c.requestedAtUtc}">—</td>
                     <td th:text="${c.changeType}">TYPE</td>
                     <td th:text="${c.description}">desc</td>
-                    <td th:text="${c.requestedBy.employeeNo}">E1</td>
-                    <td>
+                    <td th:text="${c.requestedBy.displayName} + ' (' + ${c.requestedBy.employeeNo} + ')'">E1</td>
+                    <td th:if="${currentUser != null and c.requestedBy.employeeId == currentUser.employeeId}">
+                        <span class="text-muted" style="font-size:11px;">Awaiting another administrator</span>
+                    </td>
+                    <td th:unless="${currentUser != null and c.requestedBy.employeeId == currentUser.employeeId}">
                         <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">
                             <button type="submit" class="btn btn-accent btn-xs">Approve</button>
                         </form>

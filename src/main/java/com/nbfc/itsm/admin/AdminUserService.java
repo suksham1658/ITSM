@@ -30,17 +30,20 @@ public class AdminUserService {
     private final RoleRepository roleRepository;
     private final EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository;
     private final ConfigChangeRequestRepository configChangeRequestRepository;
+    private final RoleAdminService roleAdminService;
     private final AuditRecorder auditRecorder;
 
     public AdminUserService(EmployeeRepository employeeRepository,
                             RoleRepository roleRepository,
                             EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository,
                             ConfigChangeRequestRepository configChangeRequestRepository,
+                            RoleAdminService roleAdminService,
                             AuditRecorder auditRecorder) {
         this.employeeRepository = employeeRepository;
         this.roleRepository = roleRepository;
         this.employeeRoleAssignmentRepository = employeeRoleAssignmentRepository;
         this.configChangeRequestRepository = configChangeRequestRepository;
+        this.roleAdminService = roleAdminService;
         this.auditRecorder = auditRecorder;
     }
 
@@ -109,6 +112,9 @@ public class AdminUserService {
         Employee target = requireEmployee(employeeId);
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ItsmException("ROLE_NOT_FOUND", "Role not found"));
+        if (assign && !role.isActive()) {
+            throw new ItsmException("ROLE_INACTIVE", "Role " + role.getCode() + " is inactive and cannot be assigned.");
+        }
         Employee makerEmp = requireEmployee(maker.getEmployeeId());
         ConfigChangeRequest ccr = new ConfigChangeRequest();
         ccr.setChangeType(assign ? "USER_ROLE_ASSIGN" : "USER_ROLE_REMOVE");
@@ -172,6 +178,9 @@ public class AdminUserService {
     public void reject(Long ccrId, String reason, ItsmUserPrincipal checker) {
         ConfigChangeRequest ccr = configChangeRequestRepository.findById(ccrId)
                 .orElseThrow(() -> new ItsmException("CCR_NOT_FOUND", "Change request not found"));
+        if (!"PendingApproval".equals(ccr.getStatusCode())) {
+            throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
+        }
         if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId())) {
             throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
         }
@@ -186,6 +195,10 @@ public class AdminUserService {
     }
 
     private void apply(ConfigChangeRequest ccr, ItsmUserPrincipal checker) {
+        if (RoleAdminService.handles(ccr)) {
+            roleAdminService.apply(ccr);
+            return;
+        }
         String payload = ccr.getPayloadJson();
         if ("USER_PORTAL_ACTIVE".equals(ccr.getChangeType())) {
             Long employeeId = Long.valueOf(ccr.getEntityKey());

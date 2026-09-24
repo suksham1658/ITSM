@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Administration / <span>Roles &amp; Permissions</span></div>
+        <h1>Roles &amp; Permissions</h1>
+        <p class="page-sub" th:text="${#lists.size(roles)} + ' roles configured. Creating a role or changing its permissions needs approval from a second administrator.'">8 roles configured.</p>
+      </div>
+      <div sec:authorize="hasAuthority('ADMIN_USER_MANAGE') and hasAuthority('ADMIN_MASTERDATA_PROPOSE')">
+        <a class="btn btn-accent btn-sm" th:href="@{/admin/roles/new}"><i class="fa-solid fa-plus"></i> New Role</a>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;" th:if="${pendingRoleChanges != null and !#lists.isEmpty(pendingRoleChanges)}">
+        <div class="card-head"><div><h3>Awaiting approval</h3>
+            <div class="ch-sub">Role changes below are not in effect yet. A different administrator approves them in Config approvals.</div></div>
+            <a sec:authorize="hasAuthority('ADMIN_MASTERDATA_APPROVE')" class="btn btn-outline btn-xs" th:href="@{/admin/change-requests}">Open Config approvals</a>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead><tr><th>#</th><th>Type</th><th>Description</th><th>Proposed by</th><th>When (UTC)</th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${pendingRoleChanges}">
+                    <td class="mono" th:text="${c.configChangeRequestId}">1</td>
+                    <td><span class="badge badge-pending" th:text="${c.changeType == 'ROLE_DEFINITION_CREATE'} ? 'New role' : 'Edit role'">New role</span></td>
+                    <td th:text="${c.description}">Create role</td>
+                    <td th:text="${c.requestedBy.displayName}">Name</td>
+                    <td class="mono" th:text="${c.requestedAtUtc}">—</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" th:if="${roles == null or #lists.isEmpty(roles)}">
+        <div class="empty-state"><i class="fa-solid fa-user-shield"></i><h3>No roles</h3><p>Seed the role catalogue (Flyway V4) or propose a new role.</p></div>
+    </div>
+
+    <div class="grid grid-2" th:if="${roles != null and !#lists.isEmpty(roles)}">
+        <div class="card card-pad" th:each="s : ${roles}">
+            <div class="flex-between" style="margin-bottom:10px;gap:8px;">
+                <h3 style="font-size:14px;margin:0;">
+                    <a th:href="@{/admin/roles/{id}(id=${s.role.roleId})}" th:text="${s.role.name}">Employee</a>
+                </h3>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                    <span class="badge badge-rejected" th:if="${!s.role.active}">Inactive</span>
+                    <span class="badge badge-pending" th:if="${s.changePending}">Change pending</span>
+                    <span class="badge badge-outline" th:text="${s.holderCount} + (${s.holderCount == 1} ? ' user' : ' users')">0 users</span>
+                    <a class="icon-action" th:href="@{/admin/roles/{id}(id=${s.role.roleId})}" title="View (edit from the role page)" aria-label="View role"><i class="fa-regular fa-eye"></i></a>
+                    <a class="icon-action" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="color:var(--danger);"
+                       th:href="@{/admin/roles/{id}/delete(id=${s.role.roleId})}" title="Delete role" aria-label="Delete role"><i class="fa-regular fa-trash-can"></i></a>
+                </div>
+            </div>
+            <p class="text-muted mono" style="font-size:11px;margin:0 0 10px;">
+                <span th:text="${s.role.code}">EMPLOYEE</span>
+                <span th:text="${s.role.system} ? ' · seeded' : ' · custom'"> · seeded</span>
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <span class="badge badge-outline" th:each="p : ${s.permissions}" th:title="${p.pages}" th:text="${p.label}">Raise requests</span>
+                <span class="text-muted" style="font-size:12px;" th:if="${#lists.isEmpty(s.permissions)}">No permissions (dashboard only)</span>
+            </div>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

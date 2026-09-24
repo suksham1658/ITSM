@@ -1,5 +1,5 @@
 <header id="topHeader" xmlns:th="http://www.thymeleaf.org" th:fragment="header">
-    <button type="button" class="header-burger" onclick="toggleSidebar()" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+    <button type="button" class="header-burger" data-action="toggle-sidebar" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
     <div class="header-search">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="search" id="globalSearchInput" placeholder="Search tickets, employees, assets…" aria-label="Global search" autocomplete="off"/>
@@ -7,10 +7,19 @@
     </div>
     <div class="header-spacer"></div>
     <div class="header-right" th:if="${currentUser != null}">
-        <button type="button" class="header-icon-btn" onclick="toggleNotifPanel()" aria-label="Notifications">
+        <form class="role-switcher" th:if="${currentUser.roleSwitchAvailable}" th:action="@{/session/active-role}" method="post">
+            <select name="role" data-autosubmit="true" aria-label="View portal as role">
+                <option value="" th:selected="${currentUser.activeRoleCode == null}">View as: All my roles</option>
+                <option th:each="r : ${currentUser.assignedRoles}" th:value="${r.code}"
+                        th:selected="${r.code == currentUser.activeRoleCode}"
+                        th:text="'View as: ' + ${r.name}">View as: Employee</option>
+            </select>
+            <noscript><button type="submit" class="btn btn-outline btn-xs">Switch</button></noscript>
+        </form>
+        <button type="button" class="header-icon-btn" data-action="toggle-notif-panel" aria-label="Notifications">
             <i class="fa-regular fa-bell"></i>
         </button>
-        <button type="button" class="user-menu" onclick="toggleUserPanel()" aria-haspopup="true">
+        <button type="button" class="user-menu" data-action="toggle-user-panel" aria-haspopup="true">
             <div class="avatar" th:text="${currentUser.initials}">IT</div>
             <div class="u-info">
                 <div class="u-name" th:text="${currentUser.displayName}">User</div>

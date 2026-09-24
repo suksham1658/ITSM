@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent" th:with="role=${detail.role}">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <a th:href="@{/admin/roles}">Roles &amp; Permissions</a> / <span th:text="${role.name}">Role</span></div>
+        <h1 th:text="${role.name}">Role</h1>
+        <p class="page-sub">
+            <span class="mono" th:text="${role.code}">CODE</span>
+            <span th:text="${role.system} ? ' · seeded role' : ' · custom role'"> · seeded role</span>
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-accent btn-sm" sec:authorize="hasAuthority('ADMIN_USER_MANAGE') and hasAuthority('ADMIN_MASTERDATA_PROPOSE')"
+           th:href="@{/admin/roles/{id}/edit(id=${role.roleId})}"><i class="fa-regular fa-pen-to-square"></i> Edit Role</a>
+        <a class="btn btn-danger-outline btn-sm" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+           th:href="@{/admin/roles/{id}/delete(id=${role.roleId})}"><i class="fa-regular fa-trash-can"></i> Delete Role</a>
+      </div>
+    </div>
+
+    <div class="alert-banner warn" th:if="${!#lists.isEmpty(detail.pendingChanges)}" style="margin-bottom:14px;">
+        A change to this role is awaiting approval:
+        <span th:each="c : ${detail.pendingChanges}" th:text="'#' + ${c.configChangeRequestId} + ' ' + ${c.description} + ' (by ' + ${c.requestedBy.displayName} + ')'">#1</span>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-grid">
+            <div class="form-group"><label>Status</label>
+                <span class="badge" th:classappend="${role.active} ? ' badge-approved' : ' badge-rejected'" th:text="${role.active} ? 'Active' : 'Inactive'">Active</span>
+            </div>
+            <div class="form-group"><label>Holders</label><div th:text="${#lists.size(detail.holders)}">0</div></div>
+            <div class="form-group"><label>Workflow approver</label>
+                <div th:text="${detail.usedInWorkflow} ? 'Yes, used by workflow stages (cannot be deactivated)' : 'No'">No</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Permissions: pages this role can access</div>
+        <p class="text-muted" style="font-size:12px;margin:0 0 10px;">Dashboard is available to every signed-in user.</p>
+        <p class="text-muted" style="font-size:12px;" th:if="${#lists.isEmpty(detail.permissionGroups)}">This role grants no permissions.</p>
+        <div th:each="g : ${detail.permissionGroups}" style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 6px;" th:text="${g.name}">General</div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Permission</th><th>Code</th><th>Pages</th></tr></thead>
+                    <tbody>
+                    <tr th:each="p : ${g.options}">
+                        <td th:text="${p.label}">Raise requests</td>
+                        <td class="mono" th:text="${p.code}">TICKET_CREATE</td>
+                        <td th:text="${p.pages} ?: '—'">Raise Request</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><div><h3>Employees with this role</h3>
+            <div class="ch-sub">Assign or remove this role from Admin → Users (maker-checker).</div></div></div>
+        <div class="empty-state" th:if="${#lists.isEmpty(detail.holders)}"><p>No employees hold this role.</p></div>
+        <div class="table-wrap" th:if="${!#lists.isEmpty(detail.holders)}">
+            <table class="data-table">
+                <thead><tr><th>Employee no</th><th>Name</th><th>Portal</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="h : ${detail.holders}">
+                    <td class="mono" th:text="${h.employeeNo}">E1</td>
+                    <td th:text="${h.displayName}">Name</td>
+                    <td><span class="badge" th:classappend="${h.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${h.portalActive} ? 'Active' : 'Disabled'">Active</span></td>
+                    <td><a th:href="@{/admin/users/{id}(id=${h.employeeId})}">Open</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

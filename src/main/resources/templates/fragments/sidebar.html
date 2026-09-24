@@ -2,14 +2,19 @@
     <div class="sidebar-brand">
         <div class="brand-mark">IT</div>
         <div class="brand-txt"><strong>ITSM Portal</strong><small>ENTERPRISE EDITION</small></div>
-        <button type="button" class="sidebar-mobile-close" onclick="closeMobileSidebar()" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" class="sidebar-mobile-close" data-action="close-mobile-sidebar" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="sidebar-role-tag" th:if="${currentUser != null}">
-        <span class="r-label">Assigned roles</span>
+        <span class="r-label" th:text="${currentUser.roleSwitchAvailable} ? 'Viewing as' : 'Assigned role'">Viewing as</span>
         <span class="r-name" th:text="${currentUser.primaryRoleLabel}">Employee</span>
-        <span class="text-muted" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:4px;display:block;"
-              th:if="${currentUser.roleCodes != null and !#lists.isEmpty(currentUser.roleCodes)}"
-              th:text="${#strings.listJoin(currentUser.roleCodes, ', ')}">EMPLOYEE</span>
+        <form th:if="${currentUser.roleSwitchAvailable}" th:action="@{/session/active-role}" method="post">
+            <select class="sidebar-role-select" name="role" data-autosubmit="true" aria-label="View portal as role">
+                <option value="" th:selected="${currentUser.activeRoleCode == null}">All my roles</option>
+                <option th:each="r : ${currentUser.assignedRoles}" th:value="${r.code}"
+                        th:selected="${r.code == currentUser.activeRoleCode}"
+                        th:text="${r.name}">Employee</option>
+            </select>
+        </form>
     </div>
     <nav class="sidebar-nav" aria-label="Main">
         <div class="sidebar-section-label">Main</div>
@@ -32,7 +37,7 @@
 
         <div class="sidebar-section-label" sec:authorize="hasAnyAuthority('ADMIN_USER_MANAGE','ADMIN_MASTERDATA_PROPOSE','ADMIN_MASTERDATA_APPROVE','AUDIT_VIEW','ASSET_MANAGE')">Administration</div>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminUsers'} ? ' active'" th:href="@{/admin/users}"><i class="fa-solid fa-users"></i><span>Users</span></a>
-        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminRoles'} ? ' active'" th:href="@{/admin/roles}"><i class="fa-solid fa-user-shield"></i><span>Roles</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminRoles'} ? ' active'" th:href="@{/admin/roles}"><i class="fa-solid fa-user-shield"></i><span>Roles &amp; Permissions</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminCategories'} ? ' active'" th:href="@{/admin/categories}"><i class="fa-solid fa-tags"></i><span>Categories</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminSLA'} ? ' active'" th:href="@{/admin/sla}"><i class="fa-solid fa-stopwatch"></i><span>SLA Config</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminWorkflow'} ? ' active'" th:href="@{/admin/workflow}"><i class="fa-solid fa-diagram-project"></i><span>Workflow Config</span></a>
@@ -48,6 +53,13 @@
         <a class="nav-item" th:classappend="${nav == 'notifications'} ? ' active'" th:href="@{/notifications}"><i class="fa-solid fa-bell"></i><span>Notifications</span></a>
     </nav>
     <div class="sidebar-foot">
-        <div class="sidebar-collapse-btn" onclick="toggleSidebar()" role="button" tabindex="0"><i class="fa-solid fa-angles-left" id="collapseIcon"></i> <span id="collapseLbl">Collapse</span></div>
+        <form th:if="${currentUser != null}" th:action="@{/logout}" method="post" style="margin:0 0 4px;">
+            <button type="submit" class="sidebar-collapse-btn sidebar-logout-btn" title="Logout" aria-label="Logout">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Logout</span>
+            </button>
+        </form>
+        <button type="button" class="sidebar-collapse-btn" data-action="toggle-sidebar" aria-label="Collapse sidebar" aria-expanded="true">
+            <i class="fa-solid fa-angles-left" id="collapseIcon"></i> <span id="collapseLbl">Collapse</span>
+        </button>
     </div>
 </aside>

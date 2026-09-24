@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
-<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
 <div id="app">
 <aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
 <div id="mainCol">
@@ -18,7 +18,7 @@
       <div class="page-header-actions no-print">
         <a class="btn btn-outline btn-sm" th:href="@{/reports/{code}.xls(code=${report.code},from=${from},to=${to},typeId=${typeId},status=${status},departmentId=${departmentId},categoryId=${categoryId},priority=${priority})}"><i class="fa-regular fa-file-excel"></i> Export Excel</a>
         <a class="btn btn-outline btn-sm" th:href="@{/reports/{code}.csv(code=${report.code},from=${from},to=${to},typeId=${typeId},status=${status},departmentId=${departmentId},categoryId=${categoryId},priority=${priority})}"><i class="fa-regular fa-file-lines"></i> Export CSV</a>
-        <button type="button" class="btn btn-outline btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+        <button type="button" class="btn btn-outline btn-sm" data-action="print"><i class="fa-solid fa-print"></i> Print</button>
       </div>
     </div>
     <form class="filter-bar card card-pad no-print" method="get" th:action="@{/reports/{code}(code=${report.code})}">

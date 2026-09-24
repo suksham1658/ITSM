@@ -3,6 +3,7 @@ package com.nbfc.itsm.web;
 import com.nbfc.itsm.admin.AdminUserService;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.Role;
+import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -92,8 +93,12 @@ public class AdminUserController {
     public String approve(@PathVariable("id") Long id,
                           @AuthenticationPrincipal ItsmUserPrincipal checker,
                           RedirectAttributes ra) {
-        adminUserService.approve(id, checker);
-        ra.addFlashAttribute("message", "Applied.");
+        try {
+            adminUserService.approve(id, checker);
+            ra.addFlashAttribute("message", "Change request #" + id + " approved and applied.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/admin/change-requests";
     }
 
@@ -103,8 +108,12 @@ public class AdminUserController {
                          @RequestParam("reason") String reason,
                          @AuthenticationPrincipal ItsmUserPrincipal checker,
                          RedirectAttributes ra) {
-        adminUserService.reject(id, reason, checker);
-        ra.addFlashAttribute("message", "Rejected.");
+        try {
+            adminUserService.reject(id, reason, checker);
+            ra.addFlashAttribute("message", "Change request #" + id + " rejected.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/admin/change-requests";
     }
 }

@@ -46,16 +46,6 @@ public class AdminCatalogController {
         this.subCategoryRepository = subCategoryRepository;
     }
 
-    @GetMapping("/roles")
-    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
-    public String roles(Model model) {
-        model.addAttribute("nav", "adminRoles");
-        model.addAttribute("pageTitle", "Roles");
-        model.addAttribute("emptyMessage",
-                "Roles are seeded (Employee through System Administrator). Assignment is on Admin → Users. A visual role designer is not in this phase.");
-        return "admin/stub";
-    }
-
     @GetMapping("/categories")
     @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
     @Transactional(readOnly = true)
