@@ -229,6 +229,27 @@
     })(fromDates[di]);
   }
 
+  // Ticket action button follows the chosen action: red to reject / send back, grey to hold,
+  // green for everything that moves the ticket forward.
+  var actionSelect = document.getElementById("actionCode");
+  var actionBtn = document.getElementById("actionSubmit");
+  if (actionSelect && actionBtn) {
+    var paintAction = function () {
+      var code = (actionSelect.value || "").toUpperCase();
+      actionBtn.classList.remove("btn-accent", "btn-danger", "btn-neutral");
+      if (code === "REJECT" || code === "SEND_BACK") {
+        actionBtn.classList.add("btn-danger");
+      } else if (code === "HOLD") {
+        actionBtn.classList.add("btn-neutral");
+      } else {
+        actionBtn.classList.add("btn-accent");
+      }
+      actionBtn.textContent = code ? code.charAt(0) + code.slice(1).toLowerCase().replace("_", " ") : "Submit action";
+    };
+    actionSelect.addEventListener("change", paintAction);
+    paintAction();
+  }
+
   var actionForm = document.getElementById("ticketActionForm");
   if (actionForm) {
     actionForm.addEventListener("submit", function (ev) {

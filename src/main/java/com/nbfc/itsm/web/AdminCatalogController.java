@@ -93,6 +93,7 @@ public class AdminCatalogController {
         model.addAttribute("pageTitle", "Workflow configuration");
         model.addAttribute("definitions", defs);
         model.addAttribute("rules", rules);
+        model.addAttribute("activeRuleCount", ruleRepository.findByStatusCodeOrderByPriorityAsc("Active").size());
         model.addAttribute("designerNote",
                 "Open a template to see its stages. Edit a rule below to change which workflow a ticket follows.");
         return "admin/workflow";

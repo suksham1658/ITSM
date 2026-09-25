@@ -169,19 +169,30 @@ public class WorkflowEngine {
         } else if ("SEND_BACK".equals(action)) {
             sendBack(ticket, instance, stages, current, remarks);
         } else if ("ASSIGN".equals(action) || "REASSIGN".equals(action)) {
-            Employee assignee = resolveAssignee(assigneeId, current);
-            current.setResolvedEmployee(assignee);
+            AssignmentGroup pool = assigneePool(stages, current);
+            Employee assignee = resolveAssignee(assigneeId, pool);
             ticket.setAssignedImplementor(assignee);
-            if (current.getResolvedGroup() != null) {
-                ticket.setAssignedGroup(current.getResolvedGroup());
+            if (pool != null) {
+                ticket.setAssignedGroup(pool);
             }
-            complete(current, actor, action, remarks);
-            WorkflowInstanceStage next = nextPending(stages, current);
-            if (next != null && "IMPLEMENTOR".equals(next.getActorStrategy())) {
-                next.setResolvedEmployee(assignee);
+            if ("FULFILMENT".equals(current.getStageType())) {
+                // Hand the work to another implementor; the ticket stays on the implementation step.
+                current.setResolvedEmployee(assignee);
+                current.setActionCode(action);
+                current.setRemarks(trim(remarks));
+                current.setActedAtUtc(TimeUtc.now());
+                ticket.setStatusCode("Assigned");
+            } else {
+                // Service desk / triage step is done: the chosen implementor owns the next step.
+                complete(current, actor, action, remarks);
+                WorkflowInstanceStage next = nextPending(stages, current);
+                if (next != null && ("IMPLEMENTOR".equals(next.getActorStrategy())
+                        || "FULFILMENT".equals(next.getStageType()))) {
+                    next.setResolvedEmployee(assignee);
+                }
+                advance(ticket, instance, stages, current);
+                slaService.markFirstResponse(ticket);
             }
-            advance(ticket, instance, stages, current);
-            slaService.markFirstResponse(ticket);
         } else if ("ACCEPT".equals(action) || "START".equals(action)) {
             current.setActionCode(action);
             current.setRemarks(trim(remarks));
@@ -308,7 +319,7 @@ public class WorkflowEngine {
                 for (Employee hop : hops) {
                     WorkflowInstanceStage row = baseFrom(template, instance, order);
                     row.setCode(template.getCode() + "_" + hopNo);
-                    row.setLabel("Manager approval — " + hop.getDisplayName());
+                    row.setLabel(hop.getDisplayName());
                     row.setStageType("APPROVAL");
                     row.setActorStrategy("LDAP_MANAGER");
                     row.setResolvedEmployee(hop);
@@ -356,7 +367,9 @@ public class WorkflowEngine {
         }
         if (requester.getManager() == null) {
             throw new ItsmException("NO_MANAGER_CHAIN",
-                    "Cannot submit: requester has no manager and is not HOD. LDAP hops must be populated.");
+                    "This request needs your manager's approval first, but no manager is set for you. "
+                            + "Ask the System Administrator to set your manager (Admin > Users), or have it set in "
+                            + "Active Directory and sign in again. You can use Save draft to keep your request meanwhile.");
         }
         int cap = hopCap();
         List<Employee> hops = new ArrayList<Employee>();
@@ -369,7 +382,8 @@ public class WorkflowEngine {
             }
             if (!current.isPortalActive()) {
                 throw new ItsmException("INACTIVE_MANAGER",
-                        "Manager chain includes an inactive employee (" + current.getDisplayName() + ").");
+                        "Your approval chain includes " + current.getDisplayName() + ", whose portal access is disabled. "
+                                + "Ask the System Administrator to enable it or change the reporting line.");
             }
             hops.add(current);
             if (isHod(current) || (requester.getHod() != null
@@ -552,7 +566,8 @@ public class WorkflowEngine {
                 ticket.setAssignedGroup(current.getResolvedGroup());
             }
         } else if ("FULFILMENT".equals(type)) {
-            ticket.setStatusCode(ticket.getAssignedImplementor() == null ? "Approved" : "In Progress");
+            // "Assigned" until the implementor clicks START / ACCEPT, which sets "In Progress".
+            ticket.setStatusCode(ticket.getAssignedImplementor() == null ? "Approved" : "Assigned");
             ticket.setProgressCode(current.getLabel());
             if (current.getResolvedGroup() != null && ticket.getAssignedGroup() == null) {
                 ticket.setAssignedGroup(current.getResolvedGroup());
@@ -565,7 +580,25 @@ public class WorkflowEngine {
         }
     }
 
-    private Employee resolveAssignee(Long assigneeId, WorkflowInstanceStage current) {
+    /**
+     * Group an ASSIGN / REASSIGN may choose from. At a service-desk (ASSIGNMENT) step that is the
+     * group of the next implementation (FULFILMENT) step, e.g. IT Implementors, because the desk
+     * hands the ticket on; at a FULFILMENT step it is that step's own group (reassign a colleague).
+     */
+    public AssignmentGroup assigneePool(List<WorkflowInstanceStage> stages, WorkflowInstanceStage current) {
+        if ("ASSIGNMENT".equals(current.getStageType())) {
+            WorkflowInstanceStage next = nextPending(stages, current);
+            while (next != null && !"FULFILMENT".equals(next.getStageType())) {
+                next = nextPending(stages, next);
+            }
+            if (next != null && next.getResolvedGroup() != null) {
+                return next.getResolvedGroup();
+            }
+        }
+        return current.getResolvedGroup();
+    }
+
+    private Employee resolveAssignee(Long assigneeId, AssignmentGroup group) {
         if (assigneeId == null) {
             throw new ItsmException("ASSIGNEE_REQUIRED", "Select an implementor.");
         }
@@ -574,10 +607,9 @@ public class WorkflowEngine {
         if (!assignee.isPortalActive()) {
             throw new ItsmException("ASSIGNEE_INACTIVE", "Assignee is not portal-active.");
         }
-        AssignmentGroup group = current.getResolvedGroup();
         if (group != null && !groupMemberRepository.existsByAssignmentGroupAndEmployee(group, assignee)) {
-            /* Implementor pool: also accept IT_IMPLEMENTORS membership via ticket group later. */
-            throw new ItsmException("ASSIGNEE_NOT_IN_GROUP", "Assignee is not in the assignment group.");
+            throw new ItsmException("ASSIGNEE_NOT_IN_GROUP",
+                    assignee.getDisplayName() + " is not a member of " + group.getName() + ".");
         }
         return assignee;
     }

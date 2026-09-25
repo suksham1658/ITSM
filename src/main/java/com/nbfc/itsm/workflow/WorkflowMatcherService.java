@@ -43,9 +43,19 @@ public class WorkflowMatcherService {
                 return rule;
             }
         }
-        throw new ItsmException("WORKFLOW_NO_MATCH",
-                "No active workflow rule matches this request. Submit is blocked (fail closed).");
+        log.warn("No workflow rule matched: {} active rule(s); ticket_type={} category={} sub_category={} "
+                        + "confidentiality={}. Add or activate a rule in Admin > Workflow Config (an empty {} rule "
+                        + "matches everything).", rules.size(), ctx.value("ticket_type"), ctx.value("category"),
+                ctx.value("sub_category"), ctx.value("confidentiality"));
+        throw new ItsmException("WORKFLOW_NO_MATCH", rules.isEmpty()
+                ? "This request cannot be submitted yet because no approval workflow is set up in the portal. "
+                        + "Please contact the IT administrator. You can use Save draft to keep your request meanwhile."
+                : "No approval workflow is set up for this kind of request (" + ctx.value("ticket_type") + " / "
+                        + ctx.value("category") + "). Please contact the IT administrator. "
+                        + "You can use Save draft to keep your request meanwhile.");
     }
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WorkflowMatcherService.class);
 
     boolean matches(String conditionJson, TicketMatchContext ctx) {
         if (!StringUtils.hasText(conditionJson) || "{}".equals(conditionJson.trim())) {

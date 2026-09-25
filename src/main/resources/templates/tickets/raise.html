@@ -81,8 +81,8 @@
         <p class="phase-note">Use <b>Save draft</b> to finish later. <b>Submit Request</b> sends it for approval and starts the SLA clock.</p>
         <div class="form-actions">
           <button type="submit" class="btn btn-accent" name="intent" value="submit"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
-          <button type="submit" class="btn btn-outline" name="intent" value="draft">Save draft</button>
-          <a class="btn btn-outline" th:href="@{${backHref}}">Cancel</a>
+          <button type="submit" class="btn btn-success-outline" name="intent" value="draft"><i class="fa-regular fa-floppy-disk"></i> Save draft</button>
+          <a class="btn btn-danger-outline" th:href="@{${backHref}}"><i class="fa-solid fa-xmark"></i> Cancel</a>
         </div>
       </form>
       <div class="card card-pad">

@@ -38,8 +38,8 @@
             Delete "<b th:text="${role.name}">Role</b>" and its permission mappings? No employees currently hold this role,
             so this takes effect immediately and <b>cannot be undone</b>. The deletion is recorded in the audit log.</p>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-            <a class="btn btn-outline" th:href="@{/admin/roles/{id}(id=${role.roleId})}">Cancel</a>
-            <button type="submit" class="btn btn-danger-outline"><i class="fa-regular fa-trash-can"></i> Delete Role</button>
+            <a class="btn btn-danger-outline" th:href="@{/admin/roles/{id}(id=${role.roleId})}"><i class="fa-solid fa-xmark"></i> Cancel</a>
+            <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete Role</button>
         </div>
     </form>
 

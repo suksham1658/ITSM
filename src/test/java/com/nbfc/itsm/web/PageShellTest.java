@@ -165,7 +165,7 @@ class PageShellTest {
                 .andExpect(content().string(containsString("Back to Dashboard")));
         mockMvc.perform(get("/tickets/raise").with(authentication(token(user))))
                 .andExpect(content().string(containsString("class=\"page-back\" href=\"/tickets\"")))
-                .andExpect(content().string(containsString("href=\"/tickets\">Cancel</a>")));
+                .andExpect(content().string(containsString("class=\"btn btn-danger-outline\" href=\"/tickets\"")));
     }
 
     @Test

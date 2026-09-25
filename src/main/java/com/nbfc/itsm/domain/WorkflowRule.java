@@ -1,5 +1,7 @@
 package com.nbfc.itsm.domain;
 
+import org.hibernate.annotations.Nationalized;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -19,15 +21,19 @@ public class WorkflowRule {
     @Column(name = "workflow_rule_id")
     private Long workflowRuleId;
 
+    // NVARCHAR columns (V1 / V7): @Nationalized so ddl-auto=validate expects nvarchar, not varchar.
+    @Nationalized
     @Column(name = "name", nullable = false, length = 128)
     private String name;
 
     @Column(name = "priority", nullable = false)
     private int priority;
 
+    @Nationalized
     @Column(name = "status_code", nullable = false, length = 32)
     private String statusCode;
 
+    @Nationalized
     @Column(name = "condition_json", nullable = false, columnDefinition = "nvarchar(max)")
     private String conditionJson;
 

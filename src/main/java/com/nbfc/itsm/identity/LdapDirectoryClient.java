@@ -15,7 +15,13 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+import javax.naming.ldap.LdapName;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * LDAP bind + attribute search. Never logs passwords. Fail-closed on any directory error.
@@ -39,10 +45,56 @@ public class LdapDirectoryClient {
         String userDn = resolveUserDn(username, password, ldap);
         DirContext userCtx = bind(userDn, password, ldap);
         try {
-            return searchPerson(userCtx, username, ldap, userDn);
+            LdapPerson person = searchPerson(userCtx, username, ldap, userDn);
+            person.setManagerChain(loadManagerChain(userCtx, person, ldap));
+            return person;
         } finally {
             closeQuietly(userCtx);
         }
+    }
+
+    /** Longest management chain followed upwards from a user (guards against loops and very deep trees). */
+    static final int MAX_MANAGER_DEPTH = 10;
+
+    /**
+     * Follows the {@code manager} attribute (a DN) upwards and returns the managers, immediate
+     * manager first. Reading the chain is best effort: a directory error stops the walk and is
+     * logged, but never blocks the login.
+     */
+    List<LdapPerson> loadManagerChain(DirContext ctx, LdapPerson person, ItsmProperties.Ldap ldap) {
+        List<LdapPerson> chain = new ArrayList<LdapPerson>();
+        Set<String> seen = new HashSet<String>();
+        if (person.getDn() != null) {
+            seen.add(person.getDn().toLowerCase(Locale.ROOT));
+        }
+        String next = person.getManagerDn();
+        while (StringUtils.hasText(next) && chain.size() < MAX_MANAGER_DEPTH
+                && seen.add(next.toLowerCase(Locale.ROOT))) {
+            try {
+                // LdapName, not a String: AD names often contain '/', which JNDI would treat as a composite name.
+                Attributes attrs = ctx.getAttributes(new LdapName(next), personAttributes(ldap));
+                LdapPerson manager = new LdapPerson();
+                manager.setDn(next);
+                mapAttributes(manager, attrs, ldap);
+                if (!StringUtils.hasText(manager.getSamAccountName())) {
+                    log.warn("LDAP manager entry {} has no sAMAccountName/uid; stopping the manager chain here", next);
+                    break;
+                }
+                chain.add(manager);
+                next = manager.getManagerDn();
+            } catch (NamingException ex) {
+                log.warn("Could not read LDAP manager entry {}: {}", next, diagnose(ex));
+                break;
+            }
+        }
+        return chain;
+    }
+
+    private static String[] personAttributes(ItsmProperties.Ldap ldap) {
+        return new String[] {
+                "sAMAccountName", "uid", ldap.getEmployeeIdAttribute(), "employeeNumber", "displayName", "cn", "mail",
+                "title", "userPrincipalName", "givenName", "sn", ldap.getManagerAttribute(), "department"
+        };
     }
 
     private String resolveUserDn(String username, String password, ItsmProperties.Ldap ldap) throws NamingException {
@@ -218,10 +270,7 @@ public class LdapDirectoryClient {
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
         sc.setCountLimit(1);
-        sc.setReturningAttributes(new String[] {
-                "sAMAccountName", "uid", ldap.getEmployeeIdAttribute(), "displayName", "cn", "mail",
-                "title", "userPrincipalName", "givenName", "sn"
-        });
+        sc.setReturningAttributes(personAttributes(ldap));
         String filter = ldap.getUserSearchFilter().replace("{0}", escapeFilter(sanitize(username)));
         String base = StringUtils.hasText(ldap.getBaseDn()) ? ldap.getBaseDn() : "";
         NamingEnumeration<SearchResult> results;
@@ -282,6 +331,8 @@ public class LdapDirectoryClient {
         person.setEmail(first(attrs, "mail"));
         person.setDesignation(first(attrs, "title"));
         person.setUpn(first(attrs, "userPrincipalName", "mail"));
+        person.setManagerDn(first(attrs, ldap.getManagerAttribute()));
+        person.setDepartment(first(attrs, "department"));
     }
 
     private String first(Attributes attrs, String... ids) throws NamingException {

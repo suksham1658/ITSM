@@ -13,6 +13,34 @@ public class LdapPerson {
     private String email;
     private String designation;
     private String upn;
+    private String managerDn;
+    private String department;
+    /** Managers above this person, immediate manager first (filled at login from the directory). */
+    private java.util.List<LdapPerson> managerChain = new java.util.ArrayList<LdapPerson>();
+
+    public String getManagerDn() {
+        return managerDn;
+    }
+
+    public void setManagerDn(String managerDn) {
+        this.managerDn = managerDn;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public java.util.List<LdapPerson> getManagerChain() {
+        return managerChain;
+    }
+
+    public void setManagerChain(java.util.List<LdapPerson> managerChain) {
+        this.managerChain = managerChain == null ? new java.util.ArrayList<LdapPerson>() : managerChain;
+    }
 
     public String getDn() {
         return dn;

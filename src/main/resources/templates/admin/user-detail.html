@@ -28,9 +28,76 @@
         </div>
         <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post" style="margin-top:12px;">
             <input type="hidden" name="active" th:value="${!employee.portalActive}"/>
-            <button type="submit" class="btn btn-outline btn-sm" th:text="${employee.portalActive} ? 'Propose disable' : 'Propose enable'">Propose</button>
+            <button type="submit" class="btn btn-sm" th:classappend="${employee.portalActive} ? 'btn-danger-outline' : 'btn-success'" th:text="${employee.portalActive} ? 'Propose disable' : 'Propose enable'">Propose</button>
         </form>
     </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Reporting line (Service Request approvals)</div>
+        <p class="phase-note" style="margin-top:0;">
+            Service Requests go to the manager first, then up the chain until someone with the HOD role (or the HOD set here).
+            The manager is filled from Active Directory at each login; set it here if the directory has none.
+        </p>
+        <div class="alert-banner warn" th:if="${setup.managerId == null}" style="margin-bottom:10px;">
+            No manager set. This employee's Service Requests cannot be submitted until a manager is set here or in Active Directory.
+        </div>
+        <p th:if="${!#lists.isEmpty(setup.managerChain)}" style="font-size:13px;margin:0 0 12px;">
+            Approval chain: <b th:text="${#strings.listJoin(setup.managerChain, ' → ')}">Manager → HOD</b>
+        </p>
+        <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+              th:action="@{/admin/users/{id}/reporting-line(id=${employee.employeeId})}" method="post">
+            <div class="form-grid">
+                <div class="form-group"><label for="managerId">Manager</label>
+                    <select class="form-control" id="managerId" name="managerId">
+                        <option value="">No manager</option>
+                        <option th:each="c : ${setup.candidates}" th:value="${c.employeeId}"
+                                th:selected="${c.employeeId == setup.managerId}"
+                                th:text="${c.displayName} + ' (' + ${c.employeeNo} + ')'">Name</option>
+                    </select></div>
+                <div class="form-group"><label for="hodId">HOD (optional)</label>
+                    <select class="form-control" id="hodId" name="hodId">
+                        <option value="">Stop at the first manager with the HOD role</option>
+                        <option th:each="c : ${setup.candidates}" th:value="${c.employeeId}"
+                                th:selected="${c.employeeId == setup.hodId}"
+                                th:text="${c.displayName} + ' (' + ${c.employeeNo} + ')'">Name</option>
+                    </select></div>
+                <div class="form-group"><label for="departmentId">Department</label>
+                    <select class="form-control" id="departmentId" name="departmentId">
+                        <option value="">No department</option>
+                        <option th:each="d : ${setup.departments}" th:value="${d.departmentId}"
+                                th:selected="${d.departmentId == setup.departmentId}" th:text="${d.name}">IT</option>
+                    </select></div>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm">Save reporting line</button>
+        </form>
+        <div sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" class="form-grid">
+            <div class="form-group"><label>Department</label><div th:text="${setup.departmentName} ?: '—'">—</div></div>
+        </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Assignment groups (who works on tickets)</div>
+        <p class="phase-note" style="margin-top:0;">
+            Incidents go to the IT Service Desk group, then to IT Implementors; privileged access also goes to IT Security.
+            A group with no members leaves those tickets with nobody to act on them.
+        </p>
+        <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+              th:action="@{/admin/users/{id}/groups(id=${employee.employeeId})}" method="post">
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                <label th:each="g : ${setup.groups}" style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                    <input type="checkbox" name="groupIds" th:value="${g.assignmentGroupId}"
+                           th:checked="${setup.memberOf.contains(g.assignmentGroupId)}"/>
+                    <span th:text="${g.name}">IT Service Desk</span>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm">Save groups</button>
+        </form>
+        <div sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span th:each="g : ${setup.groups}" th:if="${setup.memberOf.contains(g.assignmentGroupId)}"
+                  class="badge badge-outline" th:text="${g.name}">Group</span>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-head"><div><h3>Roles</h3>
             <div class="ch-sub" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">As System Administrator your assign/remove takes effect immediately; no approval is needed.</div>
@@ -44,14 +111,17 @@
                 <tr th:each="role : ${allRoles}">
                     <td class="mono" th:text="${role.code}">EMPLOYEE</td>
                     <td th:text="${role.name}">Employee</td>
-                    <td th:text="${assignedRoleIds.contains(role.roleId)} ? 'Assigned' : 'Not assigned'">Assigned</td>
+                    <td><span class="badge" th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'badge-flow' : 'badge-draft'"
+                              th:text="${assignedRoleIds.contains(role.roleId)} ? 'Assigned' : 'Not assigned'">Assigned</span></td>
                     <td sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')">
                         <form th:action="@{/admin/users/{id}/propose-role(id=${employee.employeeId})}" method="post">
                             <input type="hidden" name="roleId" th:value="${role.roleId}"/>
                             <input type="hidden" name="assign" th:value="${!assignedRoleIds.contains(role.roleId)}"/>
-                            <button type="submit" class="btn btn-outline btn-xs" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+                            <button type="submit" class="btn btn-xs" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+                                    th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'btn-danger-outline' : 'btn-success-outline'"
                                     th:text="${assignedRoleIds.contains(role.roleId)} ? 'Remove' : 'Assign'">Assign</button>
-                            <button type="submit" class="btn btn-outline btn-xs" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+                            <button type="submit" class="btn btn-xs" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+                                    th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'btn-danger-outline' : 'btn-success-outline'"
                                     th:text="${assignedRoleIds.contains(role.roleId)} ? 'Propose remove' : 'Propose assign'">Propose</button>
                         </form>
                     </td>

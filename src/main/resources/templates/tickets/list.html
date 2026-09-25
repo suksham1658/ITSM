@@ -61,7 +61,7 @@
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">ITSM</a></td>
             <td th:text="${t.subject}">Subject</td>
             <td th:text="${t.ticketType.name}">Type</td>
-            <td><span class="badge" th:text="${t.statusCode}">Open</span></td>
+            <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">Open</span></td>
             <td th:text="${t.priorityCode}">Medium</td>
             <td th:text="${t.requester.displayName}">User</td>
           </tr>

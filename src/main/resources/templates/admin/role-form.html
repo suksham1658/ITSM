@@ -58,7 +58,7 @@
         </div>
 
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
-            <a class="btn btn-outline" th:href="${role == null} ? @{/admin/roles} : @{/admin/roles/{id}(id=${role.roleId})}">Cancel</a>
+            <a class="btn btn-danger-outline" th:href="${role == null} ? @{/admin/roles} : @{/admin/roles/{id}(id=${role.roleId})}"><i class="fa-solid fa-xmark"></i> Cancel</a>
             <button type="submit" class="btn btn-accent"><i class="fa-solid fa-paper-plane"></i>
                 <span th:text="${role == null} ? 'Propose Role' : 'Propose Changes'">Propose Role</span></button>
         </div>

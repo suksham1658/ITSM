@@ -1,6 +1,7 @@
 package com.nbfc.itsm.web;
 
 import com.nbfc.itsm.admin.AdminUserService;
+import com.nbfc.itsm.admin.EmployeeSetupService;
 import com.nbfc.itsm.domain.ConfigChangeRequest;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.Role;
@@ -19,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Controller
@@ -26,9 +28,11 @@ import java.util.Set;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final EmployeeSetupService employeeSetupService;
 
-    public AdminUserController(AdminUserService adminUserService) {
+    public AdminUserController(AdminUserService adminUserService, EmployeeSetupService employeeSetupService) {
         this.adminUserService = adminUserService;
+        this.employeeSetupService = employeeSetupService;
     }
 
     @GetMapping("/users")
@@ -52,6 +56,7 @@ public class AdminUserController {
             assignedRoleIds.add(role.getRoleId());
         }
         model.addAttribute("employee", employee);
+        model.addAttribute("setup", employeeSetupService.view(id));
         model.addAttribute("allRoles", adminUserService.roles());
         model.addAttribute("assignedRoleIds", assignedRoleIds);
         model.addAttribute("nav", "adminUsers");
@@ -85,6 +90,38 @@ public class AdminUserController {
             } else {
                 ra.addFlashAttribute("message", "Role change submitted for checker approval.");
             }
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/reporting-line")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String reportingLine(@PathVariable("id") Long id,
+                                @RequestParam(value = "managerId", required = false) Long managerId,
+                                @RequestParam(value = "hodId", required = false) Long hodId,
+                                @RequestParam(value = "departmentId", required = false) Long departmentId,
+                                @AuthenticationPrincipal ItsmUserPrincipal actor,
+                                RedirectAttributes ra) {
+        try {
+            employeeSetupService.updateReportingLine(id, managerId, hodId, departmentId, actor);
+            ra.addFlashAttribute("message", "Reporting line saved. New Service Requests follow it.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/groups")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String groups(@PathVariable("id") Long id,
+                         @RequestParam(value = "groupIds", required = false) List<Long> groupIds,
+                         @AuthenticationPrincipal ItsmUserPrincipal actor,
+                         RedirectAttributes ra) {
+        try {
+            employeeSetupService.updateGroups(id, groupIds, actor);
+            ra.addFlashAttribute("message", "Group membership saved.");
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());
         }

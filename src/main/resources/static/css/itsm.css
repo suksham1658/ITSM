@@ -188,8 +188,16 @@ select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3C
 }
 .btn-primary{background:var(--navy-900);color:#fff;}
 .btn-primary:hover{background:var(--navy-800);}
-.btn-accent{background:var(--accent);color:#fff;}
-.btn-accent:hover{background:var(--accent-dark);}
+/* Colour language: green = go / submit / save / in the flow, red = delete / disable / reject /
+   cancel, grey = finished or neutral. .btn-accent is the primary (green) action everywhere. */
+.btn-accent,.btn-success{background:var(--success);color:#fff;}
+.btn-accent:hover,.btn-success:hover{background:#17744A;}
+.btn-success-outline{background:#fff;border-color:var(--success);color:var(--success);}
+.btn-success-outline:hover{background:var(--success-light);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#A3301F;}
+.btn-neutral{background:var(--slate-100);border-color:var(--slate-300);color:var(--slate-600);}
+.btn-neutral:hover{background:var(--slate-200, #E2E8F0);}
 .btn-block{width:100%;}
 .btn-outline{background:#fff;border-color:var(--slate-300);color:var(--slate-600);}
 .btn-outline:hover{border-color:var(--slate-400);background:var(--slate-100);}
@@ -468,6 +476,9 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
 .badge-sla-near{background:var(--warning-light);color:var(--warning);}
 .badge-sla-breach{background:var(--danger-light);color:var(--danger);}
 .badge-outline{background:#fff;border:1px solid var(--slate-300);color:var(--slate-600);}
+.badge-flow{background:var(--success-light);color:var(--success);}
+.badge-flow-strong{background:var(--success);color:#fff;}
+.badge-skipped{background:#fff;border:1px dashed var(--slate-300);color:var(--slate-400);}
 .badge-gold{background:var(--gold-light);color:#8A6B34;}
 .badge-navy{background:var(--navy-800);color:#fff;}
 
@@ -677,12 +688,16 @@ table.data-table tbody tr:last-child td{border-bottom:none;}
 .status-progress{display:flex;align-items:center;margin-top:20px;gap:0;flex-wrap:nowrap;overflow-x:auto;}
 .sp-step{display:flex;align-items:center;flex-shrink:0;}
 .sp-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);}
-.sp-step.done .sp-dot{background:#7EEBB6;}
-.sp-step.current .sp-dot{background:var(--accent);box-shadow:0 0 0 4px rgba(14,124,134,.4);width:11px;height:11px;}
+/* Finished steps grey, the current step green, later steps faint. */
+.sp-step.done .sp-dot{background:#A7B3C2;}
+.sp-step.current .sp-dot{background:#2ECC71;box-shadow:0 0 0 4px rgba(46,204,113,.35);width:11px;height:11px;}
+.sp-step.rejected .sp-dot{background:#E74C3C;}
 .sp-label{font-size:10.5px;color:rgba(255,255,255,.45);margin-left:7px;white-space:nowrap;}
-.sp-step.done .sp-label,.sp-step.current .sp-label{color:#fff;font-weight:600;}
+.sp-step.done .sp-label{color:#C9D2DD;font-weight:500;}
+.sp-step.current .sp-label{color:#fff;font-weight:700;}
+.sp-step.rejected .sp-label{color:#FFB4AB;font-weight:600;}
 .sp-bar{width:34px;height:1.5px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;}
-.sp-bar.done{background:#7EEBB6;}
+.sp-bar.done{background:#A7B3C2;}
 
 .ticket-detail-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;}
 @media (max-width:1100px){.ticket-detail-grid{grid-template-columns:1fr;}}

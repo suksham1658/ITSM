@@ -25,7 +25,7 @@
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
             <td th:text="${t.subject}">s</td>
             <td th:text="${t.ticketType.name}">t</td>
-            <td th:text="${t.statusCode}">st</td>
+            <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">st</span></td>
             <td th:text="${t.priorityCode}">p</td>
             <td th:text="${t.assignedImplementor != null} ? ${t.assignedImplementor.displayName} : 'Unassigned'">a</td>
           </tr>

@@ -81,7 +81,7 @@ info:
 
 itsm:
   ldap:
-    url: ${LDAP_URL:ldap://AUTHADC.Authum.local:389}
+    url: ${LDAP_URL:ldap://AUTHPDC.Authum.local:389}
     base-dn: ${LDAP_BASE_DN:dc=Authum,dc=local}
     bind-dn: ${LDAP_BIND_DN:70902907@Authum.local}
     bind-password: ${LDAP_BIND_PASSWORD:D!v!t@2024}

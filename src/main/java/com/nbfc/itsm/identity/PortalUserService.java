@@ -1,5 +1,7 @@
 package com.nbfc.itsm.identity;
 
+import com.nbfc.itsm.domain.Department;
+import com.nbfc.itsm.domain.DepartmentRepository;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.EmployeeRepository;
 import com.nbfc.itsm.domain.EmployeeRoleAssignment;
@@ -9,6 +11,8 @@ import com.nbfc.itsm.domain.Role;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.util.TimeUtc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Service;
@@ -25,13 +29,18 @@ import java.util.TreeSet;
 @Service
 public class PortalUserService {
 
+    private static final Logger log = LoggerFactory.getLogger(PortalUserService.class);
+
     private final EmployeeRepository employeeRepository;
     private final EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository;
+    private final DepartmentRepository departmentRepository;
 
     public PortalUserService(EmployeeRepository employeeRepository,
-                             EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository) {
+                             EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository,
+                             DepartmentRepository departmentRepository) {
         this.employeeRepository = employeeRepository;
         this.employeeRoleAssignmentRepository = employeeRoleAssignmentRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     /**
@@ -50,6 +59,7 @@ public class PortalUserService {
         applyDirectoryAttributes(employee, person);
         employee.setLastLdapSyncUtc(TimeUtc.now());
         employeeRepository.save(employee);
+        syncHierarchy(employee, person);
         if (!employee.isPortalActive()) {
             throw new DisabledException("portal-inactive");
         }
@@ -65,6 +75,55 @@ public class PortalUserService {
         }
         if (StringUtils.hasText(person.getSamAccountName())) {
             return employeeRepository.findBySamAccountNameIgnoreCase(person.getSamAccountName()).orElse(null);
+        }
+        return null;
+    }
+
+    /**
+     * Stores the directory's reporting line so Service Requests can move up it: each manager in
+     * {@link LdapPerson#getManagerChain()} is found (or created, like a first login) and linked as
+     * the {@code manager} of the person below. The department is set when the AD {@code department}
+     * matches a portal department by name or code. Nothing is cleared when the directory has no
+     * manager, so a manager set by an administrator is kept.
+     */
+    void syncHierarchy(Employee employee, LdapPerson person) {
+        Department dept = matchDepartment(person.getDepartment());
+        if (dept != null) {
+            employee.setDepartment(dept);
+        }
+        Employee child = employee;
+        for (LdapPerson m : person.getManagerChain()) {
+            Employee manager = findProvisioned(m);
+            if (manager == null) {
+                manager = createEmployeeFromLdap(m);
+                log.info("Created portal profile for manager {} ({}) from the directory",
+                        manager.getEmployeeNo(), manager.getDisplayName());
+            } else {
+                applyDirectoryAttributes(manager, m);
+            }
+            Department managerDept = matchDepartment(m.getDepartment());
+            if (managerDept != null) {
+                manager.setDepartment(managerDept);
+            }
+            if (manager.getEmployeeId().equals(child.getEmployeeId())) {
+                break;
+            }
+            child.setManager(manager);
+            employeeRepository.save(child);
+            child = manager;
+        }
+        employeeRepository.save(child);
+    }
+
+    private Department matchDepartment(String adDepartment) {
+        if (!StringUtils.hasText(adDepartment)) {
+            return null;
+        }
+        String wanted = adDepartment.trim();
+        for (Department d : departmentRepository.findAll()) {
+            if (wanted.equalsIgnoreCase(d.getName()) || wanted.equalsIgnoreCase(d.getCode())) {
+                return d;
+            }
         }
         return null;
     }

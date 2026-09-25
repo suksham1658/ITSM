@@ -16,6 +16,10 @@
         <p class="page-sub" th:text="${designerNote}">Note</p>
       </div>
     </div>
+    <div class="alert-banner error" th:if="${activeRuleCount == 0}" style="margin-bottom:16px;">
+      There are no active workflow rules, so nobody can submit a request. Restart the application to let
+      the database migration restore the default rules, or activate a rule below.
+    </div>
     <div class="card card-pad" style="margin-bottom:16px;">
       <h3 style="font-size:14px;margin-bottom:10px;">Templates</h3>
       <div class="table-wrap">
@@ -25,7 +29,7 @@
           <tr th:each="d : ${definitions}">
             <td class="cell-id" th:text="${d.code}">code</td>
             <td th:text="${d.name}">name</td>
-            <td th:text="${d.statusCode}">Active</td>
+            <td><span class="badge" th:classappend="${@ui.configStatusClass(d.statusCode)}" th:text="${d.statusCode}">Active</span></td>
             <td><a class="cell-link" th:href="@{/admin/workflow/{id}(id=${d.workflowDefinitionId})}">Stages</a></td>
           </tr>
           </tbody>
@@ -50,7 +54,7 @@
             <div class="form-group span-2"><label>condition_json</label>
               <textarea class="form-control mono" name="conditionJson" th:text="${r.conditionJson}" th:attr="maxlength=${limits.ruleJsonMax}" placeholder="{} matches every ticket">{}</textarea></div>
           </div>
-          <button type="submit" class="btn btn-outline" style="margin-top:10px;">Save rule</button>
+          <button type="submit" class="btn btn-accent btn-sm" style="margin-top:10px;"><i class="fa-regular fa-floppy-disk"></i> Save rule</button>
         </form>
       </div>
     </div>
