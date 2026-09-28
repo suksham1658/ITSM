@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / <span>AD Account Unlock</span></div>
+        <h1>AD Account Unlock</h1>
+        <p class="page-sub">Find a user who is locked out of Windows / Active Directory and unlock the account. Verify the caller's identity first. Every unlock is audited.</p>
+      </div>
+    </div>
+    <form class="filter-bar" method="get" th:action="@{/ad-accounts}">
+        <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" name="q" th:value="${q}" required="required" minlength="2" maxlength="64"
+                   placeholder="Login ID, employee ID or name" aria-label="Search directory accounts"/>
+        </div>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+    </form>
+
+    <div class="card" th:if="${accounts == null}">
+        <div class="empty-state"><i class="fa-solid fa-unlock-keyhole"></i><h3>Search for a user</h3>
+            <p>Enter at least 2 characters of the login ID, employee ID or name.</p></div>
+    </div>
+    <div class="card" th:if="${accounts != null and #lists.isEmpty(accounts)}">
+        <div class="empty-state"><i class="fa-solid fa-user-slash"></i><h3>No matching accounts</h3>
+            <p>Check the spelling, or search by login ID.</p></div>
+    </div>
+    <div class="card" th:if="${accounts != null and !#lists.isEmpty(accounts)}">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr><th>Login ID</th><th>Name</th><th>Department</th><th>Status</th><th>Locked since</th><th></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${accounts}">
+                    <td class="cell-id" th:text="${a.samAccountName}">70311158</td>
+                    <td th:text="${a.displayName}">Name</td>
+                    <td th:text="${a.department} ?: '—'">IT</td>
+                    <td>
+                        <span class="badge" th:classappend="${a.locked} ? ' badge-rejected' : ' badge-approved'" th:text="${a.locked} ? 'Locked' : 'Not locked'">Locked</span>
+                        <span class="badge badge-draft" th:if="${a.disabled}">Disabled</span>
+                        <span class="badge badge-draft" th:if="${a.passwordExpired}">Password expired</span>
+                    </td>
+                    <td class="cell-date" th:text="${a.lockedAtUtc == null} ? '—' : ${@ui.dateTime(a.lockedAtUtc)}">date</td>
+                    <td style="text-align:right;">
+                        <a class="btn btn-xs" th:classappend="${a.locked} ? 'btn-accent' : 'btn-outline'"
+                           th:href="@{/ad-accounts/account(id=${a.samAccountName},q=${q})}">
+                            <i class="fa-solid" th:classappend="${a.locked} ? 'fa-unlock' : 'fa-eye'"></i>
+                            <span th:text="${a.locked} ? 'Unlock' : 'View'">Unlock</span></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="phase-note" style="padding:0 16px 12px;" th:if="${#lists.size(accounts) >= searchLimit}"
+           th:text="'Showing the first ' + ${searchLimit} + ' matches. Type more of the ID or name to narrow the search.'">limit</p>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

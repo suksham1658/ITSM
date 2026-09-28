@@ -168,6 +168,13 @@ public class NotificationService {
         }
     }
 
+    /** The owner of an AD account the Service Desk has just unlocked. */
+    public void accountUnlocked(Employee owner, Employee by) {
+        send(null, owner, null, "Your account was unlocked",
+                "Your Windows / Active Directory account was unlocked by " + by.getDisplayName()
+                        + ". If you did not ask for this, contact the IT Service Desk.");
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /** People who can act on {@code step}: named person, else group members, else role holders. */

@@ -11,8 +11,10 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
@@ -157,6 +159,199 @@ public class LdapDirectoryClient {
             logStageFailure(stage, principal, ldap, ex);
             throw ex;
         }
+    }
+
+    // ------------------------------------------------------------------ AD account unlock
+
+    /** userAccountControl: account disabled. */
+    static final int UAC_ACCOUNTDISABLE = 0x2;
+    /** msDS-User-Account-Control-Computed: locked out right now (honours the lockout duration). */
+    static final int UAC_LOCKOUT = 0x10;
+    /** msDS-User-Account-Control-Computed: password expired. */
+    static final int UAC_PASSWORD_EXPIRED = 0x800000;
+    static final String COMPUTED_UAC = "msDS-User-Account-Control-Computed";
+    static final String STAGE_ACCOUNT_SEARCH = "account search (LDAP_ACCOUNT_SEARCH_FILTER)";
+    static final String STAGE_UNLOCK = "unlock (write lockoutTime = 0 with the service account)";
+
+    private static String[] accountAttributes(ItsmProperties.Ldap ldap) {
+        return new String[] {
+                "sAMAccountName", "uid", ldap.getEmployeeIdAttribute(), "employeeNumber", "displayName", "cn", "mail",
+                "title", "department", "lockoutTime", "badPwdCount", "badPasswordTime", "pwdLastSet",
+                "userAccountControl"
+        };
+    }
+
+    /** Accounts matching {@code query} (ID prefix, exact employee ID or part of the name), at most {@code limit}. */
+    public List<AdAccountStatus> searchAccounts(String query, int limit) throws NamingException {
+        ItsmProperties.Ldap ldap = properties.getLdap();
+        DirContext ctx = serviceContext(ldap);
+        try {
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            sc.setCountLimit(limit);
+            sc.setReturningAttributes(accountAttributes(ldap));
+            String filter = ldap.getAccountSearchFilter().replace("{0}", escapeFilter(sanitize(query)));
+            List<AdAccountStatus> out = new ArrayList<AdAccountStatus>();
+            NamingEnumeration<SearchResult> results;
+            try {
+                results = ctx.search(baseOf(ldap), filter, sc);
+            } catch (NamingException ex) {
+                logStageFailure(STAGE_ACCOUNT_SEARCH, ldap.getBaseDn(), ldap, ex);
+                throw ex;
+            }
+            try {
+                while (out.size() < limit && results.hasMore()) {
+                    SearchResult sr = results.next();
+                    out.add(toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap));
+                }
+            } catch (javax.naming.SizeLimitExceededException ignored) {
+                // more matches than the limit: the caller shows the first ones and asks for a narrower search
+            } finally {
+                results.close();
+            }
+            return out;
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
+    /** Current status of one account, looked up by its login ID with LDAP_USER_SEARCH_FILTER; null if not found. */
+    public AdAccountStatus readAccount(String username) throws NamingException {
+        ItsmProperties.Ldap ldap = properties.getLdap();
+        DirContext ctx = serviceContext(ldap);
+        try {
+            return readAccount(ctx, username, ldap);
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
+    /**
+     * Clears the lockout of {@code username} by writing {@code lockoutTime = 0} with the service
+     * account (the only change the portal makes in the directory) and returns the status read back.
+     * The DN is always looked up again here, never taken from the browser.
+     */
+    public AdAccountStatus unlock(String username) throws NamingException {
+        ItsmProperties.Ldap ldap = properties.getLdap();
+        DirContext ctx = serviceContext(ldap);
+        try {
+            AdAccountStatus before = readAccount(ctx, username, ldap);
+            if (before == null) {
+                return null;
+            }
+            try {
+                ctx.modifyAttributes(new LdapName(before.getDn()), new ModificationItem[] {
+                        new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("lockoutTime", "0"))
+                });
+            } catch (NamingException ex) {
+                logStageFailure(STAGE_UNLOCK, before.getDn(), ldap, ex);
+                throw ex;
+            }
+            AdAccountStatus after = readAccount(ctx, username, ldap);
+            return after == null ? before : after;
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
+    private AdAccountStatus readAccount(DirContext ctx, String username, ItsmProperties.Ldap ldap)
+            throws NamingException {
+        SearchControls sc = new SearchControls();
+        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        sc.setCountLimit(1);
+        sc.setReturningAttributes(accountAttributes(ldap));
+        String filter = ldap.getUserSearchFilter().replace("{0}", escapeFilter(sanitize(username)));
+        NamingEnumeration<SearchResult> results;
+        try {
+            results = ctx.search(baseOf(ldap), filter, sc);
+        } catch (NamingException ex) {
+            logStageFailure(STAGE_USER_SEARCH, ldap.getBaseDn(), ldap, ex);
+            throw ex;
+        }
+        try {
+            if (!results.hasMore()) {
+                return null;
+            }
+            SearchResult sr = results.next();
+            return toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap);
+        } finally {
+            results.close();
+        }
+    }
+
+    private AdAccountStatus toStatus(DirContext ctx, String dn, Attributes attrs, ItsmProperties.Ldap ldap)
+            throws NamingException {
+        AdAccountStatus s = new AdAccountStatus();
+        s.setDn(dn);
+        s.setSamAccountName(first(attrs, "sAMAccountName", "uid"));
+        s.setEmployeeNo(first(attrs, ldap.getEmployeeIdAttribute(), "employeeNumber"));
+        s.setDisplayName(first(attrs, "displayName", "cn"));
+        s.setEmail(first(attrs, "mail"));
+        s.setDesignation(first(attrs, "title"));
+        s.setDepartment(first(attrs, "department"));
+        Long lockoutTime = parseLong(first(attrs, "lockoutTime"));
+        s.setLockedAtUtc(fileTime(lockoutTime));
+        s.setBadPasswordCount(parseInt(first(attrs, "badPwdCount")));
+        s.setLastBadPasswordUtc(fileTime(parseLong(first(attrs, "badPasswordTime"))));
+        s.setPasswordLastSetUtc(fileTime(parseLong(first(attrs, "pwdLastSet"))));
+        Integer uac = parseInt(first(attrs, "userAccountControl"));
+        s.setDisabled(uac != null && (uac & UAC_ACCOUNTDISABLE) != 0);
+        // The computed flags are only returned by a base-scope read of the entry.
+        Integer computed = null;
+        try {
+            computed = parseInt(first(ctx.getAttributes(new LdapName(dn), new String[] {COMPUTED_UAC}), COMPUTED_UAC));
+        } catch (NamingException ex) {
+            log.debug("Could not read {} for {}: {}", COMPUTED_UAC, dn, ex.getMessage());
+        }
+        if (computed != null) {
+            s.setLocked((computed & UAC_LOCKOUT) != 0);
+            s.setPasswordExpired((computed & UAC_PASSWORD_EXPIRED) != 0);
+        } else {
+            // Directory without the computed attribute: a non-zero lockoutTime means locked.
+            s.setLocked(lockoutTime != null && lockoutTime > 0);
+        }
+        if (!s.isLocked()) {
+            s.setLockedAtUtc(null);
+        }
+        return s;
+    }
+
+    /** Bind with LDAP_BIND_DN; account look-up and unlock never use the signed-in user's own credentials. */
+    private DirContext serviceContext(ItsmProperties.Ldap ldap) throws NamingException {
+        if (!ldap.isConfigured()) {
+            throw new NamingException("LDAP is not configured");
+        }
+        if (!StringUtils.hasText(ldap.getBindDn()) || !StringUtils.hasText(ldap.getBindPassword())) {
+            throw new NamingException("Service account not configured (LDAP_BIND_DN / LDAP_BIND_PASSWORD)");
+        }
+        return bind(STAGE_SERVICE_BIND, ldap.getBindDn(), ldap.getBindPassword(), ldap);
+    }
+
+    private static String baseOf(ItsmProperties.Ldap ldap) {
+        return StringUtils.hasText(ldap.getBaseDn()) ? ldap.getBaseDn() : "";
+    }
+
+    /** Windows FILETIME (100 ns ticks since 1601-01-01 UTC) to an Instant; 0 and "never" become null. */
+    static java.time.Instant fileTime(Long ticks) {
+        if (ticks == null || ticks <= 0 || ticks == Long.MAX_VALUE) {
+            return null;
+        }
+        long seconds = ticks / 10_000_000L - 11_644_473_600L;
+        long nanos = (ticks % 10_000_000L) * 100L;
+        return java.time.Instant.ofEpochSecond(seconds, nanos);
+    }
+
+    private static Long parseLong(String value) {
+        try {
+            return value == null ? null : Long.valueOf(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static Integer parseInt(String value) {
+        Long l = parseLong(value);
+        return l == null ? null : Integer.valueOf(l.intValue());
     }
 
     // ------------------------------------------------------------------ diagnostics

@@ -69,7 +69,8 @@ public class CatalogSeedService {
             {"ADMIN_MASTERDATA_PROPOSE", "Propose master-data changes"},
             {"ADMIN_MASTERDATA_APPROVE", "Approve master-data changes"},
             {"ADMIN_SYSTEM", "System settings"},
-            {"ASSET_MANAGE", "Manage assets"}
+            {"ASSET_MANAGE", "Manage assets"},
+            {"AD_ACCOUNT_UNLOCK", "Unlock locked Active Directory accounts"}
     };
 
     private final DepartmentRepository departmentRepository;
@@ -194,7 +195,7 @@ public class CatalogSeedService {
                 "REPORT_VIEW", "AUDIT_VIEW"));
         roles.put("IT_SERVICE_DESK", role("IT_SERVICE_DESK", "IT Service Desk", perms,
                 "TICKET_CREATE", "TICKET_VIEW_OWN", "TICKET_VIEW_QUEUE_ALL", "TICKET_ASSIGN",
-                "SLA_MONITOR", "REPORT_VIEW", "KB_READ"));
+                "SLA_MONITOR", "REPORT_VIEW", "KB_READ", "AD_ACCOUNT_UNLOCK"));
         roles.put("IT_IMPLEMENTOR", role("IT_IMPLEMENTOR", "IT Implementor", perms,
                 "TICKET_CREATE", "TICKET_VIEW_OWN", "TICKET_FULFIL", "KB_READ"));
         roles.put("IT_ADMIN", role("IT_ADMIN", "IT Admin", perms,

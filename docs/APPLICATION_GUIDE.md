@@ -353,6 +353,26 @@ assign/start, `pause` on hold, `markResolved`, `refresh`/`refreshState` → `WIT
 - **Workflow config** — `AdminCatalogController.updateRule` (name, Active/Inactive, condition must be a JSON object).
 - **Config approvals** — `/admin/change-requests`: approve/reject pending changes.
 
+### 6.6.1 AD Account Unlock (`admin/AdAccountUnlockService`, `web/AdAccountController`)
+
+For IT Service Desk and System Administrator (permission `AD_ACCOUNT_UNLOCK`, sidebar **AD Account Unlock**).
+
+1. Search by login ID (prefix), employee ID or part of the name (`itsm.ldap.account-search-filter`, max 25 hits).
+2. Open an account: lockout, locked since, failed attempts, last failed attempt, enabled/disabled,
+   password expired, password last set (all read with the service account; times in IST).
+3. **Unlock account** (only shown when locked): remarks of at least 10 characters are required.
+   `LdapDirectoryClient.unlock` looks the DN up again and writes `lockoutTime = 0`, then re-reads the status.
+4. Audit row `AD_ACCOUNT / UNLOCK` (SUCCESS or FAILED, with account, actor and remarks); the account owner
+   gets an in-app notification if they have a portal profile.
+
+The portal never locks, disables, enables or resets passwords. "Locked" comes from
+`msDS-User-Account-Control-Computed` (bit 0x10), falling back to `lockoutTime > 0`.
+
+**AD prerequisites:** `LDAP_BIND_DN` / `LDAP_BIND_PASSWORD` must be set (preferably a dedicated service
+account, not an employee's ID), and the AD team must delegate **Read/Write lockoutTime** on the user OUs
+to it. Without that, Unlock shows "The portal's service account … is not allowed to unlock accounts".
+LDAPS (`ldaps://…:636`) is recommended.
+
 ### 6.7 Reports and dashboard (`reporting/ReportingService`, `web/ReportController`)
 
 `dashboard(user)` builds KPI cards and charts; `run(user, code, filter, page, size)` for report codes:
@@ -393,6 +413,8 @@ All require login except `/login`, static assets and `/actuator/health|info`. Al
 | GET | `/sla`, `/escalations` | PortalPageController | SLA_MONITOR |
 | GET | `/risk` | PortalPageController.risk | TICKET_VIEW_SECURITY |
 | GET | `/kb`, `/audit`, `/assets` | PortalPageController | KB_READ / AUDIT_VIEW / ASSET_MANAGE |
+| GET | `/ad-accounts?q=`, `/ad-accounts/account?id=` | AdAccountController.search / account | AD_ACCOUNT_UNLOCK |
+| POST | `/ad-accounts/unlock` | AdAccountController.unlock (params `id`, `remarks`) | AD_ACCOUNT_UNLOCK |
 | GET | `/tickets` | TicketController.myTickets | logged in |
 | GET | `/tickets/team`, `/department`, `/security`, `/changes` | TicketController | VIEW_TEAM / VIEW_DEPARTMENT / VIEW_SECURITY / FULFIL |
 | GET, POST | `/tickets/raise` | TicketController.raise / raiseSubmit | TICKET_CREATE |
@@ -485,9 +507,10 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V6 (`db/dev`) | Sample data — dev/uat profiles only |
 | V7 | Rebuilds `workflow_rule` with IDENTITY if it was recreated without (only when empty) + restores default rules |
 | V8 | `notification.title/body` back to NVARCHAR if they were VARCHAR |
+| V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
 
-Never edit an applied migration (Flyway checksum validation fails); add a new `V9__…` instead.
+Never edit an applied migration (Flyway checksum validation fails); add a new `V10__…` instead.
 `database/*.sql` are DBA scripts mirroring the migrations — don't run them on a Flyway-managed DB.
 
 ### 9.2 Tables

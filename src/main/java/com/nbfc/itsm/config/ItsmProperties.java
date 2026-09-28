@@ -35,6 +35,9 @@ public class ItsmProperties {
         private String userDnPattern = "";
         private String employeeIdAttribute = "employeeID";
         private String managerAttribute = "manager";
+        /** Unlock page search; {0} is the (escaped) text typed by the Service Desk. Prefix match on the ID, contains on the name. */
+        private String accountSearchFilter =
+                "(&(objectCategory=person)(objectClass=user)(|(sAMAccountName={0}*)(employeeID={0})(displayName=*{0}*)))";
         private int connectTimeoutMs = 3000;
         private int readTimeoutMs = 5000;
 
@@ -104,6 +107,14 @@ public class ItsmProperties {
 
         public void setManagerAttribute(String managerAttribute) {
             this.managerAttribute = managerAttribute;
+        }
+
+        public String getAccountSearchFilter() {
+            return accountSearchFilter;
+        }
+
+        public void setAccountSearchFilter(String accountSearchFilter) {
+            this.accountSearchFilter = accountSearchFilter;
         }
 
         public int getConnectTimeoutMs() {

@@ -29,6 +29,7 @@
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_ASSIGN')" th:classappend="${nav == 'assignment'} ? ' active'" th:href="@{/queue/assignment}"><i class="fa-solid fa-user-plus"></i><span>Assignment</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('SLA_MONITOR')" th:classappend="${nav == 'slaMonitoring'} ? ' active'" th:href="@{/sla}"><i class="fa-solid fa-stopwatch"></i><span>SLA Monitoring</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('SLA_MONITOR')" th:classappend="${nav == 'escalations'} ? ' active'" th:href="@{/escalations}"><i class="fa-solid fa-bolt"></i><span>Escalations</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('AD_ACCOUNT_UNLOCK')" th:classappend="${nav == 'adUnlock'} ? ' active'" th:href="@{/ad-accounts}"><i class="fa-solid fa-unlock-keyhole"></i><span>AD Account Unlock</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'myQueue'} ? ' active'" th:href="@{/queue/mine}"><i class="fa-solid fa-list-check"></i><span>My Assigned Tickets</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'workQueue'} ? ' active'" th:href="@{/queue/work}"><i class="fa-solid fa-toolbox"></i><span>Work Queue</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_FULFIL')" th:classappend="${nav == 'changeRequests'} ? ' active'" th:href="@{/tickets/changes}"><i class="fa-solid fa-code-compare"></i><span>Change Requests</span></a>

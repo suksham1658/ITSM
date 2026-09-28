@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <a th:replace="fragments/back :: back(href=@{${backHref}}, label=${backLabel})"></a>
+        <div class="breadcrumb">ITSM Portal / <a th:href="@{/ad-accounts}">AD Account Unlock</a> / <span th:text="${account.samAccountName}">id</span></div>
+        <h1 th:text="${account.displayName}">Name</h1>
+        <p class="page-sub" th:text="${account.samAccountName} + (${account.email} != null ? ' · ' + ${account.email} : '')">id</p>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Directory status</div>
+        <div class="info-list">
+            <div class="info-item"><div class="il-label">Lockout</div><div class="il-value">
+                <span class="badge" th:classappend="${account.locked} ? ' badge-rejected' : ' badge-approved'" th:text="${account.locked} ? 'Locked' : 'Not locked'">Locked</span></div></div>
+            <div class="info-item"><div class="il-label">Locked since (IST)</div><div class="il-value mono" th:text="${account.lockedAtUtc == null} ? '—' : ${@ui.dateTime(account.lockedAtUtc)}">—</div></div>
+            <div class="info-item"><div class="il-label">Failed password attempts</div><div class="il-value" th:text="${account.badPasswordCount} ?: '—'">0</div></div>
+            <div class="info-item"><div class="il-label">Last failed attempt (IST)</div><div class="il-value mono" th:text="${account.lastBadPasswordUtc == null} ? '—' : ${@ui.dateTime(account.lastBadPasswordUtc)}">—</div></div>
+            <div class="info-item"><div class="il-label">Account enabled</div><div class="il-value">
+                <span class="badge" th:classappend="${account.disabled} ? ' badge-rejected' : ' badge-approved'" th:text="${account.disabled} ? 'Disabled' : 'Enabled'">Enabled</span></div></div>
+            <div class="info-item"><div class="il-label">Password</div><div class="il-value">
+                <span class="badge" th:classappend="${account.passwordExpired} ? ' badge-rejected' : ' badge-approved'" th:text="${account.passwordExpired} ? 'Expired' : 'Valid'">Valid</span></div></div>
+            <div class="info-item"><div class="il-label">Password last set (IST)</div><div class="il-value mono" th:text="${account.passwordLastSetUtc == null} ? '—' : ${@ui.dateTime(account.passwordLastSetUtc)}">—</div></div>
+            <div class="info-item"><div class="il-label">Employee ID</div><div class="il-value" th:text="${account.employeeNo} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Department</div><div class="il-value" th:text="${account.department} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Designation</div><div class="il-value" th:text="${account.designation} ?: '—'">—</div></div>
+        </div>
+    </div>
+
+    <div class="alert-banner warn" style="margin-bottom:18px;" th:if="${account.disabled or account.passwordExpired}">
+        <span th:if="${account.disabled}">This account is <b>disabled</b> in Active Directory. Unlocking will not let the user sign in; the AD team must enable it. </span>
+        <span th:if="${account.passwordExpired}">The <b>password has expired</b>. The user must change it (or the AD team reset it) before signing in.</span>
+    </div>
+
+    <div class="card card-pad" th:if="${account.locked}">
+        <div class="form-section-title">Unlock account</div>
+        <p class="phase-note" style="margin-top:0;">Clears the lockout only. The password is not changed. Record how you verified the user's identity.</p>
+        <form th:action="@{/ad-accounts/unlock}" method="post">
+            <input type="hidden" name="id" th:value="${account.samAccountName}"/>
+            <input type="hidden" name="q" th:value="${q}"/>
+            <div class="form-group">
+                <label for="remarks">Remarks <span class="req">*</span></label>
+                <textarea class="form-control" id="remarks" name="remarks" required="required"
+                          th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}" data-counter="true"
+                          placeholder="e.g. User called the desk from their registered mobile; identity verified with employee ID and manager name."></textarea>
+            </div>
+            <button type="submit" class="btn btn-success"><i class="fa-solid fa-unlock"></i> Unlock account</button>
+            <a class="btn btn-outline" th:href="@{${backHref}}">Cancel</a>
+        </form>
+    </div>
+    <div class="alert-banner ok" th:if="${!account.locked}">This account is not locked out; there is nothing to unlock.</div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

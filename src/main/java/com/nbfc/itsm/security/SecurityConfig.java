@@ -83,6 +83,7 @@ public class SecurityConfig {
                     .antMatchers("/reports", "/reports/**").hasAuthority("REPORT_VIEW")
                     .antMatchers("/kb").hasAuthority("KB_READ")
                     .antMatchers("/audit").hasAuthority("AUDIT_VIEW")
+                    .antMatchers("/ad-accounts", "/ad-accounts/**").hasAuthority("AD_ACCOUNT_UNLOCK")
                     .antMatchers("/assets").hasAuthority("ASSET_MANAGE")
                     .antMatchers("/admin/change-requests/**").hasAuthority("ADMIN_MASTERDATA_APPROVE")
                     .antMatchers("/admin/categories", "/admin/sla", "/admin/workflow", "/admin/config")

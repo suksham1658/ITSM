@@ -31,6 +31,7 @@ public final class PermissionCatalog {
         add("TICKET_VIEW_QUEUE_ALL", "Approvals & Work", "View the service desk queue", "Ticket Queue");
         add("TICKET_ASSIGN", "Approvals & Work", "Assign implementors", "Assignment");
         add("SLA_MONITOR", "Approvals & Work", "Monitor SLA", "SLA Monitoring, Escalations");
+        add("AD_ACCOUNT_UNLOCK", "Approvals & Work", "Unlock locked Active Directory accounts", "AD Account Unlock");
         add("TICKET_FULFIL", "Approvals & Work", "Fulfil and resolve tickets",
                 "My Assigned Tickets, Work Queue, Change Requests, Implementation");
 

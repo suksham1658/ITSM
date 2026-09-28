@@ -101,6 +101,7 @@ itsm:
     user-dn-pattern: ${LDAP_USER_DN_PATTERN:}
     employee-id-attribute: ${LDAP_EMPLOYEE_ID_ATTRIBUTE:employeeID}
     manager-attribute: ${LDAP_MANAGER_ATTRIBUTE:manager}
+    account-search-filter: "${LDAP_ACCOUNT_SEARCH_FILTER:(&(objectCategory=person)(objectClass=user)(|(sAMAccountName={0}*)(employeeID={0})(displayName=*{0}*)))}"
     connect-timeout-ms: 3000
     read-timeout-ms: 5000
   storage:
