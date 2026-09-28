@@ -65,11 +65,10 @@ public class AdAccountController {
     @PostMapping("/ad-accounts/unlock")
     public String unlock(@AuthenticationPrincipal ItsmUserPrincipal user,
                          @RequestParam("id") String id,
-                         @RequestParam(value = "remarks", required = false) String remarks,
                          @RequestParam(value = "q", required = false) String q,
                          RedirectAttributes ra) {
         try {
-            AdAccountStatus after = unlockService.unlock(user, id, remarks);
+            AdAccountStatus after = unlockService.unlock(user, id);
             ra.addFlashAttribute("message", after.getDisplayName() + " (" + after.getSamAccountName()
                     + ") is unlocked. The user can sign in now; other domain controllers pick it up within a few minutes.");
         } catch (ItsmException ex) {

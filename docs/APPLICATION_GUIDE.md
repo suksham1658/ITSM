@@ -360,9 +360,9 @@ For IT Service Desk and System Administrator (permission `AD_ACCOUNT_UNLOCK`, si
 1. Search by login ID (prefix), employee ID or part of the name (`itsm.ldap.account-search-filter`, max 25 hits).
 2. Open an account: lockout, locked since, failed attempts, last failed attempt, enabled/disabled,
    password expired, password last set (all read with the service account; times in IST).
-3. **Unlock account** (only shown when locked): remarks of at least 10 characters are required.
+3. **Unlock account** (only shown when locked); no remarks are asked for.
    `LdapDirectoryClient.unlock` looks the DN up again and writes `lockoutTime = 0`, then re-reads the status.
-4. Audit row `AD_ACCOUNT / UNLOCK` (SUCCESS or FAILED, with account, actor and remarks); the account owner
+4. Audit row `AD_ACCOUNT / UNLOCK` (SUCCESS or FAILED, with account and actor); the account owner
    gets an in-app notification if they have a portal profile.
 
 The portal never locks, disables, enables or resets passwords. "Locked" comes from
@@ -414,7 +414,7 @@ All require login except `/login`, static assets and `/actuator/health|info`. Al
 | GET | `/risk` | PortalPageController.risk | TICKET_VIEW_SECURITY |
 | GET | `/kb`, `/audit`, `/assets` | PortalPageController | KB_READ / AUDIT_VIEW / ASSET_MANAGE |
 | GET | `/ad-accounts?q=`, `/ad-accounts/account?id=` | AdAccountController.search / account | AD_ACCOUNT_UNLOCK |
-| POST | `/ad-accounts/unlock` | AdAccountController.unlock (params `id`, `remarks`) | AD_ACCOUNT_UNLOCK |
+| POST | `/ad-accounts/unlock` | AdAccountController.unlock (param `id`) | AD_ACCOUNT_UNLOCK |
 | GET | `/tickets` | TicketController.myTickets | logged in |
 | GET | `/tickets/team`, `/department`, `/security`, `/changes` | TicketController | VIEW_TEAM / VIEW_DEPARTMENT / VIEW_SECURITY / FULFIL |
 | GET, POST | `/tickets/raise` | TicketController.raise / raiseSubmit | TICKET_CREATE |

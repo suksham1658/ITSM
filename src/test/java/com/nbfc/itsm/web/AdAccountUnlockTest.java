@@ -102,13 +102,7 @@ class AdAccountUnlockTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("Unlock account"), containsString("2024"))));
 
-        mockMvc.perform(post("/ad-accounts/unlock").param("id", "lina").param("remarks", "short")
-                        .with(csrf()).with(authentication(agent)))
-                .andExpect(flash().attribute("errorMessage", containsString("Remarks are required")));
-        assertEquals(LOCKED_AT, lockoutTime("lina"), "not unlocked without remarks");
-
         mockMvc.perform(post("/ad-accounts/unlock").param("id", "lina")
-                        .param("remarks", "User called the desk; identity verified with employee ID.")
                         .with(csrf()).with(authentication(agent)))
                 .andExpect(flash().attribute("message", containsString("is unlocked")));
         assertEquals("0", lockoutTime("lina"), "lockoutTime cleared in the directory");
@@ -116,7 +110,6 @@ class AdAccountUnlockTest {
                 .filter(n -> n.getRecipientId().equals(lina.getEmployeeId()) && n.getTitle().contains("unlocked")).count());
 
         mockMvc.perform(post("/ad-accounts/unlock").param("id", "lina")
-                        .param("remarks", "Second attempt on an already unlocked account.")
                         .with(csrf()).with(authentication(agent)))
                 .andExpect(flash().attribute("errorMessage", containsString("not locked out")));
     }
@@ -135,7 +128,6 @@ class AdAccountUnlockTest {
         UsernamePasswordAuthenticationToken t = token(plain);
         mockMvc.perform(get("/ad-accounts").with(authentication(t))).andExpect(status().isForbidden());
         mockMvc.perform(post("/ad-accounts/unlock").param("id", "lina")
-                        .param("remarks", "Trying without the permission.")
                         .with(csrf()).with(authentication(t)))
                 .andExpect(status().isForbidden());
         assertEquals(LOCKED_AT, lockoutTime("lina"));

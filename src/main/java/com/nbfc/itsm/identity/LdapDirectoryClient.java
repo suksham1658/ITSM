@@ -199,15 +199,22 @@ public class LdapDirectoryClient {
                 logStageFailure(STAGE_ACCOUNT_SEARCH, ldap.getBaseDn(), ldap, ex);
                 throw ex;
             }
+            List<SearchResult> found = new ArrayList<SearchResult>();
             try {
-                while (out.size() < limit && results.hasMore()) {
-                    SearchResult sr = results.next();
-                    out.add(toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap));
+                while (found.size() < limit && results.hasMore()) {
+                    found.add(results.next());
                 }
             } catch (javax.naming.SizeLimitExceededException ignored) {
                 // more matches than the limit: the caller shows the first ones and asks for a narrower search
+            } catch (javax.naming.PartialResultException ignored) {
+                // AD appends referrals (DomainDnsZones, Configuration, ...) after the entries of a search
+                // from the domain root; the entries already read are the complete answer.
+                log.debug("LDAP search returned continuation references; ignored after {} entries", found.size());
             } finally {
-                results.close();
+                closeQuietly(results);
+            }
+            for (SearchResult sr : found) {
+                out.add(toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap));
             }
             return out;
         } finally {
@@ -268,15 +275,19 @@ public class LdapDirectoryClient {
             logStageFailure(STAGE_USER_SEARCH, ldap.getBaseDn(), ldap, ex);
             throw ex;
         }
+        SearchResult sr;
         try {
             if (!results.hasMore()) {
                 return null;
             }
-            SearchResult sr = results.next();
-            return toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap);
+            sr = results.next();
+        } catch (javax.naming.PartialResultException ex) {
+            // Only AD referrals, no entry: the account is not in this domain.
+            return null;
         } finally {
-            results.close();
+            closeQuietly(results);
         }
+        return toStatus(ctx, sr.getNameInNamespace(), sr.getAttributes(), ldap);
     }
 
     private AdAccountStatus toStatus(DirContext ctx, String dn, Attributes attrs, ItsmProperties.Ldap ldap)
@@ -576,6 +587,14 @@ public class LdapDirectoryClient {
             }
         }
         return sb.toString();
+    }
+
+    private static void closeQuietly(NamingEnumeration<?> results) {
+        try {
+            results.close();
+        } catch (NamingException ignored) {
+            // referral left unread, or connection already closed
+        }
     }
 
     private static void closeQuietly(DirContext ctx) {

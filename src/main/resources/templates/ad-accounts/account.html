@@ -44,16 +44,10 @@
 
     <div class="card card-pad" th:if="${account.locked}">
         <div class="form-section-title">Unlock account</div>
-        <p class="phase-note" style="margin-top:0;">Clears the lockout only. The password is not changed. Record how you verified the user's identity.</p>
+        <p class="phase-note" style="margin-top:0;">Clears the lockout only. The password is not changed. Verify the user's identity before unlocking.</p>
         <form th:action="@{/ad-accounts/unlock}" method="post">
             <input type="hidden" name="id" th:value="${account.samAccountName}"/>
             <input type="hidden" name="q" th:value="${q}"/>
-            <div class="form-group">
-                <label for="remarks">Remarks <span class="req">*</span></label>
-                <textarea class="form-control" id="remarks" name="remarks" required="required"
-                          th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}" data-counter="true"
-                          placeholder="e.g. User called the desk from their registered mobile; identity verified with employee ID and manager name."></textarea>
-            </div>
             <button type="submit" class="btn btn-success"><i class="fa-solid fa-unlock"></i> Unlock account</button>
             <a class="btn btn-outline" th:href="@{${backHref}}">Cancel</a>
         </form>

@@ -9,7 +9,6 @@ import com.nbfc.itsm.identity.AdAccountStatus;
 import com.nbfc.itsm.identity.LdapDirectoryClient;
 import com.nbfc.itsm.notification.NotificationService;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
-import com.nbfc.itsm.validation.FieldLimits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,7 @@ import java.util.regex.Pattern;
  * IT Service Desk / System Administrator unlock of locked-out Active Directory accounts
  * (permission {@code AD_ACCOUNT_UNLOCK}). The only directory change is {@code lockoutTime = 0},
  * written with the service account; passwords and enable/disable are never touched. Every
- * attempt is audited with the remarks.
+ * attempt is audited (account, who, result).
  */
 @Service
 public class AdAccountUnlockService {
@@ -80,22 +79,13 @@ public class AdAccountUnlockService {
     }
 
     @Transactional
-    public AdAccountStatus unlock(ItsmUserPrincipal actor, String username, String remarks) {
+    public AdAccountStatus unlock(ItsmUserPrincipal actor, String username) {
         String id = validQuery(username);
-        String why = remarks == null ? "" : remarks.trim();
-        if (why.length() < FieldLimits.REMARKS_MIN) {
-            throw new ItsmException("VALIDATION",
-                    "Remarks are required (at least " + FieldLimits.REMARKS_MIN + " characters), e.g. how the user's identity was verified.");
-        }
-        if (why.length() > FieldLimits.REMARKS_MAX) {
-            throw new ItsmException("VALIDATION", "Remarks must be at most " + FieldLimits.REMARKS_MAX + " characters.");
-        }
         AdAccountStatus before = status(id);
         if (!before.isLocked()) {
             throw new ItsmException("AD_NOT_LOCKED", before.getDisplayName() + " (" + id + ") is not locked out; nothing to unlock.");
         }
-        String detail = "account=" + id + " name=" + before.getDisplayName() + " by=" + actor.getEmployeeNo()
-                + " remarks=" + why;
+        String detail = "account=" + id + " name=" + before.getDisplayName() + " by=" + actor.getEmployeeNo();
         AdAccountStatus after;
         try {
             after = directory.unlock(id);
