@@ -33,6 +33,7 @@ import com.nbfc.itsm.util.TimeUtc;
 import com.nbfc.itsm.workflow.WorkflowEngine;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,9 @@ import javax.persistence.criteria.Join;
 import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Predicate;
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,6 +54,10 @@ import java.util.UUID;
 public class TicketService {
 
     private static final List<String> CLOSED = Arrays.asList("Closed", "Rejected");
+    /** Newest ticket first; the id breaks ties between tickets created in the same instant. */
+    static final Comparator<Ticket> NEWEST_FIRST = Comparator
+            .comparing(Ticket::getCreatedAtUtc, Comparator.nullsLast(Comparator.<Instant>reverseOrder()))
+            .thenComparing(Ticket::getTicketId, Comparator.nullsLast(Comparator.<Long>reverseOrder()));
 
     private final TicketRepository ticketRepository;
     private final TicketTypeRepository ticketTypeRepository;
@@ -343,6 +350,7 @@ public class TicketService {
                 tickets.add(t);
             });
         }
+        tickets.sort(NEWEST_FIRST);
         return tickets;
     }
 
@@ -353,7 +361,7 @@ public class TicketService {
             return new ArrayList<Ticket>();
         }
         Specification<Ticket> spec = (root, query, cb) -> cb.equal(root.get("assignedImplementor"), me);
-        List<Ticket> list = ticketRepository.findAll(spec);
+        List<Ticket> list = ticketRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAtUtc", "ticketId"));
         for (Ticket t : list) {
             hydrate(t);
         }
@@ -381,6 +389,7 @@ public class TicketService {
                 /* skip */
             }
         }
+        out.sort(NEWEST_FIRST);
         return out;
     }
 

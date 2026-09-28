@@ -57,6 +57,7 @@
             <th>Status</th>
             <th>Priority</th>
             <th>Requester</th>
+            <th>Created</th>
           </tr>
           </thead>
           <tbody>
@@ -67,6 +68,7 @@
             <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">Open</span></td>
             <td th:text="${t.priorityCode}">Medium</td>
             <td th:text="${t.requester.displayName}">User</td>
+            <td class="mono cell-date" th:text="${@ui.dateTime(t.createdAtUtc)}">date</td>
           </tr>
           </tbody>
         </table>

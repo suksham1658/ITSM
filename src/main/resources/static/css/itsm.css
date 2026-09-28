@@ -510,6 +510,7 @@ table.data-table tbody tr{transition:.1s;}
 table.data-table tbody tr:hover{background:var(--slate-100);}
 table.data-table tbody tr:last-child td{border-bottom:none;}
 .cell-id{font-family:var(--font-mono);font-weight:600;color:var(--navy-900);font-size:12px;}
+.cell-date{font-family:var(--font-mono);font-size:12px;color:var(--slate-500);white-space:nowrap;}
 .cell-link{color:var(--accent);font-weight:600;cursor:pointer;}
 .cell-link:hover{text-decoration:underline;}
 .row-actions{display:flex;gap:6px;}

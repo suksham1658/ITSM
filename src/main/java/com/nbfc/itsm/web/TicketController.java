@@ -249,7 +249,7 @@ public class TicketController {
         int safePage = Math.max(page, 0);
         q = SearchText.clean(q);
         Page<Ticket> result = ticketService.search(user, scope, q, status, priority, typeId,
-                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAtUtc")));
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAtUtc", "ticketId")));
         model.addAttribute("nav", nav);
         model.addAttribute("pageTitle", title);
         model.addAttribute("tickets", result);

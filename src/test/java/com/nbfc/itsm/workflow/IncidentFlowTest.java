@@ -83,6 +83,29 @@ class IncidentFlowTest {
     }
 
     @Test
+    void queueListsNewestTicketFirst() {
+        Ticket a = ticketService.save(as(requester), incident());
+        Ticket b = ticketService.save(as(requester), incident());
+        Ticket c = ticketService.save(as(requester), incident());
+        // Creation order deliberately differs from id order: b newest, a oldest.
+        java.time.Instant base = java.time.Instant.parse("2026-01-01T00:00:00Z");
+        a.setCreatedAtUtc(base);
+        b.setCreatedAtUtc(base.plusSeconds(120));
+        c.setCreatedAtUtc(base.plusSeconds(60));
+        ticketRepository.saveAll(java.util.Arrays.asList(a, b, c));
+        ticketRepository.flush();
+
+        java.util.List<Long> ids = new java.util.ArrayList<Long>();
+        for (Ticket t : ticketService.queueByStageType("ASSIGNMENT")) {
+            if (t.getTicketId().equals(a.getTicketId()) || t.getTicketId().equals(b.getTicketId())
+                    || t.getTicketId().equals(c.getTicketId())) {
+                ids.add(t.getTicketId());
+            }
+        }
+        assertEquals(java.util.Arrays.asList(b.getTicketId(), c.getTicketId(), a.getTicketId()), ids);
+    }
+
+    @Test
     void incidentGoesDeskThenImplementorThenRequesterThenClosed() {
         Ticket t = ticketService.save(as(requester), incident());
         assertEquals("ASSIGNMENT", current(t).getStageType());

@@ -19,7 +19,7 @@
     <div class="card" th:if="${tickets != null and !tickets.empty}">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th></tr></thead>
+          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th><th>Requester</th><th>Created</th></tr></thead>
           <tbody>
           <tr th:each="t : ${tickets}">
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
@@ -27,6 +27,8 @@
             <td th:text="${t.ticketType.name}">t</td>
             <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">st</span></td>
             <td th:text="${t.priorityCode}">p</td>
+            <td th:text="${t.requester.displayName}">r</td>
+            <td class="mono cell-date" th:text="${@ui.dateTime(t.createdAtUtc)}">date</td>
           </tr>
           </tbody>
         </table>
