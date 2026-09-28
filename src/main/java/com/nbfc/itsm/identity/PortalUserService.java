@@ -1,5 +1,7 @@
 package com.nbfc.itsm.identity;
 
+import com.nbfc.itsm.audit.AuditRecorder;
+import com.nbfc.itsm.config.ItsmProperties;
 import com.nbfc.itsm.domain.Department;
 import com.nbfc.itsm.domain.DepartmentRepository;
 import com.nbfc.itsm.domain.Employee;
@@ -8,6 +10,7 @@ import com.nbfc.itsm.domain.EmployeeRoleAssignment;
 import com.nbfc.itsm.domain.EmployeeRoleAssignmentRepository;
 import com.nbfc.itsm.domain.Permission;
 import com.nbfc.itsm.domain.Role;
+import com.nbfc.itsm.domain.RoleRepository;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.util.TimeUtc;
@@ -34,13 +37,22 @@ public class PortalUserService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository;
     private final DepartmentRepository departmentRepository;
+    private final RoleRepository roleRepository;
+    private final ItsmProperties properties;
+    private final AuditRecorder auditRecorder;
 
     public PortalUserService(EmployeeRepository employeeRepository,
                              EmployeeRoleAssignmentRepository employeeRoleAssignmentRepository,
-                             DepartmentRepository departmentRepository) {
+                             DepartmentRepository departmentRepository,
+                             RoleRepository roleRepository,
+                             ItsmProperties properties,
+                             AuditRecorder auditRecorder) {
         this.employeeRepository = employeeRepository;
         this.employeeRoleAssignmentRepository = employeeRoleAssignmentRepository;
         this.departmentRepository = departmentRepository;
+        this.roleRepository = roleRepository;
+        this.properties = properties;
+        this.auditRecorder = auditRecorder;
     }
 
     /**
@@ -63,7 +75,60 @@ public class PortalUserService {
         if (!employee.isPortalActive()) {
             throw new DisabledException("portal-inactive");
         }
+        applyBootstrapAdmin(employee);
         return toPrincipal(employee);
+    }
+
+    /**
+     * First-run bootstrap for a new database: if this employee is listed in
+     * {@code itsm.security.bootstrap-admins} (ITSM_BOOTSTRAP_ADMINS) and no portal-active employee
+     * holds SYSTEM_ADMINISTRATOR yet, grant SYSTEM_ADMINISTRATOR and EMPLOYEE. Once a System
+     * Administrator exists this does nothing, so a role removed later is never re-granted.
+     */
+    void applyBootstrapAdmin(Employee employee) {
+        List<String> listed = properties.getSecurity().getBootstrapAdmins();
+        if (listed == null || listed.isEmpty() || !isListed(employee, listed)) {
+            return;
+        }
+        Role sys = roleRepository.findByCode("SYSTEM_ADMINISTRATOR").orElse(null);
+        if (sys == null || !sys.isActive()) {
+            log.warn("Bootstrap admin {} skipped: role SYSTEM_ADMINISTRATOR is missing or inactive", employee.getEmployeeNo());
+            return;
+        }
+        for (EmployeeRoleAssignment a : employeeRoleAssignmentRepository.findByRole(sys)) {
+            if (a.getEmployee() != null && a.getEmployee().isPortalActive()) {
+                return;
+            }
+        }
+        grant(employee, sys);
+        roleRepository.findByCode("EMPLOYEE").ifPresent(r -> grant(employee, r));
+        log.warn("BOOTSTRAP: {} ({}) granted SYSTEM_ADMINISTRATOR because no System Administrator existed. "
+                + "Clear ITSM_BOOTSTRAP_ADMINS once set-up is done.", employee.getEmployeeNo(), employee.getDisplayName());
+        auditRecorder.record("ADMIN", "BOOTSTRAP_ADMIN", employee.getEmployeeNo() + " granted SYSTEM_ADMINISTRATOR", "SUCCESS");
+    }
+
+    private static boolean isListed(Employee employee, List<String> listed) {
+        for (String raw : listed) {
+            String id = raw == null ? "" : raw.trim();
+            if (id.isEmpty()) {
+                continue;
+            }
+            if (id.equalsIgnoreCase(employee.getSamAccountName()) || id.equalsIgnoreCase(employee.getEmployeeNo())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void grant(Employee employee, Role role) {
+        if (employeeRoleAssignmentRepository.findByEmployeeAndRole(employee, role).isPresent()) {
+            return;
+        }
+        EmployeeRoleAssignment row = new EmployeeRoleAssignment();
+        row.setEmployee(employee);
+        row.setRole(role);
+        row.setAssignedAtUtc(TimeUtc.now());
+        employeeRoleAssignmentRepository.save(row);
     }
 
     private Employee findProvisioned(LdapPerson person) {

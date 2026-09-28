@@ -24,6 +24,7 @@ import com.nbfc.itsm.domain.WorkflowInstanceStageRepository;
 import com.nbfc.itsm.domain.WorkflowStageTransition;
 import com.nbfc.itsm.domain.WorkflowStageTransitionRepository;
 import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.notification.NotificationService;
 import com.nbfc.itsm.validation.FieldLimits;
 import com.nbfc.itsm.validation.Validation;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
@@ -66,6 +67,7 @@ public class TicketService {
     private final TicketSlaRepository slaRepository;
     private final SlaService slaService;
     private final AuditRecorder auditRecorder;
+    private final NotificationService notificationService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTypeRepository ticketTypeRepository,
@@ -81,7 +83,8 @@ public class TicketService {
                          TicketAttachmentRepository attachmentRepository,
                          TicketSlaRepository slaRepository,
                          SlaService slaService,
-                         AuditRecorder auditRecorder) {
+                         AuditRecorder auditRecorder,
+                         NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -97,6 +100,7 @@ public class TicketService {
         this.slaRepository = slaRepository;
         this.slaService = slaService;
         this.auditRecorder = auditRecorder;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -174,6 +178,7 @@ public class TicketService {
         row.setCreatedAtUtc(TimeUtc.now());
         row = commentRepository.save(row);
         auditRecorder.recordTicket("COMMENT", ticket.getTicketId(), null, internal ? "internal" : "public");
+        notificationService.commented(ticket, author, row.isInternal());
         return row;
     }
 

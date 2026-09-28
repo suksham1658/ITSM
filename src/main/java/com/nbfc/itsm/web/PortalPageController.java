@@ -157,12 +157,6 @@ public class PortalPageController {
                 "No knowledge articles have been published yet.");
     }
 
-    @GetMapping("/notifications")
-    public String notifications(Model model) {
-        return listPage(model, "notifications", "Notifications", "notifications",
-                "You have no notifications.");
-    }
-
     @GetMapping("/audit")
     public String audit(Model model) {
         return listPage(model, "auditTrail", "Audit Trail", "audit",
@@ -180,6 +174,7 @@ public class PortalPageController {
         model.addAttribute("pageTitle", title);
         model.addAttribute("tickets", ticketService.queueByStageType(stageType));
         model.addAttribute("emptyMessage", empty);
+        model.addAttribute("rowAction", "ASSIGNMENT".equals(stageType) ? "Assign" : "Open");
         return "queue";
     }
 

@@ -13,9 +13,28 @@
       <div>
         <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Page</span></div>
         <h1 th:text="${pageTitle}">Page</h1>
+        <p class="page-sub">Updates on your requests and tickets waiting for you. Click one to open the ticket.</p>
       </div>
+      <form th:if="${notifUnread > 0}" th:action="@{/notifications/read-all}" method="post">
+        <button type="submit" class="btn btn-outline btn-sm"><i class="fa-solid fa-check-double"></i> Mark all as read</button>
+      </form>
     </div>
-    <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
+
+    <div class="card" th:if="${items == null or #lists.isEmpty(items)}">
+      <div class="empty-state"><i class="fa-regular fa-bell"></i><h3>No notifications yet</h3>
+        <p>You will be notified here when a request needs your approval, is assigned to you, or when your own request is approved, declined or resolved.</p></div>
+    </div>
+
+    <div class="card" th:if="${items != null and !#lists.isEmpty(items)}">
+      <a class="notif-item notif-row" th:each="n : ${items}" th:classappend="${!n.read} ? ' unread'"
+         th:href="@{/notifications/{id}/open(id=${n.notificationId})}">
+        <div class="ni-head">
+          <div class="ni-title" th:text="${n.title}">Approval needed</div>
+          <div class="ni-time mono" th:text="${#temporals.format(n.createdAtUtc.atZone(T(java.time.ZoneId).of('Asia/Kolkata')), 'dd MMM yyyy, HH:mm')}">time</div>
+        </div>
+        <div class="ni-body" th:text="${n.body}">Body</div>
+      </a>
+    </div>
 
 </main>
 </div>

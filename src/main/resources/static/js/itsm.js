@@ -164,6 +164,30 @@
     filterSubs();
   }
 
+  // ---- Mobile tables: each cell gets its column heading as data-label so CSS can show rows as cards ----
+  var tables = document.querySelectorAll("table.data-table:not(.no-stack)");
+  for (var ti = 0; ti < tables.length; ti++) {
+    var table = tables[ti];
+    var heads = table.querySelectorAll("thead th");
+    var labels = [];
+    for (var hi = 0; hi < heads.length; hi++) {
+      labels.push((heads[hi].textContent || "").replace(/\s+/g, " ").trim());
+    }
+    var rows = table.querySelectorAll("tbody tr");
+    for (var ri = 0; ri < rows.length; ri++) {
+      var col = 0;
+      var cells = rows[ri].children;
+      for (var ci = 0; ci < cells.length; ci++) {
+        var cell = cells[ci];
+        var span = parseInt(cell.getAttribute("colspan") || "1", 10);
+        var label = span > 1 ? "" : (labels[col] || "");
+        if (label) { cell.setAttribute("data-label", label); } else { cell.classList.add("no-label"); }
+        col += span;
+      }
+    }
+    table.classList.add("stack");
+  }
+
   // ---- Form validation (mirrors the server rules; the server still re-checks everything) ----
 
   // Plain HTML required/minlength accepts spaces-only text and skips pre-filled values, so check

@@ -11,8 +11,10 @@
             </select>
             <noscript><button type="submit" class="btn btn-outline btn-xs">Switch</button></noscript>
         </form>
-        <button type="button" class="header-icon-btn" data-action="toggle-notif-panel" aria-label="Notifications">
+        <button type="button" class="header-icon-btn" data-action="toggle-notif-panel"
+                th:attr="aria-label=${notifUnread > 0} ? ${notifUnread + ' unread notifications'} : 'Notifications'">
             <i class="fa-regular fa-bell"></i>
+            <span class="notif-count" th:if="${notifUnread > 0}" th:text="${notifUnread > 99} ? '99+' : ${notifUnread}">3</span>
         </button>
         <button type="button" class="user-menu" data-action="toggle-user-panel" aria-haspopup="true">
             <div class="avatar" th:text="${currentUser.initials}">IT</div>
@@ -24,9 +26,18 @@
         </button>
     </div>
     <div class="dropdown-panel" id="notifPanel" role="menu">
-        <div class="dropdown-head"><h4>Notifications</h4></div>
+        <div class="dropdown-head">
+            <h4>Notifications <span class="text-muted" th:if="${notifUnread > 0}" th:text="'(' + ${notifUnread} + ' new)'">(3 new)</span></h4>
+            <a th:href="@{/notifications}" style="font-size:12px;font-weight:600;">View all</a>
+        </div>
         <div class="dropdown-body">
-            <div class="empty-state" style="padding:20px"><p>No notifications.</p></div>
+            <div class="empty-state" style="padding:20px" th:if="${notifLatest == null or #lists.isEmpty(notifLatest)}"><p>No notifications yet.</p></div>
+            <a class="notif-item" th:each="n : ${notifLatest}" th:classappend="${!n.read} ? ' unread'"
+               th:href="@{/notifications/{id}/open(id=${n.notificationId})}">
+                <div class="ni-title" th:text="${n.title}">Approval needed</div>
+                <div class="ni-body" th:text="${n.body}">Body</div>
+                <div class="ni-time mono" th:text="${#temporals.format(n.createdAtUtc.atZone(T(java.time.ZoneId).of('Asia/Kolkata')), 'dd MMM yyyy, HH:mm')}">time</div>
+            </a>
         </div>
     </div>
     <div class="dropdown-panel user-menu-panel" id="userPanel" th:if="${currentUser != null}">

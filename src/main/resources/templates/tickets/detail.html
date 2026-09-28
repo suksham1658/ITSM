@@ -53,7 +53,18 @@
           </div>
         </div>
 
-        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}">
+        <div class="alert-banner info now-with" style="margin-bottom:16px;" th:if="${detail.current != null}">
+          <b>Now with:</b>
+          <span th:if="${detail.current.resolvedEmployee != null}" th:text="${detail.current.resolvedEmployee.displayName}">Person</span>
+          <span th:if="${detail.current.resolvedEmployee == null and detail.current.resolvedGroup != null}"
+                th:text="${detail.current.resolvedGroup.name} + ' (any member)'">IT Service Desk</span>
+          <span th:if="${detail.current.resolvedEmployee == null and detail.current.resolvedGroup == null and detail.current.resolvedRole != null}"
+                th:text="${detail.current.resolvedRole.name} + ' (role)'">CISO</span>
+          <span th:text="' · step: ' + ${@ui.stageLabel(detail.current.label)}">· step</span>
+          <span th:if="${detail.canAct}"> · <b>it is your turn, see Take action below.</b></span>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}" id="take-action">
           <h3 style="font-size:14px;margin-bottom:8px;">Take action</h3>
           <p class="phase-note">Enter remarks of at least 10 characters to Approve, Reject or Send Back.</p>
           <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="action-form" id="ticketActionForm">
@@ -92,7 +103,7 @@
               <span class="comment-tag" th:if="${c.internal}">Internal</span>
               <div class="comment-top">
                 <div class="comment-author" th:text="${c.author.displayName}">Author</div>
-                <div class="comment-time" th:text="${c.createdAtUtc}">t</div>
+                <div class="comment-time" th:text="${@ui.dateTime(c.createdAtUtc)}">t</div>
               </div>
               <div class="comment-text" th:text="${c.body}">text</div>
             </div>
@@ -126,8 +137,8 @@
         <div class="card card-pad sla-box" th:if="${detail.sla != null}" style="margin-bottom:16px;">
           <h3 style="font-size:14px;margin-bottom:8px;">SLA clock</h3>
           <div class="sla-row"><span class="sr-label">State</span><span class="sr-val" th:text="${detail.sla.stateCode}">WITHIN</span></div>
-          <div class="sla-row"><span class="sr-label">Response due (UTC)</span><span class="sr-val" th:text="${detail.sla.responseDueUtc}">t</span></div>
-          <div class="sla-row"><span class="sr-label">Resolve due (UTC)</span><span class="sr-val" th:text="${detail.sla.resolveDueUtc}">t</span></div>
+          <div class="sla-row"><span class="sr-label">Response due (IST)</span><span class="sr-val" th:text="${@ui.dateTime(detail.sla.responseDueUtc)}">t</span></div>
+          <div class="sla-row"><span class="sr-label">Resolve due (IST)</span><span class="sr-val" th:text="${@ui.dateTime(detail.sla.resolveDueUtc)}">t</span></div>
         </div>
         <div class="card card-pad">
           <h3 style="font-size:14px;margin-bottom:12px;">Workflow</h3>

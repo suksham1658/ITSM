@@ -1,8 +1,6 @@
 package com.nbfc.itsm.web;
 
 import com.nbfc.itsm.domain.AssignmentGroup;
-import com.nbfc.itsm.domain.AssignmentGroupMember;
-import com.nbfc.itsm.domain.AssignmentGroupMemberRepository;
 import com.nbfc.itsm.domain.Category;
 import com.nbfc.itsm.domain.CategoryRepository;
 import com.nbfc.itsm.domain.Employee;
@@ -19,6 +17,7 @@ import com.nbfc.itsm.ticket.AttachmentService;
 import com.nbfc.itsm.ticket.TicketDetail;
 import com.nbfc.itsm.ticket.TicketForm;
 import com.nbfc.itsm.ticket.TicketService;
+import com.nbfc.itsm.workflow.GroupMembershipService;
 import com.nbfc.itsm.workflow.WorkflowEngine;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -54,7 +53,7 @@ public class TicketController {
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final AttachmentService attachmentService;
-    private final AssignmentGroupMemberRepository groupMemberRepository;
+    private final GroupMembershipService groupMembership;
     private final EmployeeRepository employeeRepository;
     private final WorkflowEngine workflowEngine;
 
@@ -63,7 +62,7 @@ public class TicketController {
                             CategoryRepository categoryRepository,
                             SubCategoryRepository subCategoryRepository,
                             AttachmentService attachmentService,
-                            AssignmentGroupMemberRepository groupMemberRepository,
+                            GroupMembershipService groupMembership,
                             EmployeeRepository employeeRepository,
                             WorkflowEngine workflowEngine) {
         this.ticketService = ticketService;
@@ -71,7 +70,7 @@ public class TicketController {
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.attachmentService = attachmentService;
-        this.groupMemberRepository = groupMemberRepository;
+        this.groupMembership = groupMembership;
         this.employeeRepository = employeeRepository;
         this.workflowEngine = workflowEngine;
     }
@@ -173,16 +172,10 @@ public class TicketController {
         model.addAttribute("pageTitle", detail.getTicket().getPublicNumber());
         model.addAttribute("detail", detail);
         // Service desk step: choose from the implementors of the next step; implementation step: colleagues.
-        List<Employee> assignees = new ArrayList<Employee>();
         AssignmentGroup pool = detail.getCurrent() == null || detail.getStages() == null ? null
                 : workflowEngine.assigneePool(detail.getStages(), detail.getCurrent());
-        if (pool != null) {
-            for (AssignmentGroupMember m : groupMemberRepository.findByAssignmentGroup(pool)) {
-                if (m.getEmployee().isPortalActive()) {
-                    assignees.add(m.getEmployee());
-                }
-            }
-        }
+        // Members added on Admin > Users plus holders of the group's role (e.g. IT Implementor).
+        List<Employee> assignees = pool == null ? new ArrayList<Employee>() : groupMembership.activeMembers(pool);
         model.addAttribute("assignees", assignees);
         model.addAttribute("assigneePoolName", pool == null ? null : pool.getName());
         return "tickets/detail";

@@ -14,7 +14,8 @@
 	<groupId>com.nbfc</groupId>
 	<artifactId>itsm-portal</artifactId>
 	<version>0.8.0-SNAPSHOT</version>
-	<packaging>jar</packaging>
+	<!-- war: deployable to an external Tomcat 9 and still runnable with `java -jar` (embedded Tomcat). -->
+	<packaging>war</packaging>
 	<name>Enterprise ITSM Portal</name>
 	<description>Phase 8 testing and fixes — Java 8 / Spring Boot 2.7.18</description>
 
@@ -30,6 +31,19 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!-- Provided: an external Tomcat supplies the servlet container. The embedded one is still
+		     used when running main() from the IDE or `java -jar` (Boot puts it in WEB-INF/lib-provided). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<!-- Expression Language (used by bean validation) also ships with Tomcat; keep it out of WEB-INF/lib. -->
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-el</artifactId>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -106,6 +120,8 @@
 	</dependencies>
 
 	<build>
+		<!-- target/itsm-portal.war -> deployed at http://server:8080/itsm-portal/ on Tomcat -->
+		<finalName>itsm-portal</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

@@ -84,6 +84,15 @@ public class UiText {
         }
     }
 
+    private static final java.time.format.DateTimeFormatter IST_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+                    .withZone(java.time.ZoneId.of("Asia/Kolkata"));
+
+    /** A stored UTC time as India time, e.g. "27 Sep 2026, 00:54"; "—" when empty. */
+    public String dateTime(java.time.Instant utc) {
+        return utc == null ? "—" : IST_FORMAT.format(utc);
+    }
+
     /** Human wording for config request statuses ("PendingApproval" reads badly). */
     public String configStatusText(String status) {
         return "PendingApproval".equals(status) ? "Pending approval" : status;

@@ -23,10 +23,10 @@
     <div class="card" th:if="${pending != null and !#lists.isEmpty(pending)}" style="margin-bottom:18px;">
         <div class="table-wrap">
             <table class="data-table">
-                <thead><tr><th>When (UTC)</th><th>Type</th><th>Description</th><th>Maker</th><th></th></tr></thead>
+                <thead><tr><th>When (IST)</th><th>Type</th><th>Description</th><th>Maker</th><th></th></tr></thead>
                 <tbody>
                 <tr th:each="c : ${pending}">
-                    <td class="mono" th:text="${c.requestedAtUtc}">—</td>
+                    <td class="mono" th:text="${@ui.dateTime(c.requestedAtUtc)}">—</td>
                     <td th:text="${c.changeType}">TYPE</td>
                     <td th:text="${c.description}">desc</td>
                     <td th:text="${c.requestedBy.displayName} + ' (' + ${c.requestedBy.employeeNo} + ')'">E1</td>
@@ -54,13 +54,13 @@
     <div class="card" th:if="${history != null and !#lists.isEmpty(history)}">
         <div class="table-wrap">
             <table class="data-table">
-                <thead><tr><th>Status</th><th>Type</th><th>Description</th><th>Reviewed (UTC)</th></tr></thead>
+                <thead><tr><th>Status</th><th>Type</th><th>Description</th><th>Reviewed (IST)</th></tr></thead>
                 <tbody>
                 <tr th:each="c : ${history}">
                     <td><span class="badge" th:classappend="${@ui.configStatusClass(c.statusCode)}" th:text="${@ui.configStatusText(c.statusCode)}">Pending</span></td>
                     <td th:text="${c.changeType}">TYPE</td>
                     <td th:text="${c.description}">desc</td>
-                    <td class="mono" th:text="${c.reviewedAtUtc} ?: '—'">—</td>
+                    <td class="mono" th:text="${@ui.dateTime(c.reviewedAtUtc)}">—</td>
                 </tr>
                 </tbody>
             </table>

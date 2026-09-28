@@ -2,7 +2,6 @@ package com.nbfc.itsm.workflow;
 
 import com.nbfc.itsm.audit.AuditRecorder;
 import com.nbfc.itsm.domain.AssignmentGroup;
-import com.nbfc.itsm.domain.AssignmentGroupMemberRepository;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.EmployeeRepository;
 import com.nbfc.itsm.domain.EmployeeRoleAssignment;
@@ -22,6 +21,7 @@ import com.nbfc.itsm.domain.WorkflowStageRepository;
 import com.nbfc.itsm.domain.WorkflowStageTransition;
 import com.nbfc.itsm.domain.WorkflowStageTransitionRepository;
 import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.notification.NotificationService;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.sla.SlaService;
 import com.nbfc.itsm.ticket.TicketMatchContext;
@@ -50,10 +50,11 @@ public class WorkflowEngine {
     private final TicketRepository ticketRepository;
     private final EmployeeRepository employeeRepository;
     private final EmployeeRoleAssignmentRepository roleAssignmentRepository;
-    private final AssignmentGroupMemberRepository groupMemberRepository;
+    private final GroupMembershipService groupMembership;
     private final SystemSettingRepository settingRepository;
     private final SlaService slaService;
     private final AuditRecorder auditRecorder;
+    private final NotificationService notifications;
 
     public WorkflowEngine(WorkflowMatcherService matcherService,
                           WorkflowStageRepository stageRepository,
@@ -63,10 +64,11 @@ public class WorkflowEngine {
                           TicketRepository ticketRepository,
                           EmployeeRepository employeeRepository,
                           EmployeeRoleAssignmentRepository roleAssignmentRepository,
-                          AssignmentGroupMemberRepository groupMemberRepository,
+                          GroupMembershipService groupMembership,
                           SystemSettingRepository settingRepository,
                           SlaService slaService,
-                          AuditRecorder auditRecorder) {
+                          AuditRecorder auditRecorder,
+                          NotificationService notifications) {
         this.matcherService = matcherService;
         this.stageRepository = stageRepository;
         this.transitionRepository = transitionRepository;
@@ -75,10 +77,11 @@ public class WorkflowEngine {
         this.ticketRepository = ticketRepository;
         this.employeeRepository = employeeRepository;
         this.roleAssignmentRepository = roleAssignmentRepository;
-        this.groupMemberRepository = groupMemberRepository;
+        this.groupMembership = groupMembership;
         this.settingRepository = settingRepository;
         this.slaService = slaService;
         this.auditRecorder = auditRecorder;
+        this.notifications = notifications;
     }
 
     @Transactional
@@ -121,6 +124,8 @@ public class WorkflowEngine {
         slaService.startClocks(ticket);
         auditRecorder.recordTicket("WORKFLOW_START", ticket.getTicketId(), null,
                 definition.getCode() + " via rule " + rule.getName());
+        notifications.submitted(ticket, first);
+        notifications.stepIsWaiting(ticket, first, ticket.getRequester());
         return instance;
     }
 
@@ -224,7 +229,48 @@ public class WorkflowEngine {
         ticketRepository.save(ticket);
         slaService.refresh(ticket);
         auditRecorder.recordTicket(action, ticket.getTicketId(), oldStatus, ticket.getStatusCode());
+        notifyAfter(ticket, actor, action, remarks, current, currentOf(stages));
         return ticket;
+    }
+
+    /**
+     * Tells the requester what happened and the next people what is now waiting for them.
+     * {@code acted} is the step the action was taken on; {@code now} is the step current afterwards.
+     */
+    private void notifyAfter(Ticket ticket, Employee actor, String action, String remarks,
+                             WorkflowInstanceStage acted, WorkflowInstanceStage now) {
+        boolean moved = now != null && now != acted;
+        if ("Closed".equals(ticket.getStatusCode())) {
+            notifications.closed(ticket, actor);
+            return;
+        }
+        if ("APPROVE".equals(action)) {
+            notifications.approved(ticket, actor, now);
+        } else if ("REJECT".equals(action)) {
+            notifications.rejected(ticket, actor, remarks);
+            return;
+        } else if ("SEND_BACK".equals(action)) {
+            notifications.sentBack(ticket, actor, remarks, now);
+            return;
+        } else if ("ASSIGN".equals(action) || "REASSIGN".equals(action)) {
+            if (ticket.getAssignedImplementor() != null) {
+                notifications.assigned(ticket, actor, ticket.getAssignedImplementor());
+            }
+            if (!moved) {
+                // Reassigned within the implementation step: tell the new owner.
+                notifications.stepIsWaiting(ticket, acted, actor);
+            }
+        } else if ("ACCEPT".equals(action) || "START".equals(action)) {
+            notifications.statusUpdate(ticket, actor, "In progress",
+                    "is being worked on by " + actor.getDisplayName() + ".");
+        } else if ("HOLD".equals(action)) {
+            notifications.statusUpdate(ticket, actor, "On hold",
+                    "was put on hold by " + actor.getDisplayName()
+                            + (remarks == null || remarks.trim().isEmpty() ? "." : ": " + remarks.trim()));
+        }
+        if (moved) {
+            notifications.stepIsWaiting(ticket, now, actor);
+        }
     }
 
     public void assertCanAct(ItsmUserPrincipal principal, Employee actor, Ticket ticket, WorkflowInstanceStage current) {
@@ -265,7 +311,7 @@ public class WorkflowEngine {
             }
         }
         if (current.getResolvedGroup() != null) {
-            return groupMemberRepository.existsByAssignmentGroupAndEmployee(current.getResolvedGroup(), actor);
+            return groupMembership.isMember(current.getResolvedGroup(), actor);
         }
         String strategy = current.getActorStrategy();
         if ("NAMED_ROLE".equals(strategy) && current.getResolvedRole() != null) {
@@ -273,7 +319,7 @@ public class WorkflowEngine {
         }
         if ("SERVICE_DESK".equals(strategy) || "ASSIGNMENT_GROUP".equals(strategy) || "IMPLEMENTOR".equals(strategy)) {
             if (current.getResolvedGroup() != null) {
-                return groupMemberRepository.existsByAssignmentGroupAndEmployee(current.getResolvedGroup(), actor);
+                return groupMembership.isMember(current.getResolvedGroup(), actor);
             }
         }
         if ("REQUESTER".equals(strategy)) {
@@ -607,7 +653,7 @@ public class WorkflowEngine {
         if (!assignee.isPortalActive()) {
             throw new ItsmException("ASSIGNEE_INACTIVE", "Assignee is not portal-active.");
         }
-        if (group != null && !groupMemberRepository.existsByAssignmentGroupAndEmployee(group, assignee)) {
+        if (group != null && !groupMembership.isMember(group, assignee)) {
             throw new ItsmException("ASSIGNEE_NOT_IN_GROUP",
                     assignee.getDisplayName() + " is not a member of " + group.getName() + ".");
         }

@@ -172,6 +172,21 @@ public class ItsmProperties {
         /** H2 preview only. Never used in uat/prod. Sourced from H2_PREVIEW_PASSWORD. */
         private String previewPassword = "";
 
+        /**
+         * First-run bootstrap: AD usernames (sAMAccountName) or employee numbers that become System
+         * Administrator on login, but only while no active System Administrator exists
+         * (ITSM_BOOTSTRAP_ADMINS, comma separated).
+         */
+        private java.util.List<String> bootstrapAdmins = new java.util.ArrayList<String>();
+
+        public java.util.List<String> getBootstrapAdmins() {
+            return bootstrapAdmins;
+        }
+
+        public void setBootstrapAdmins(java.util.List<String> bootstrapAdmins) {
+            this.bootstrapAdmins = bootstrapAdmins == null ? new java.util.ArrayList<String>() : bootstrapAdmins;
+        }
+
         public String getPreviewPassword() {
             return previewPassword;
         }

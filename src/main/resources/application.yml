@@ -29,6 +29,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     encoding: UTF-8
+    # Setting user/password makes Spring Boot give Flyway its own (unpooled) connection. The
+    # migrations run SET NOCOUNT ON; on a pooled connection that setting leaked into the app, where
+    # UPDATEs then reported -1 rows and Hibernate failed with "optimistic locking failed".
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
   mail:
     host: ${MAIL_HOST:}
     port: ${MAIL_PORT:587}
@@ -68,6 +73,13 @@ management:
       show-details: never
     info:
       enabled: true
+  health:
+    # Login uses its own JNDI client (itsm.ldap.*), not Spring's LDAP connection, which points at
+    # localhost:389; and outbound mail is not configured. Both checks would always report DOWN.
+    ldap:
+      enabled: false
+    mail:
+      enabled: false
   info:
     env:
       enabled: true
@@ -100,6 +112,9 @@ itsm:
     test-login-enabled: false
     preview-password: ${H2_PREVIEW_PASSWORD:}
     session-absolute-timeout: ${SESSION_ABSOLUTE_TIMEOUT:8h}
+    # First System Administrator on a new database: AD username(s) or employee no(s), comma separated.
+    # Applied at login only while nobody holds SYSTEM_ADMINISTRATOR; ignored afterwards.
+    bootstrap-admins: ${ITSM_BOOTSTRAP_ADMINS:}
 
 logging:
   level:

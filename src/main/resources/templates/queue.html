@@ -19,7 +19,7 @@
     <div class="card" th:if="${tickets != null and !tickets.empty}">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th><th>Assignee</th></tr></thead>
+          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th><th>Assignee</th><th></th></tr></thead>
           <tbody>
           <tr th:each="t : ${tickets}">
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
@@ -28,6 +28,12 @@
             <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">st</span></td>
             <td th:text="${t.priorityCode}">p</td>
             <td th:text="${t.assignedImplementor != null} ? ${t.assignedImplementor.displayName} : 'Unassigned'">a</td>
+            <td style="text-align:right;">
+              <a class="btn btn-xs" th:classappend="${rowAction == 'Assign'} ? 'btn-accent' : 'btn-outline'"
+                 th:href="@{/tickets/{id}(id=${t.ticketId})} + '#take-action'">
+                <i class="fa-solid" th:classappend="${rowAction == 'Assign'} ? 'fa-user-plus' : 'fa-arrow-right'"></i>
+                <span th:text="${rowAction} ?: 'Open'">Assign</span></a>
+            </td>
           </tr>
           </tbody>
         </table>

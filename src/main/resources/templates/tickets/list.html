@@ -13,7 +13,7 @@
       <div>
         <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Tickets</span></div>
         <h1 th:text="${pageTitle}">Tickets</h1>
-        <p class="page-sub">Server-side pagination. Filter by status, priority or number.</p>
+        <p class="page-sub">Search by ticket number or subject, or filter by status and priority.</p>
       </div>
       <div class="page-header-actions">
         <a class="btn btn-accent btn-sm" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i> Raise Request</a>
@@ -28,7 +28,10 @@
         <option value="">All statuses</option>
         <option th:selected="${status == 'Draft'}">Draft</option>
         <option th:selected="${status == 'Pending Approval'}">Pending Approval</option>
+        <option th:selected="${status == 'Approved'}">Approved</option>
+        <option th:selected="${status == 'Assigned'}">Assigned</option>
         <option th:selected="${status == 'In Progress'}">In Progress</option>
+        <option th:selected="${status == 'On Hold'}">On Hold</option>
         <option th:selected="${status == 'Resolved'}">Resolved</option>
         <option th:selected="${status == 'Closed'}">Closed</option>
         <option th:selected="${status == 'Rejected'}">Rejected</option>

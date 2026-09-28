@@ -23,8 +23,8 @@
           <tr th:each="s : ${clocks}">
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${s.ticket.ticketId})}" th:text="${s.ticket.publicNumber}">n</a></td>
             <td th:text="${s.stateCode}">WITHIN</td>
-            <td th:text="${s.responseDueUtc}">t</td>
-            <td th:text="${s.resolveDueUtc}">t</td>
+            <td th:text="${@ui.dateTime(s.responseDueUtc)}">t</td>
+            <td th:text="${@ui.dateTime(s.resolveDueUtc)}">t</td>
             <td th:text="${s.paused}">false</td>
           </tr>
           </tbody>

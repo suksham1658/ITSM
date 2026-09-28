@@ -27,14 +27,14 @@
         </div>
         <div class="table-wrap">
             <table class="data-table">
-                <thead><tr><th>#</th><th>Type</th><th>Description</th><th>Proposed by</th><th>When (UTC)</th></tr></thead>
+                <thead><tr><th>#</th><th>Type</th><th>Description</th><th>Proposed by</th><th>When (IST)</th></tr></thead>
                 <tbody>
                 <tr th:each="c : ${pendingRoleChanges}">
                     <td class="mono" th:text="${c.configChangeRequestId}">1</td>
                     <td><span class="badge badge-pending" th:text="${c.changeType == 'ROLE_DEFINITION_CREATE'} ? 'New role' : 'Edit role'">New role</span></td>
                     <td th:text="${c.description}">Create role</td>
                     <td th:text="${c.requestedBy.displayName}">Name</td>
-                    <td class="mono" th:text="${c.requestedAtUtc}">—</td>
+                    <td class="mono" th:text="${@ui.dateTime(c.requestedAtUtc)}">—</td>
                 </tr>
                 </tbody>
             </table>

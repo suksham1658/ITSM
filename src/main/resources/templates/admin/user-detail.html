@@ -24,7 +24,7 @@
             <div class="form-group"><label>Portal access</label>
                 <span class="badge" th:classappend="${employee.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${employee.portalActive} ? 'Active' : 'Disabled'">Active</span>
             </div>
-            <div class="form-group"><label>Last LDAP sync (UTC)</label><div class="mono" th:text="${employee.lastLdapSyncUtc} ?: 'Never'">Never</div></div>
+            <div class="form-group"><label>Last LDAP sync (IST)</label><div class="mono" th:text="${employee.lastLdapSyncUtc == null} ? 'Never' : ${@ui.dateTime(employee.lastLdapSyncUtc)}">Never</div></div>
         </div>
         <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post" style="margin-top:12px;">
             <input type="hidden" name="active" th:value="${!employee.portalActive}"/>

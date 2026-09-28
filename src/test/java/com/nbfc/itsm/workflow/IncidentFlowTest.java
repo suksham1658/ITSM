@@ -120,6 +120,20 @@ class IncidentFlowTest {
         assertEquals("Closed", status(t));
     }
 
+    @Test
+    void roleAloneIsEnoughToWorkTheDeskAndBeAssigned() {
+        // Neither is added to any group on Admin > Users: the roles are enough.
+        Employee roleOnlyDesk = employee("E-IF-SD2", "Role-only Desk", null, "EMPLOYEE", "IT_SERVICE_DESK");
+        Employee roleOnlyImpl = employee("E-IF-IM3", "Role-only Implementor", null, "EMPLOYEE", "IT_IMPLEMENTOR");
+        Ticket t = ticketService.save(as(requester), incident());
+
+        assertTrue(ticketService.detail(as(roleOnlyDesk), t.getTicketId()).isCanAct(), "desk role sees Take action");
+        ticketService.applyAction(as(roleOnlyDesk), t.getTicketId(), "ASSIGN", null, roleOnlyImpl.getEmployeeId());
+
+        assertEquals(roleOnlyImpl.getEmployeeId(), current(t).getResolvedEmployee().getEmployeeId());
+        assertTrue(ticketService.detail(as(roleOnlyImpl), t.getTicketId()).isCanAct(), "implementor can work it");
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private String status(Ticket t) {
