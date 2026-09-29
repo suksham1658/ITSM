@@ -1,7 +1,8 @@
 # ITSM Portal — database scripts
 
-> **Use `install-itsm-portal.sql`** for a new database (production ITSM_PROD on SQL Server 2012 included).
-> It is generated from `src/main/resources/db/migration` V1–V9 and is the up-to-date schema.
+> **The up-to-date schema is `src/main/resources/db/install/install-itsm-portal.sql`**; the application runs it
+> automatically on first start against an empty SQL Server database (production ITSM_PROD on SQL Server 2012 included).
+> It is generated from `src/main/resources/db/migration` V1–V9.
 > The other files below are the original Phase 2 scripts (SQL Server 2016+, older than V7–V9) and are kept for reference only.
 
 

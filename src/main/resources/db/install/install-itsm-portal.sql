@@ -6,7 +6,8 @@
    Use this where Flyway cannot run (SQL Server 2012/2014, e.g. production ITSM_PROD).
    Works on SQL Server 2012 and later.
 
-   Run ONCE, in the EMPTY application database, as a login with db_owner:
+   The application runs this itself on first start when the database has no ITSM tables
+   (config/SchemaInstaller). To install by hand instead, run it ONCE in the EMPTY database as db_owner:
      sqlcmd -S 10.65.7.245,1865 -d ITSM_PROD -U <login> -C -i install-itsm-portal.sql
    (or open it in SSMS with ITSM_PROD selected and Execute).
 

@@ -100,19 +100,21 @@ Logs go to Tomcat's console / `logs/catalina.*.log`. Health check: `GET /itsm-po
 
 **Production (`10.65.7.245:1865`, database `ITSM_PROD`) is SQL Server 2012.** Flyway 9 Community refuses
 SQL Server 2012 ("Flyway Teams Edition or SQL Server upgrade required"), so Flyway is **off by default**
-(`spring.flyway.enabled: ${FLYWAY_ENABLED:false}`) and the schema is installed once by the DBA:
+(`spring.flyway.enabled: ${FLYWAY_ENABLED:false}`) and the application creates the schema itself:
 
-1. DBA creates the empty database (`CREATE DATABASE ITSM_PROD;`).
-2. DBA runs `database/install-itsm-portal.sql` **in that database** (SSMS with ITSM_PROD selected, or
-   `sqlcmd -S 10.65.7.245,1865 -d ITSM_PROD -U <login> -C -i install-itsm-portal.sql`). It is V1–V9 +
-   `afterMigrate.sql` in one file; it refuses to run in a system database or where the tables already exist.
-   If it stops half-way, drop and re-create the database and run it again.
-3. Start the app. Hibernate (`ddl-auto=validate`) checks the tables on every start.
-4. **Future schema changes:** each new `V10__…` migration must also be run by the DBA on ITSM_PROD (append it
-   to the install script for new installs).
+1. Create the empty database (`CREATE DATABASE ITSM_PROD;`); no tables.
+2. Start the app. `config/SchemaInstaller` sees there is no `dbo.employee` table and runs
+   `src/main/resources/db/install/install-itsm-portal.sql` (V1–V9 + `afterMigrate.sql`) in **one transaction**
+   before Hibernate validates. Log: `Schema install: … creating them now` then `… finished`.
+   If it fails, everything is rolled back (log `Schema install FAILED at batch …`) and the next start retries.
+3. Later starts log `Schema check: ITSM tables present …` and change nothing.
+4. The login needs rights to create tables, triggers and roles in the database (db_owner).
+5. **Future schema changes** (`V10__…`): append them to the install script and run them by hand on existing
+   SQL Server 2012 databases; the installer only acts on an empty database.
 
-On SQL Server **2016+** you can instead let Flyway create everything: set `FLYWAY_ENABLED=true` and follow the
-steps below.
+The DBA can also run the same script by hand in SSMS (with the database selected) before the first start.
+On SQL Server **2016+** you can use Flyway instead: set `FLYWAY_ENABLED=true` (the installer then stays off) and
+follow the steps below.
 
 
 1. On the new SQL Server create an **empty** database (only the database — the `dbo` schema exists by
