@@ -98,6 +98,23 @@ Logs go to Tomcat's console / `logs/catalina.*.log`. Health check: `GET /itsm-po
 
 ### 2.2 New database
 
+**Production (`10.65.7.245:1865`, database `ITSM_PROD`) is SQL Server 2012.** Flyway 9 Community refuses
+SQL Server 2012 ("Flyway Teams Edition or SQL Server upgrade required"), so Flyway is **off by default**
+(`spring.flyway.enabled: ${FLYWAY_ENABLED:false}`) and the schema is installed once by the DBA:
+
+1. DBA creates the empty database (`CREATE DATABASE ITSM_PROD;`).
+2. DBA runs `database/install-itsm-portal.sql` **in that database** (SSMS with ITSM_PROD selected, or
+   `sqlcmd -S 10.65.7.245,1865 -d ITSM_PROD -U <login> -C -i install-itsm-portal.sql`). It is V1–V9 +
+   `afterMigrate.sql` in one file; it refuses to run in a system database or where the tables already exist.
+   If it stops half-way, drop and re-create the database and run it again.
+3. Start the app. Hibernate (`ddl-auto=validate`) checks the tables on every start.
+4. **Future schema changes:** each new `V10__…` migration must also be run by the DBA on ITSM_PROD (append it
+   to the install script for new installs).
+
+On SQL Server **2016+** you can instead let Flyway create everything: set `FLYWAY_ENABLED=true` and follow the
+steps below.
+
+
 1. On the new SQL Server create an **empty** database (only the database — the `dbo` schema exists by
    default; do **not** create tables): `CREATE DATABASE ITSM_PROD;`. SQL Server **2012 or later** works
    (production `10.65.7.245:1865` is 2012). On 2016+ V1 also adds the `ISJSON` check constraints on

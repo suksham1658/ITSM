@@ -25,7 +25,10 @@ spring:
         format_sql: false
     show-sql: false
   flyway:
-    enabled: true
+    # Off by default: production (10.65.7.245:1865, ITSM_PROD) is SQL Server 2012, which Flyway 9
+    # Community refuses ("Flyway Teams Edition or SQL Server upgrade required"). The DBA installs the
+    # schema once with database/install-itsm-portal.sql. On SQL Server 2016+ set FLYWAY_ENABLED=true.
+    enabled: ${FLYWAY_ENABLED:false}
     locations: classpath:db/migration
     baseline-on-migrate: true
     encoding: UTF-8

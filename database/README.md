@@ -1,4 +1,9 @@
-# ITSM Portal — database scripts (Phase 2)
+# ITSM Portal — database scripts
+
+> **Use `install-itsm-portal.sql`** for a new database (production ITSM_PROD on SQL Server 2012 included).
+> It is generated from `src/main/resources/db/migration` V1–V9 and is the up-to-date schema.
+> The other files below are the original Phase 2 scripts (SQL Server 2016+, older than V7–V9) and are kept for reference only.
+
 
 Microsoft **SQL Server 2016 or 2019** only. Scripts set `COMPATIBILITY_LEVEL = 130` and avoid T-SQL added in 2017+ (`STRING_AGG`, `TRIM`, `CONCAT_WS`, `GENERATE_SERIES`, UTF-8 collations, ledger).
 
