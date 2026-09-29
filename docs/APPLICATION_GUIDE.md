@@ -99,11 +99,14 @@ Logs go to Tomcat's console / `logs/catalina.*.log`. Health check: `GET /itsm-po
 ### 2.2 New database
 
 1. On the new SQL Server create an **empty** database (only the database — the `dbo` schema exists by
-   default; do **not** create tables): `CREATE DATABASE ItsmPortal; ALTER DATABASE ItsmPortal SET COMPATIBILITY_LEVEL = 130;`
+   default; do **not** create tables): `CREATE DATABASE ITSM_PROD;`. SQL Server **2012 or later** works
+   (production `10.65.7.245:1865` is 2012). On 2016+ V1 also adds the `ISJSON` check constraints on
+   `workflow_rule.condition_json` and `config_change_request.payload_json`; on 2012/2014 they are skipped and
+   the application validates the JSON.
 2. Create a SQL login + database user with **db_owner** on that database (Flyway creates tables and, in V5,
    database roles).
 3. Point `DB_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` at it and start the app.
-   Flyway runs V1–V8: all tables, master data (roles, permissions, categories, SLA, workflows, rules).
+   Flyway runs V1–V9: all tables, master data (roles, permissions, categories, SLA, workflows, rules).
    Hibernate (`ddl-auto=validate`) only checks the result.
 4. The database must be empty on first start: with `baseline-on-migrate=true`, a database that already has
    objects is *baselined* and V1 (the tables) is skipped.

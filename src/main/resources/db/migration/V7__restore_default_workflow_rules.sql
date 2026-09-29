@@ -42,11 +42,14 @@ BEGIN
         workflow_definition_id   BIGINT NOT NULL,
         CONSTRAINT PK_workflow_rule PRIMARY KEY CLUSTERED (workflow_rule_id),
         CONSTRAINT FK_workflow_rule_def FOREIGN KEY (workflow_definition_id) REFERENCES dbo.workflow_definition (workflow_definition_id),
-        CONSTRAINT CK_workflow_rule_status CHECK (status_code IN (N'Active', N'Inactive', N'PendingChecker')),
-        CONSTRAINT CK_workflow_rule_json CHECK (ISJSON(condition_json) = 1)
+        CONSTRAINT CK_workflow_rule_status CHECK (status_code IN (N'Active', N'Inactive', N'PendingChecker'))
     );
 
-    /* Dynamic SQL so these compile against the NEW table, not the one dropped above. */
+    /* Dynamic SQL so these compile against the NEW table, not the one dropped above
+       (and so ISJSON, SQL Server 2016+, is never parsed on 2012/2014). */
+    IF CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(128)), 4) AS INT) >= 13
+        EXEC sys.sp_executesql N'ALTER TABLE dbo.workflow_rule ADD CONSTRAINT CK_workflow_rule_json CHECK (ISJSON(condition_json) = 1);';
+
     EXEC sys.sp_executesql N'CREATE UNIQUE NONCLUSTERED INDEX UQ_workflow_rule_active_priority
         ON dbo.workflow_rule (priority) WHERE status_code = N''Active'';';
 

@@ -260,8 +260,7 @@ CREATE TABLE dbo.workflow_rule (
     workflow_definition_id   BIGINT NOT NULL,
     CONSTRAINT PK_workflow_rule PRIMARY KEY CLUSTERED (workflow_rule_id),
     CONSTRAINT FK_workflow_rule_def FOREIGN KEY (workflow_definition_id) REFERENCES dbo.workflow_definition (workflow_definition_id),
-    CONSTRAINT CK_workflow_rule_status CHECK (status_code IN (N'Active', N'Inactive', N'PendingChecker')),
-    CONSTRAINT CK_workflow_rule_json CHECK (ISJSON(condition_json) = 1)
+    CONSTRAINT CK_workflow_rule_status CHECK (status_code IN (N'Active', N'Inactive', N'PendingChecker'))
 );
 
 /* =====================================================================
@@ -563,8 +562,7 @@ CREATE TABLE dbo.config_change_request (
     CONSTRAINT PK_config_change_request PRIMARY KEY CLUSTERED (config_change_request_id),
     CONSTRAINT FK_ccr_requester FOREIGN KEY (requested_by_id) REFERENCES dbo.employee (employee_id),
     CONSTRAINT FK_ccr_reviewer FOREIGN KEY (reviewed_by_id) REFERENCES dbo.employee (employee_id),
-    CONSTRAINT CK_ccr_status CHECK (status_code IN (N'PendingApproval', N'Applied', N'Rejected')),
-    CONSTRAINT CK_ccr_payload CHECK (ISJSON(payload_json) = 1)
+    CONSTRAINT CK_ccr_status CHECK (status_code IN (N'PendingApproval', N'Applied', N'Rejected'))
 );
 
 CREATE TABLE dbo.audit_log (
@@ -611,3 +609,12 @@ BEGIN
 END
 GO
 
+
+/* JSON checks need ISJSON (SQL Server 2016+). Added through dynamic SQL so this script also runs on
+   SQL Server 2012/2014, where the application alone validates the JSON before saving. */
+IF CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(128)), 4) AS INT) >= 13
+BEGIN
+    EXEC sys.sp_executesql N'ALTER TABLE dbo.workflow_rule ADD CONSTRAINT CK_workflow_rule_json CHECK (ISJSON(condition_json) = 1)';
+    EXEC sys.sp_executesql N'ALTER TABLE dbo.config_change_request ADD CONSTRAINT CK_ccr_payload CHECK (ISJSON(payload_json) = 1)';
+END
+GO
