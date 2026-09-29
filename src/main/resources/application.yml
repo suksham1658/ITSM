@@ -2,7 +2,7 @@ spring:
   application:
     name: ITSM Portal
   datasource:
-    url: ${DB_URL:jdbc:sqlserver://AUTHDDRN0102\AUTHUM;databaseName=ItsmPortal;encrypt=true;trustServerCertificate=true}
+    url: ${DB_URL:jdbc:sqlserver://10.65.7.245:1865;databaseName=ITSM_PORTAL;encrypt=true;trustServerCertificate=true}
     username: 'sa'
     password: 'pass@123'
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
