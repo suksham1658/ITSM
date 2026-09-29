@@ -219,6 +219,24 @@ manager-attribute, connect-timeout-ms (3000), read-timeout-ms (5000)`. LDAP is "
 
 ---
 
+### 4.6 Passwords: external secrets file (`itsm-secrets.yml`)
+
+`application.yml` contains **no passwords**: `spring.datasource.username/password` are `${DB_USERNAME}` /
+`${DB_PASSWORD}` and `itsm.ldap.bind-password` is `${LDAP_BIND_PASSWORD}`. Each machine keeps its own file:
+
+```
+D:\itsm-config\itsm-secrets.yml          (template: config-template/itsm-secrets.yml; git-ignored)
+```
+
+loaded by `spring.config.import: optional:file:${ITSM_CONFIG_DIR:D:/itsm-config}/itsm-secrets.yml`, the same way
+in Eclipse, `java -jar` and external Tomcat. Values in it override `application.yml`; environment variables
+(`DB_PASSWORD`, …) work too. Another folder: set `ITSM_CONFIG_DIR`.
+
+* **Password rotation:** edit the file, restart (Eclipse: stop/start; server: `shutdown.bat` + `startup.bat`).
+* **Missing file / value:** start-up fails with `Could not resolve placeholder 'DB_PASSWORD'` (or `DB_USERNAME`,
+  `LDAP_BIND_PASSWORD`).
+* Restrict `D:\itsm-config` (NTFS) to administrators and the account that runs Tomcat.
+
 ## 5. Security
 
 ### 5.1 Filter chain (`security/SecurityConfig`)

@@ -19,6 +19,8 @@ spring:
 itsm:
   ldap:
     url:
+    bind-dn: ""
+    bind-password: ""
   storage:
     root: ${FILE_STORAGE_ROOT:/tmp/itsm-files}
   security:

@@ -1,10 +1,15 @@
 spring:
   application:
     name: ITSM Portal
+  config:
+    # Passwords are NOT kept in the code. Each machine (your PC, the server) has its own file
+    # D:\itsm-config\itsm-secrets.yml (template: config-template/itsm-secrets.yml); set ITSM_CONFIG_DIR to use
+    # another folder. Values there override this file. Change a password = edit that file + restart.
+    import: optional:file:${ITSM_CONFIG_DIR:D:/itsm-config}/itsm-secrets.yml
   datasource:
     url: ${DB_URL:jdbc:sqlserver://10.65.7.245:1865;databaseName=ITSM_PROD;encrypt=true;trustServerCertificate=true}
-    username: 'sa'
-    password: 'pass@123'
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     hikari:
       maximum-pool-size: ${HIKARI_MAX_POOL:20}
@@ -102,7 +107,7 @@ itsm:
     url: ${LDAP_URL:ldap://AUTHPDC.Authum.local:389}
     base-dn: ${LDAP_BASE_DN:dc=Authum,dc=local}
     bind-dn: ${LDAP_BIND_DN:70902907@Authum.local}
-    bind-password: ${LDAP_BIND_PASSWORD:D!v!t@2024}
+    bind-password: ${LDAP_BIND_PASSWORD}
     user-search-filter: "${LDAP_USER_SEARCH_FILTER:(sAMAccountName={0})}"
     user-dn-pattern: ${LDAP_USER_DN_PATTERN:}
     employee-id-attribute: ${LDAP_EMPLOYEE_ID_ATTRIBUTE:employeeID}

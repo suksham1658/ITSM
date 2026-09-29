@@ -11,3 +11,7 @@ application-local.yml
 .env.local
 *.h2.db
 uploads/
+
+# Filled-in secrets (see config-template/itsm-secrets.yml); never commit
+itsm-secrets.yml
+!config-template/itsm-secrets.yml
