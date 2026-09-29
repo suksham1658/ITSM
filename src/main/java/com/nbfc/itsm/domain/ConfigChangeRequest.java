@@ -29,10 +29,10 @@ public class ConfigChangeRequest {
     @Column(name = "entity_key", length = 128)
     private String entityKey;
 
-    @Column(name = "payload_json", nullable = false, columnDefinition = "varchar(max)")
+    @Column(name = "payload_json", nullable = false, columnDefinition = "nvarchar(max)")
     private String payloadJson;
 
-    @Column(name = "previous_json", columnDefinition = "varchar(max)")
+    @Column(name = "previous_json", columnDefinition = "nvarchar(max)")
     private String previousJson;
 
     @Column(name = "description", nullable = false, length = 512)

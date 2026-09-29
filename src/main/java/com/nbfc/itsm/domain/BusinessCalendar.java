@@ -17,7 +17,8 @@ public class BusinessCalendar {
     @Column(name = "business_calendar_id")
     private Long businessCalendarId;
 
-    @Column(name = "weekday_iso", nullable = false)
+    // TINYINT in V1; the column definition lets ddl-auto=validate accept it (INTEGER alone would not).
+    @Column(name = "weekday_iso", nullable = false, columnDefinition = "tinyint")
     private int weekdayIso;
 
     @Column(name = "start_time", nullable = false)

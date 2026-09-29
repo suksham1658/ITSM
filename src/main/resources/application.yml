@@ -20,6 +20,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServer2012Dialect
+        # All text columns are NVARCHAR/NCHAR (db/migration, db/install); map every String to them so
+        # ddl-auto=validate expects nvarchar, and Unicode (e.g. Hindi) is stored correctly.
+        use_nationalized_character_data: true
         jdbc:
           time_zone: UTC
         format_sql: false
