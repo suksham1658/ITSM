@@ -70,10 +70,12 @@ public class NotificationService {
 
     /**
      * A step became current: tell the people who must act on it (approver, group members, role
-     * holders, or the requester for confirmation). {@code actor} is skipped.
+     * holders, or the requester for confirmation) in the app, including the person who just acted
+     * when the next step is theirs too (e.g. the HOD who is also the CISO). The same people get a
+     * "now in your queue" e-mail, except the requester, who is e-mailed only on created and closed.
      */
     @Transactional
-    public void stepIsWaiting(Ticket t, WorkflowInstanceStage step, boolean requesterUpdate) {
+    public void stepIsWaiting(Ticket t, WorkflowInstanceStage step) {
         if (step == null) {
             return;
         }
@@ -81,10 +83,10 @@ public class NotificationService {
         String number = t.getPublicNumber();
         String who = "raised by " + t.getRequester().getDisplayName();
         List<Long> mailTo = new ArrayList<Long>();
-        // Everyone who must act now, including the person who just acted when the next step is theirs too
-        // (e.g. the HOD who is also the CISO).
         for (Employee e : actorsOf(t, step)) {
-            mailTo.add(e.getEmployeeId());
+            if (!same(e, t.getRequester())) {
+                mailTo.add(e.getEmployeeId());
+            }
             if ("APPROVAL".equals(type)) {
                 send(APPROVAL_REQUIRED, e, t, "Approval needed: " + number,
                         "\"" + t.getSubject() + "\" (" + who + ") is waiting for your approval.");
@@ -104,11 +106,10 @@ public class NotificationService {
                         "\"" + t.getSubject() + "\" was resolved. Open it to confirm it works, or send it back.");
             }
         }
-        if (step.getWorkflowInstanceStageId() != null && (!mailTo.isEmpty() || requesterUpdate)) {
-            // E-mail "now in your queue" to the same people and, when asked, "now with …" to the requester;
-            // sent after commit (TicketEmailService).
+        if (step.getWorkflowInstanceStageId() != null && !mailTo.isEmpty()) {
+            // E-mail "now in your queue" to the same people (not the requester); sent after commit (TicketEmailService).
             events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.WAITING,
-                    step.getWorkflowInstanceStageId(), mailTo, requesterUpdate));
+                    step.getWorkflowInstanceStageId(), mailTo));
         }
     }
 
@@ -136,7 +137,7 @@ public class NotificationService {
             send(null, t.getRequester(), t, "Sent back by " + by.getDisplayName() + ": " + t.getPublicNumber(),
                     "\"" + t.getSubject() + "\" was sent back. Reason: " + safe(reason) + " " + nowWith(to));
         }
-        stepIsWaiting(t, to, true);
+        stepIsWaiting(t, to);
     }
 
     @Transactional

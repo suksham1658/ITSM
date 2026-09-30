@@ -17,23 +17,16 @@ public class TicketEmailEvent {
     private final Kind kind;
     private final Long stageId;
     private final List<Long> recipientIds;
-    private final boolean requesterUpdate;
 
     public TicketEmailEvent(Long ticketId, Kind kind) {
-        this(ticketId, kind, null, Collections.<Long>emptyList(), false);
+        this(ticketId, kind, null, Collections.<Long>emptyList());
     }
 
-    public TicketEmailEvent(Long ticketId, Kind kind, Long stageId, List<Long> recipientIds, boolean requesterUpdate) {
+    public TicketEmailEvent(Long ticketId, Kind kind, Long stageId, List<Long> recipientIds) {
         this.ticketId = ticketId;
         this.kind = kind;
         this.stageId = stageId;
         this.recipientIds = Collections.unmodifiableList(new ArrayList<Long>(recipientIds));
-        this.requesterUpdate = requesterUpdate;
-    }
-
-    /** WAITING only: also tell the requester where the ticket is now (off at submission: the CREATED mail says it). */
-    public boolean isRequesterUpdate() {
-        return requesterUpdate;
     }
 
     public Long getTicketId() {
@@ -55,7 +48,6 @@ public class TicketEmailEvent {
     @Override
     public String toString() {
         return "TicketEmailEvent{" + kind + " ticket=" + ticketId
-                + (kind == Kind.WAITING ? " stage=" + stageId + " to=" + recipientIds
-                + (requesterUpdate ? " +requester" : "") : "") + "}";
+                + (kind == Kind.WAITING ? " stage=" + stageId + " to=" + recipientIds : "") + "}";
     }
 }

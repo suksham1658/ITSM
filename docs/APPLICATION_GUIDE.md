@@ -377,16 +377,15 @@ UI: header bell (unread count + latest 8, `UiModelAdvice.notifUnread/notifLatest
 
 ### 6.4.1 Ticket e-mails (`notification/TicketEmailService`)
 
-* **Requester:** "created" when a Request or Incident is **submitted** (not a draft; says who has it now),
-  **"now with …"** every time it moves to a new step (approver, service desk, implementor, send-back), and
-  "closed" when it is **Closed** (also when the requester closes it by confirming). At the confirmation step the
-  requester gets the "please confirm" queue mail instead of a progress mail.
+* **Requester: only two mails** — "created" when a Request or Incident is **submitted** (not a draft; says who
+  has it now) and "closed" when it is **Closed** (also when the requester closes it by confirming). No mail in
+  between, not even at the confirmation step (the requester sees it in the app).
 * **Queue mail (WAITING):** every time a step becomes current, each person who must act on it gets
   "Action needed: <type> <number> is in your queue" with what to do: approver(s) at each approval (one per manager
   in the chain), all IT Service Desk members at assignment, the assigned implementor (or the implementor group),
-  the new owner after a reassign, the person a ticket is sent back to, and the requester when it is resolved and
-  needs confirming, **including the person who just acted when the next step is theirs too** (e.g. the HOD who
-  is also the CISO). Same people as the in-app notifications
+  the new owner after a reassign and the person a ticket is sent back to (never the requester),
+  **including the person who just acted when the next step is
+  theirs too** (e.g. the HOD who is also the CISO). Same people as the in-app notifications
   (`NotificationService.stepIsWaiting` / `actorsOf`). Nothing after a rejection.
 * **How:** `NotificationService.submitted/closed` publish a `TicketEmailEvent`; `TicketEmailService` sends it **after
   the transaction commits**, in the background (`AsyncConfig` executor `mailExecutor`), so a slow or unreachable mail

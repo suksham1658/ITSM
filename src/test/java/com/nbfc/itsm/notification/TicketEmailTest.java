@@ -102,23 +102,22 @@ class TicketEmailTest {
         assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id), kinds());
         assertTrue(lastWaitingTo().contains(desk.getEmployeeId()), "service desk told it is in their queue");
         assertFalse(lastWaitingTo().contains(requester.getEmployeeId()));
-        assertFalse(lastWaiting().isRequesterUpdate(), "the created mail already tells the requester");
 
         ticketService.applyAction(as(desk), id, "ASSIGN", "Please check the laptop", impl.getEmployeeId());
         assertEquals(java.util.Collections.singletonList(impl.getEmployeeId()), lastWaitingTo(), "implementor told");
-        assertTrue(lastWaiting().isRequesterUpdate(), "requester told it is now with the implementor");
 
         ticketService.applyAction(as(impl), id, "START", null, null);
-        assertEquals(3, kinds().size(), "no mail for starting work");
-
         ticketService.applyAction(as(impl), id, "RESOLVE", "Replaced the faulty RAM module", null);
-        assertEquals(java.util.Collections.singletonList(requester.getEmployeeId()), lastWaitingTo(),
-                "requester asked to confirm");
+        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id), kinds(),
+                "no mail for starting work, and none to the requester at confirmation (created / closed only)");
 
         ticketService.applyAction(as(requester), id, "APPROVE", "Working fine now, thank you", null);
         assertEquals("Closed", ticketRepository.findById(id).get().getStatusCode());
-        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id, "WAITING:" + id,
-                "CLOSED:" + id), kinds(), "closed mail even though the requester closed it");
+        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id, "CLOSED:" + id), kinds(),
+                "closed mail even though the requester closed it");
+        for (TicketEmailEvent e : applicationEvents.stream(TicketEmailEvent.class).collect(Collectors.toList())) {
+            assertFalse(e.getRecipientIds().contains(requester.getEmployeeId()), "requester never gets a queue mail");
+        }
     }
 
     @Test
@@ -145,23 +144,10 @@ class TicketEmailTest {
     }
 
     @Test
-    void requesterIsToldWhoHasTheTicketNow() throws Exception {
+    void createdMailSaysWhoHasTheTicket() {
         Ticket t = ticketService.save(as(requester), incident());
         assertTrue(ticketEmailService.body(t, TicketEmailEvent.Kind.CREATED).contains("is now with <b>IT Service Desk</b>"),
                 "created mail says who has it");
-
-        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", "Please check the laptop", impl.getEmployeeId());
-        assertTrue(ticketEmailService.sendProgress(t.getTicketId(), lastWaitingStage(), lastWaitingTo()));
-        ArgumentCaptor<MimeMessage> sent = ArgumentCaptor.forClass(MimeMessage.class);
-        verify(mailSender).send(sent.capture());
-        MimeMessage m = sent.getValue();
-        assertEquals("mail.requester@authum.com", ((InternetAddress) m.getAllRecipients()[0]).getAddress());
-        assertTrue(m.getSubject().startsWith("Incident " + t.getPublicNumber() + ": now with Mail Implementor"), m.getSubject());
-
-        ticketService.applyAction(as(impl), t.getTicketId(), "START", null, null);
-        ticketService.applyAction(as(impl), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
-        assertFalse(ticketEmailService.sendProgress(t.getTicketId(), lastWaitingStage(), lastWaitingTo()),
-                "at confirmation the requester gets the 'please confirm' queue mail instead");
     }
 
     @Test
