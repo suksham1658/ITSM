@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
 <div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
@@ -107,6 +107,19 @@
               <textarea class="form-control" name="remarks" id="actionRemarks" th:attr="maxlength=${limits.remarksMax}" data-counter="true" placeholder="Required for Approve, Reject and Send Back (at least 10 characters)"></textarea>
             </div>
             <button type="submit" class="btn btn-accent" id="actionSubmit">Submit action</button>
+          </form>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:16px;border-left:3px solid var(--danger);" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+             th:if="${detail.current != null and detail.ticket.statusCode != 'Closed' and detail.ticket.statusCode != 'Rejected'}" id="admin-reject">
+          <h3 style="font-size:14px;margin-bottom:6px;"><i class="fa-solid fa-ban"></i> Reject ticket (System Administrator)</h3>
+          <p class="phase-note" style="margin-top:0;">Ends this ticket at its current step, whoever it is waiting for. The requester is notified and the
+            override is recorded in the Audit Trail. Remarks are required.</p>
+          <form th:action="@{/tickets/{id}/admin-reject(id=${detail.ticket.ticketId})}" method="post"
+                th:attr="data-confirm='Reject ' + ${detail.ticket.publicNumber} + ' as System Administrator? This cannot be undone.'">
+            <textarea class="form-control" name="remarks" required="required" th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}"
+                      data-counter="true" placeholder="Reason, e.g. raised under the wrong flow; please raise it again"></textarea>
+            <button type="submit" class="btn btn-danger btn-sm" style="margin-top:8px;"><i class="fa-solid fa-xmark"></i> Reject ticket</button>
           </form>
         </div>
 

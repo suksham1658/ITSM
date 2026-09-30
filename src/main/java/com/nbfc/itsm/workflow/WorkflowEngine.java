@@ -388,6 +388,53 @@ public class WorkflowEngine {
         return false;
     }
 
+    /**
+     * System Administrator override: reject any open ticket at whatever step it is, with remarks. The current
+     * step is marked Rejected ("[Rejected by System Administrator …]"), the remaining steps are skipped, the
+     * requester is notified and the override is audited (ADMIN_REJECT). No approve / assign on others' behalf.
+     */
+    @Transactional
+    public Ticket adminReject(Long ticketId, ItsmUserPrincipal principal, String remarks) {
+        if (principal == null || !principal.getRoleCodes().contains("SYSTEM_ADMINISTRATOR")) {
+            throw new AccessDeniedException("Only a System Administrator can reject any ticket.");
+        }
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ItsmException("TICKET_NOT_FOUND", "Ticket not found."));
+        if ("Closed".equals(ticket.getStatusCode()) || "Rejected".equals(ticket.getStatusCode())) {
+            throw new ItsmException("TICKET_FINISHED", "Ticket " + ticket.getPublicNumber() + " is already "
+                    + ticket.getStatusCode().toLowerCase() + ".");
+        }
+        WorkflowInstance instance = instanceRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new ItsmException("WORKFLOW_MISSING", "A draft has no workflow yet; the requester can delete or submit it."));
+        List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
+        WorkflowInstanceStage current = currentOf(stages);
+        if (current == null) {
+            throw new ItsmException("WORKFLOW_NO_CURRENT", "There is no open step on this ticket.");
+        }
+        requireRemarks(remarks);
+        Employee admin = employeeRepository.findById(principal.getEmployeeId())
+                .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found."));
+        String note = "[Rejected by System Administrator " + admin.getDisplayName() + "] " + trim(remarks);
+        String oldStatus = ticket.getStatusCode();
+        current.setStatusCode("Rejected");
+        current.setActionCode("REJECT");
+        current.setRemarks(note.length() > 2000 ? note.substring(0, 2000) : note);
+        current.setActedAtUtc(TimeUtc.now());
+        skipRemaining(stages, current);
+        ticket.setStatusCode("Rejected");
+        ticket.setRejectReason(trim(remarks));
+        instance.setStatusCode("Rejected");
+        instance.setCurrentStageId(current.getWorkflowInstanceStageId());
+        instanceStageRepository.saveAll(stages);
+        instanceRepository.save(instance);
+        ticketRepository.save(ticket);
+        slaService.refresh(ticket);
+        auditRecorder.recordTicket("ADMIN_REJECT", ticket.getTicketId(), oldStatus,
+                "Rejected by System Administrator " + admin.getEmployeeNo() + " at step '" + current.getLabel() + "': " + trim(remarks));
+        notifications.rejected(ticket, admin, trim(remarks));
+        return ticket;
+    }
+
     public void requireRemarks(String remarks) {
         String trimmed = trim(remarks);
         int min = remarksMin();

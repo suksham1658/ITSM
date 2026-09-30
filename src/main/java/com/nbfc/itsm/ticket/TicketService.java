@@ -158,6 +158,15 @@ public class TicketService {
                 assigneeId == null ? java.util.Collections.<Long>emptyList() : java.util.Collections.singletonList(assigneeId));
     }
 
+    /** System Administrator override: reject any open ticket, with remarks. */
+    @Transactional
+    public Ticket adminReject(ItsmUserPrincipal principal, Long ticketId, String remarks) {
+        if (remarks != null && remarks.trim().length() > FieldLimits.REMARKS_MAX) {
+            throw new ItsmException("REMARKS_TOO_LONG", "Remarks must be at most " + FieldLimits.REMARKS_MAX + " characters.");
+        }
+        return workflowEngine.adminReject(ticketId, principal, remarks);
+    }
+
     /** {@code assigneeIds}: one or more implementors for ASSIGN at the service desk, one for REASSIGN. */
     @Transactional
     public Ticket applyActionFor(ItsmUserPrincipal principal, Long ticketId, String action, String remarks, List<Long> assigneeIds) {

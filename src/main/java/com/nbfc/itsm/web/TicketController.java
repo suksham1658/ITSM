@@ -185,6 +185,20 @@ public class TicketController {
         return "tickets/detail";
     }
 
+    /** System Administrator: reject any open ticket at any step (remarks required, audited). */
+    @PostMapping("/tickets/{id}/admin-reject")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String adminReject(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
+                              @RequestParam(value = "remarks", required = false) String remarks, RedirectAttributes ra) {
+        try {
+            ticketService.adminReject(user, id, remarks);
+            ra.addFlashAttribute("message", "Ticket rejected by System Administrator. The requester has been notified.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/tickets/" + id;
+    }
+
     @PostMapping("/tickets/{id}/action")
     public String action(@AuthenticationPrincipal ItsmUserPrincipal user,
                          @PathVariable("id") Long id,

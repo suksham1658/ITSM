@@ -465,6 +465,9 @@ number, module, action, result, text in details and IST date range; 50 per page,
   ticked cannot act. **REJECT** (remarks required) ends the ticket. `WorkflowEngine.eligibleImplementors` /
   `applyActionFor`; the selection is stored in `workflow_instance_stage_assignee`.
 * **Implementation step REASSIGN**: hand over to exactly one colleague in the implementor group (unchanged).
+* **System Administrator override:** on any open ticket a System Administrator sees *Reject ticket (System Administrator)*
+  (`POST /tickets/{id}/admin-reject`, remarks required): ends the ticket at its current step, requester notified,
+  audited `ADMIN_REJECT`. It is the only action a System Administrator can take on a step that is not theirs.
 * Schema: V11 / `db/install/upgrades/U11__desk_multi_assign.sql` (`category_implementor`, `workflow_instance_stage_assignee`,
   REJECT added to every Assignment stage, including those of running tickets).
 * A workflow whose service desk stage is an *Approval* (e.g. Service Request v2 edited on 30 Sep 2026) only offers
