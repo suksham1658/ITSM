@@ -73,7 +73,7 @@ public class NotificationService {
      * holders, or the requester for confirmation). {@code actor} is skipped.
      */
     @Transactional
-    public void stepIsWaiting(Ticket t, WorkflowInstanceStage step, Employee actor) {
+    public void stepIsWaiting(Ticket t, WorkflowInstanceStage step, boolean requesterUpdate) {
         if (step == null) {
             return;
         }
@@ -81,10 +81,9 @@ public class NotificationService {
         String number = t.getPublicNumber();
         String who = "raised by " + t.getRequester().getDisplayName();
         List<Long> mailTo = new ArrayList<Long>();
+        // Everyone who must act now, including the person who just acted when the next step is theirs too
+        // (e.g. the HOD who is also the CISO).
         for (Employee e : actorsOf(t, step)) {
-            if (same(e, actor)) {
-                continue;
-            }
             mailTo.add(e.getEmployeeId());
             if ("APPROVAL".equals(type)) {
                 send(APPROVAL_REQUIRED, e, t, "Approval needed: " + number,
@@ -105,10 +104,11 @@ public class NotificationService {
                         "\"" + t.getSubject() + "\" was resolved. Open it to confirm it works, or send it back.");
             }
         }
-        if (!mailTo.isEmpty() && step.getWorkflowInstanceStageId() != null) {
-            // E-mail "now in your queue" to the same people, sent after commit (TicketEmailService).
+        if (step.getWorkflowInstanceStageId() != null && (!mailTo.isEmpty() || requesterUpdate)) {
+            // E-mail "now in your queue" to the same people and, when asked, "now with …" to the requester;
+            // sent after commit (TicketEmailService).
             events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.WAITING,
-                    step.getWorkflowInstanceStageId(), mailTo));
+                    step.getWorkflowInstanceStageId(), mailTo, requesterUpdate));
         }
     }
 
@@ -136,7 +136,7 @@ public class NotificationService {
             send(null, t.getRequester(), t, "Sent back by " + by.getDisplayName() + ": " + t.getPublicNumber(),
                     "\"" + t.getSubject() + "\" was sent back. Reason: " + safe(reason) + " " + nowWith(to));
         }
-        stepIsWaiting(t, to, by);
+        stepIsWaiting(t, to, true);
     }
 
     @Transactional

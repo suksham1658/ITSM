@@ -6,6 +6,7 @@ import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.EmployeeRepository;
 import com.nbfc.itsm.domain.Ticket;
 import com.nbfc.itsm.domain.TicketRepository;
+import com.nbfc.itsm.domain.WorkflowInstanceRepository;
 import com.nbfc.itsm.domain.WorkflowInstanceStage;
 import com.nbfc.itsm.domain.WorkflowInstanceStageRepository;
 import org.slf4j.Logger;
@@ -31,10 +32,12 @@ import java.util.List;
  * ({@link AsyncConfig#MAIL_EXECUTOR}), so a slow or unreachable SMTP server never delays or fails the
  * user's action; failures are only logged.
  * <ul>
- *   <li>CREATED / CLOSED: to the requester, when the request / incident is submitted and when it is closed.</li>
+ *   <li>CREATED / CLOSED: to the requester, when the request / incident is submitted (with who has it now)
+ *       and when it is closed.</li>
+ *   <li>Progress: "now with …" to the requester each time the ticket moves to a new step.</li>
  *   <li>WAITING: "now in your queue" to every person who must act on the step that just became current
- *       (the approver, the group members, the role holders, or the requester for confirmation), never to the
- *       person who moved it.</li>
+ *       (the approver, the group members, the role holders, or the requester for confirmation), also when
+ *       that is the person who just acted (e.g. the HOD who is also the CISO).</li>
  * </ul>
  * SMTP: spring.mail.* (company relay 10.65.8.64:25, no login). On/off and sender: itsm.mail.*.
  */
@@ -49,15 +52,17 @@ public class TicketEmailService {
     private final TicketRepository ticketRepository;
     private final EmployeeRepository employeeRepository;
     private final WorkflowInstanceStageRepository stageRepository;
+    private final WorkflowInstanceRepository instanceRepository;
     private final ItsmProperties properties;
 
     public TicketEmailService(JavaMailSender mailSender, TicketRepository ticketRepository,
                               EmployeeRepository employeeRepository, WorkflowInstanceStageRepository stageRepository,
-                              ItsmProperties properties) {
+                              WorkflowInstanceRepository instanceRepository, ItsmProperties properties) {
         this.mailSender = mailSender;
         this.ticketRepository = ticketRepository;
         this.employeeRepository = employeeRepository;
         this.stageRepository = stageRepository;
+        this.instanceRepository = instanceRepository;
         this.properties = properties;
     }
 
@@ -71,6 +76,9 @@ public class TicketEmailService {
         try {
             if (event.getKind() == TicketEmailEvent.Kind.WAITING) {
                 sendWaiting(event.getTicketId(), event.getStageId(), event.getRecipientIds());
+                if (event.isRequesterUpdate()) {
+                    sendProgress(event.getTicketId(), event.getStageId(), event.getRecipientIds());
+                }
             } else {
                 send(event.getTicketId(), event.getKind());
             }
@@ -127,6 +135,30 @@ public class TicketEmailService {
         return sent;
     }
 
+    /**
+     * "Your ticket is now with …" to the requester after it moved to a new step. Not sent when the requester
+     * is one of the people who must act (confirmation): they get the queue mail instead.
+     */
+    @Transactional(readOnly = true)
+    public boolean sendProgress(Long ticketId, Long stageId, List<Long> queueRecipients) throws Exception {
+        Ticket t = ticketRepository.findById(ticketId).orElse(null);
+        WorkflowInstanceStage step = stageId == null ? null : stageRepository.findById(stageId).orElse(null);
+        if (t == null || step == null || t.getRequester() == null) {
+            return false;
+        }
+        Employee requester = t.getRequester();
+        if (queueRecipients.contains(requester.getEmployeeId())) {
+            return false;
+        }
+        if (!StringUtils.hasText(requester.getEmail())) {
+            log.info("Progress e-mail {} skipped: requester has no e-mail address", t.getPublicNumber());
+            return false;
+        }
+        mail(requester.getEmail(), progressSubject(t, step), progressBody(t, step));
+        log.info("Progress e-mail {} (now with {}) sent to {}", t.getPublicNumber(), nowWith(step), requester.getEmail());
+        return true;
+    }
+
     // ------------------------------------------------------------------ content
 
     String subject(Ticket t, TicketEmailEvent.Kind kind) {
@@ -137,13 +169,65 @@ public class TicketEmailService {
 
     String body(Ticket t, TicketEmailEvent.Kind kind) {
         StringBuilder b = open(t.getRequester() == null ? "" : t.getRequester().getDisplayName());
+        String now = null;
         if (kind == TicketEmailEvent.Kind.CREATED) {
-            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in the ITSM Portal and is now being processed.</p>");
+            WorkflowInstanceStage current = currentStep(t);
+            now = current == null ? null : nowWith(current);
+            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in the ITSM Portal")
+                    .append(now == null ? " and is now being processed." : " and is now with <b>" + esc(now) + "</b>.")
+                    .append("</p>");
         } else {
             b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>.</p>");
         }
-        details(b, t, false, null);
+        details(b, t, false, null, now);
         return close(b, t);
+    }
+
+    String progressSubject(Ticket t, WorkflowInstanceStage step) {
+        return typeName(t) + " " + t.getPublicNumber() + ": now with " + nowWith(step) + " - " + t.getSubject();
+    }
+
+    String progressBody(Ticket t, WorkflowInstanceStage step) {
+        StringBuilder b = open(t.getRequester().getDisplayName());
+        b.append("<p>Your ").append(esc(typeName(t))).append(" <b>").append(esc(t.getPublicNumber()))
+                .append("</b> has moved to the next step. It is now with <b>").append(esc(nowWith(step)))
+                .append("</b> ").append(esc(forWhat(step))).append(".</p>");
+        details(b, t, false, null, nowWith(step));
+        return close(b, t);
+    }
+
+    /** Who has the ticket at this step, e.g. "Anil Yadav", "IT Service Desk", "CISO (role)". */
+    static String nowWith(WorkflowInstanceStage step) {
+        if (step.getResolvedEmployee() != null) {
+            return step.getResolvedEmployee().getDisplayName();
+        }
+        if (step.getResolvedGroup() != null) {
+            return step.getResolvedGroup().getName();
+        }
+        if (step.getResolvedRole() != null) {
+            return step.getResolvedRole().getName() + " (role)";
+        }
+        return step.getLabel();
+    }
+
+    private static String forWhat(WorkflowInstanceStage step) {
+        String type = step.getStageType();
+        if ("APPROVAL".equals(type)) {
+            return "for approval";
+        }
+        if ("ASSIGNMENT".equals(type)) {
+            return "to assign an implementor";
+        }
+        if ("FULFILMENT".equals(type)) {
+            return step.getResolvedEmployee() != null ? "who will work on it" : "waiting for an implementor to pick it up";
+        }
+        return "";
+    }
+
+    private WorkflowInstanceStage currentStep(Ticket t) {
+        return instanceRepository.findByTicketId(t.getTicketId())
+                .flatMap(i -> stageRepository.findByWorkflowInstanceAndStatusCode(i, "Current"))
+                .orElse(null);
     }
 
     String waitingSubject(Ticket t) {
@@ -154,7 +238,7 @@ public class TicketEmailService {
         StringBuilder b = open(to.getDisplayName());
         b.append("<p>").append(esc(typeName(t))).append(" <b>").append(esc(t.getPublicNumber()))
                 .append("</b> is now in your queue. ").append(esc(whatToDo(step))).append("</p>");
-        details(b, t, true, queueName(step));
+        details(b, t, true, queueName(step), null);
         return close(b, t);
     }
 
@@ -210,7 +294,7 @@ public class TicketEmailService {
         return b;
     }
 
-    private static void details(StringBuilder b, Ticket t, boolean withRequester, String queue) {
+    private static void details(StringBuilder b, Ticket t, boolean withRequester, String queue, String nowWith) {
         b.append("<table cellpadding=\"6\" style=\"border-collapse:collapse;border:1px solid #e5e7eb;\">");
         row(b, "Ticket number", t.getPublicNumber());
         row(b, "Subject", t.getSubject());
@@ -224,6 +308,9 @@ public class TicketEmailService {
         }
         row(b, "Priority", t.getPriorityCode());
         row(b, "Status", t.getStatusCode());
+        if (nowWith != null) {
+            row(b, "Now with", nowWith);
+        }
         if (queue != null) {
             row(b, "Your queue", queue);
         }

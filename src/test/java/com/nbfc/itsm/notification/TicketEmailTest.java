@@ -101,10 +101,12 @@ class TicketEmailTest {
         Long id = t.getTicketId();
         assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id), kinds());
         assertTrue(lastWaitingTo().contains(desk.getEmployeeId()), "service desk told it is in their queue");
-        assertFalse(lastWaitingTo().contains(requester.getEmployeeId()), "not the person who moved it");
+        assertFalse(lastWaitingTo().contains(requester.getEmployeeId()));
+        assertFalse(lastWaiting().isRequesterUpdate(), "the created mail already tells the requester");
 
         ticketService.applyAction(as(desk), id, "ASSIGN", "Please check the laptop", impl.getEmployeeId());
         assertEquals(java.util.Collections.singletonList(impl.getEmployeeId()), lastWaitingTo(), "implementor told");
+        assertTrue(lastWaiting().isRequesterUpdate(), "requester told it is now with the implementor");
 
         ticketService.applyAction(as(impl), id, "START", null, null);
         assertEquals(3, kinds().size(), "no mail for starting work");
@@ -121,7 +123,8 @@ class TicketEmailTest {
 
     @Test
     void approvalChainMailsEachApproverInTurnAndRejectionEndsIt() {
-        Employee hod = employee("E-EM-HOD", "Mail HOD", null, null, null, "EMPLOYEE", "HOD");
+        // The HOD is also the CISO (like Anil): approving as HOD must still tell him the CISO step is his.
+        Employee hod = employee("E-EM-HOD", "Mail HOD", null, null, null, "EMPLOYEE", "HOD", "CISO");
         Employee manager = employee("E-EM-MGR", "Mail Manager", null, hod, null, "EMPLOYEE");
         requester.setManager(manager);
         employeeRepository.save(requester);
@@ -131,9 +134,34 @@ class TicketEmailTest {
         ticketService.applyAction(as(manager), sr.getTicketId(), "APPROVE", "Approved by the manager, go ahead", null);
         assertEquals(java.util.Collections.singletonList(hod.getEmployeeId()), lastWaitingTo(), "then the HOD");
 
+        ticketService.applyAction(as(hod), sr.getTicketId(), "APPROVE", "Approved as HOD, business need ok", null);
+        assertEquals(java.util.Collections.singletonList(hod.getEmployeeId()), lastWaitingTo(),
+                "same person, next step (CISO): still told");
+
         ticketService.applyAction(as(hod), sr.getTicketId(), "REJECT", "Not needed for this role", null);
         assertEquals(java.util.Arrays.asList("CREATED:" + sr.getTicketId(), "WAITING:" + sr.getTicketId(),
-                "WAITING:" + sr.getTicketId()), kinds(), "no closed or queue mail after a rejection");
+                "WAITING:" + sr.getTicketId(), "WAITING:" + sr.getTicketId()), kinds(),
+                "no closed or queue mail after a rejection");
+    }
+
+    @Test
+    void requesterIsToldWhoHasTheTicketNow() throws Exception {
+        Ticket t = ticketService.save(as(requester), incident());
+        assertTrue(ticketEmailService.body(t, TicketEmailEvent.Kind.CREATED).contains("is now with <b>IT Service Desk</b>"),
+                "created mail says who has it");
+
+        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", "Please check the laptop", impl.getEmployeeId());
+        assertTrue(ticketEmailService.sendProgress(t.getTicketId(), lastWaitingStage(), lastWaitingTo()));
+        ArgumentCaptor<MimeMessage> sent = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(sent.capture());
+        MimeMessage m = sent.getValue();
+        assertEquals("mail.requester@authum.com", ((InternetAddress) m.getAllRecipients()[0]).getAddress());
+        assertTrue(m.getSubject().startsWith("Incident " + t.getPublicNumber() + ": now with Mail Implementor"), m.getSubject());
+
+        ticketService.applyAction(as(impl), t.getTicketId(), "START", null, null);
+        ticketService.applyAction(as(impl), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
+        assertFalse(ticketEmailService.sendProgress(t.getTicketId(), lastWaitingStage(), lastWaitingTo()),
+                "at confirmation the requester gets the 'please confirm' queue mail instead");
     }
 
     @Test

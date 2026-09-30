@@ -125,7 +125,7 @@ public class WorkflowEngine {
         auditRecorder.recordTicket("WORKFLOW_START", ticket.getTicketId(), null,
                 definition.getCode() + " via rule " + rule.getName());
         notifications.submitted(ticket, first);
-        notifications.stepIsWaiting(ticket, first, ticket.getRequester());
+        notifications.stepIsWaiting(ticket, first, false);
         return instance;
     }
 
@@ -258,7 +258,7 @@ public class WorkflowEngine {
             }
             if (!moved) {
                 // Reassigned within the implementation step: tell the new owner.
-                notifications.stepIsWaiting(ticket, acted, actor);
+                notifications.stepIsWaiting(ticket, acted, true);
             }
         } else if ("ACCEPT".equals(action) || "START".equals(action)) {
             notifications.statusUpdate(ticket, actor, "In progress",
@@ -269,7 +269,7 @@ public class WorkflowEngine {
                             + (remarks == null || remarks.trim().isEmpty() ? "." : ": " + remarks.trim()));
         }
         if (moved) {
-            notifications.stepIsWaiting(ticket, now, actor);
+            notifications.stepIsWaiting(ticket, now, true);
         }
     }
 
