@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
 <div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
@@ -31,7 +31,17 @@
                     <td th:text="${c.description}">desc</td>
                     <td th:text="${c.requestedBy.displayName} + ' (' + ${c.requestedBy.employeeNo} + ')'">E1</td>
                     <td th:if="${currentUser != null and c.requestedBy.employeeId == currentUser.employeeId}">
-                        <span class="text-muted" style="font-size:11px;">Awaiting another administrator</span>
+                        <span class="text-muted" style="font-size:11px;" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Awaiting another administrator</span>
+                        <th:block sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+                            <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-xs" title="System Administrator: your decision is final">
+                                    <i class="fa-solid fa-check"></i> Apply now</button>
+                            </form>
+                            <form th:action="@{/admin/change-requests/{id}/reject(id=${c.configChangeRequestId})}" method="post" style="display:inline-flex;gap:6px;margin-top:6px;">
+                                <input type="hidden" name="reason" value="Withdrawn by the System Administrator who proposed it"/>
+                                <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-solid fa-xmark"></i> Withdraw</button>
+                            </form>
+                        </th:block>
                     </td>
                     <td th:unless="${currentUser != null and c.requestedBy.employeeId == currentUser.employeeId}">
                         <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">

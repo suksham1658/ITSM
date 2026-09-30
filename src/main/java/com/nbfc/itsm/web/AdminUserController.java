@@ -99,8 +99,10 @@ public class AdminUserController {
             return deactivate(id, maker, ra);
         }
         try {
-            adminUserService.proposePortalActive(id, true, maker);
-            ra.addFlashAttribute("message", "Re-activation submitted. A different administrator must approve it in Config approvals.");
+            com.nbfc.itsm.domain.ConfigChangeRequest ccr = adminUserService.proposePortalActive(id, true, maker);
+            ra.addFlashAttribute("message", "Applied".equals(ccr.getStatusCode())
+                    ? "Portal access re-activated."
+                    : "Re-activation submitted. A System Administrator must approve it in Config approvals.");
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());
         }
@@ -176,7 +178,7 @@ public class AdminUserController {
                 ra.addFlashAttribute("message", (assign ? "Role assigned. " : "Role removed. ")
                         + "The change is in effect now; the user gets it on their next page load.");
             } else {
-                ra.addFlashAttribute("message", "Role change submitted. A different administrator must approve it in Config approvals.");
+                ra.addFlashAttribute("message", "Role change submitted. A System Administrator must approve it in Config approvals.");
             }
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());

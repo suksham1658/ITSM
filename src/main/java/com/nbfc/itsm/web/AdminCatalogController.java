@@ -108,8 +108,8 @@ public class AdminCatalogController {
     public String proposeSetting(@RequestParam("key") String key, @RequestParam(value = "value", required = false) String value,
                                  @AuthenticationPrincipal ItsmUserPrincipal maker, RedirectAttributes ra) {
         try {
-            systemSettings.propose(key, value == null ? "false" : value, maker);
-            ra.addFlashAttribute("message", "Change to " + key + " submitted. It takes effect once a different administrator "
+            com.nbfc.itsm.domain.ConfigChangeRequest ccr = systemSettings.propose(key, value == null ? "false" : value, maker);
+            ra.addFlashAttribute("message", "Applied".equals(ccr.getStatusCode()) ? key + " saved and in effect now." : "Change to " + key + " submitted. It takes effect once a System Administrator "
                     + "approves it in Config approvals.");
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());

@@ -135,9 +135,27 @@ public class AdminUserService {
         ccr.setPayloadJson("{\"portalActive\":" + active + ",\"employeeId\":" + employeeId + "}");
         ccr.setPreviousJson("{\"portalActive\":" + target.isPortalActive() + "}");
         ccr.setDescription((active ? "Enable" : "Disable") + " portal access for " + target.getEmployeeNo());
-        ccr.setStatusCode("PendingApproval");
         ccr.setRequestedBy(makerEmp);
         ccr.setRequestedAtUtc(TimeUtc.now());
+        return decide(ccr, maker, active ? "USER_REACTIVATE" : "USER_DEACTIVATE");
+    }
+
+    /**
+     * A System Administrator is the final authority: their change is applied at once and recorded as Applied
+     * (maker = reviewer). Anyone else's change waits for a System Administrator / checker in Config approvals.
+     */
+    ConfigChangeRequest decide(ConfigChangeRequest ccr, ItsmUserPrincipal maker, String appliedAction) {
+        if (isSystemAdministrator(maker)) {
+            apply(ccr, maker);
+            ccr.setStatusCode("Applied");
+            ccr.setReviewedBy(ccr.getRequestedBy());
+            ccr.setReviewedAtUtc(TimeUtc.now());
+            ccr.setDescription(ccr.getDescription() + " (applied by System Administrator)");
+            configChangeRequestRepository.save(ccr);
+            auditRecorder.record("ADMIN", appliedAction, ccr.getDescription(), "SUCCESS");
+            return ccr;
+        }
+        ccr.setStatusCode("PendingApproval");
         configChangeRequestRepository.save(ccr);
         auditRecorder.record("ADMIN", "PROPOSE", ccr.getDescription(), "SUCCESS");
         return ccr;
@@ -169,11 +187,7 @@ public class AdminUserService {
         ccr.setDescription((assign ? "Assign " : "Remove ") + role.getCode() + " for " + target.getEmployeeNo());
         ccr.setRequestedBy(makerEmp);
         ccr.setRequestedAtUtc(TimeUtc.now());
-        // Role changes always go to a second administrator (Config approvals), also for a System Administrator.
-        ccr.setStatusCode("PendingApproval");
-        configChangeRequestRepository.save(ccr);
-        auditRecorder.record("ADMIN", "PROPOSE", ccr.getDescription(), "SUCCESS");
-        return ccr;
+        return decide(ccr, maker, assign ? "ROLE_ASSIGN" : "ROLE_REMOVE");
     }
 
     /**
@@ -299,7 +313,8 @@ public class AdminUserService {
         if (!"PendingApproval".equals(ccr.getStatusCode())) {
             throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
         }
-        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId())) {
+        // Maker and checker differ, except for a System Administrator (final authority), who may confirm their own.
+        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId()) && !isSystemAdministrator(checker)) {
             throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
         }
         apply(ccr, checker);
@@ -317,7 +332,7 @@ public class AdminUserService {
         if (!"PendingApproval".equals(ccr.getStatusCode())) {
             throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
         }
-        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId())) {
+        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId()) && !isSystemAdministrator(checker)) {
             throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
         }
         if (reason == null || reason.trim().length() == 0) {

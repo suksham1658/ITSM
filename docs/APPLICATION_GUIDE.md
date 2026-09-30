@@ -437,17 +437,17 @@ assign/start, `pause` on hold, `markResolved`, `refresh`/`refreshState` → `WIT
 |---|---|---|
 | Basic information (name, e-mail, designation) | immediately | profile data only; AD refreshes it at the next login / re-sync |
 | Reporting line, assignment groups | immediately | System Administrator (6.6) |
-| **Role Override** (assign / remove roles) | **second administrator** | pending in Config approvals; nobody changes their own roles; the last holder of user-management / approval rights is protected |
+| **Role Override** (assign / remove roles) | **System Administrator: immediately** (final authority); other admins: pending in Config approvals | nobody changes their own roles; the last holder of user-management / approval rights is protected |
 | **Delegate (backup approver)** | immediately | may act on *approval* steps resolved to the person (and is notified); still needs an approve-capable role; remarks are prefixed "[On behalf of …]" and audited as `DELEGATE_ACTION` |
 | **Portal access – deactivate** | immediately | not yourself; last-admin guard; the person is signed out on the next click |
-| Portal access – re-activate | second administrator | |
+| Portal access – re-activate | System Administrator: immediately; other admins: Config approvals | |
 | **Directory sync** | immediately | re-reads the person from AD with the service account (`LdapDirectoryClient.loadPerson`); roles, delegate and portal access are kept |
 
 Schema: `employee.delegate_id` (V10 / `db/install/upgrades/U10__employee_delegate.sql`). Where Flyway is off (SQL Server 2012),
 `SchemaInstaller` runs every idempotent `db/install/upgrades/U*.sql` at start-up, so later schema changes need no manual SQL.
 
 **Admin > System Configuration** (`SystemSettingsService`, `/admin/config`): LDAP, SMTP, Session, Workflow & approvals and General
-settings. Every change is a maker-checker request (`SETTING_UPDATE`) approved by a different administrator in Config approvals;
+settings. A System Administrator's change applies at once; other admins' changes are maker-checker requests (`SETTING_UPDATE`) approved in Config approvals;
 then it is stored in `dbo.system_setting`, applied at runtime (LDAP client, mail sender, session timeouts, workflow engine, login
 page) and re-applied at every start, overriding `application.yml`. Passwords are never stored there (the table forbids secrets);
 the Security section is read-only.

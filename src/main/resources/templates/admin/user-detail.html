@@ -36,7 +36,7 @@
     </div>
 
     <div class="alert-banner warn" style="margin-bottom:18px;" th:if="${!#lists.isEmpty(pendingChanges)}">
-        <b>Waiting for a second administrator:</b>
+        <b>Waiting for approval:</b>
         <ul style="margin:6px 0 0 18px;">
             <li th:each="c : ${pendingChanges}" th:text="${c.description} + ' — proposed by ' + (${c.requestedBy} != null ? ${c.requestedBy.displayName} : '?') + ', ' + ${@ui.dateTime(c.requestedAtUtc)}">change</li>
         </ul>
@@ -131,8 +131,9 @@
 
     <div class="card" style="margin-bottom:18px;">
         <div class="card-head"><div><h3>Role Override</h3>
-            <div class="ch-sub">Roles decide what this person can see and do in the portal. A change goes to a <b>second administrator</b>
-                for approval (Config approvals) before it takes effect. You cannot change your own roles.</div>
+            <div class="ch-sub">Roles decide what this person can see and do in the portal. A <b>System Administrator</b>'s change
+                applies immediately (final authority); other administrators' changes wait for a System Administrator in Config approvals.
+                You cannot change your own roles.</div>
         </div></div>
         <div class="empty-state" th:if="${allRoles == null or #lists.isEmpty(allRoles)}"><p>No roles in catalogue.</p></div>
         <div class="table-wrap" th:if="${allRoles != null and !#lists.isEmpty(allRoles)}">
@@ -153,7 +154,7 @@
                             <input type="hidden" name="assign" th:value="${!assigned}"/>
                             <button type="submit" class="btn btn-xs"
                                     th:classappend="${assigned} ? 'btn-danger-outline' : 'btn-success-outline'"
-                                    th:text="${assigned} ? 'Propose remove' : 'Propose assign'">Propose</button>
+                                    th:text="${assigned} ? 'Remove' : 'Assign'">Assign</button>
                         </form>
                     </td>
                 </tr>
@@ -190,12 +191,12 @@
             </form>
         </th:block>
         <th:block th:unless="${employee.portalActive}">
-            <p class="phase-note" style="margin-top:0;">Re-activating requires a second administrator's approval.</p>
+            <p class="phase-note" style="margin-top:0;">A System Administrator re-activates immediately; other administrators' requests wait for a System Administrator.</p>
             <div class="alert-banner info" th:if="${reactivationPending}">Re-activation is waiting for approval.</div>
             <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:unless="${reactivationPending}"
                   th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post">
                 <input type="hidden" name="active" value="true"/>
-                <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-user-check"></i> Propose re-activation</button>
+                <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-user-check"></i> Re-activate portal access</button>
             </form>
         </th:block>
     </div>

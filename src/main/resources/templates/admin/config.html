@@ -16,8 +16,8 @@
         <p class="page-sub">LDAP, SMTP, session, workflow and general settings — runtime-editable, no redeploy required.</p>
       </div>
     </div>
-    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-circle-info"></i><div>Every change below is proposed as a
-        <b>maker-checker</b> request and only takes effect once a <b>different</b> administrator approves it in
+    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-circle-info"></i><div>A <b>System Administrator</b>'s change
+        takes effect immediately (final authority). Changes by other administrators are <b>maker-checker</b> requests that take effect once a System Administrator approves them in
         <a th:href="@{/admin/change-requests}">Config approvals</a>. Values set here override <code>application.yml</code> and survive
         restarts. Passwords and the database connection are intentionally <b>not</b> editable here.</div></div>
 
@@ -44,7 +44,7 @@
                      style="flex:1;min-width:240px;"/>
             </th:block>
             <button type="submit" class="btn btn-outline btn-sm" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')"
-                    th:disabled="${r.pendingValue != null}"><i class="fa-regular fa-paper-plane"></i> Propose</button>
+                    th:disabled="${r.pendingValue != null}"><i class="fa-regular fa-floppy-disk"></i> Save</button>
           </div>
           <div class="phase-note" style="margin:4px 0 0;" th:text="${r.help}">help</div>
         </form>

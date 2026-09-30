@@ -62,8 +62,8 @@ class SystemSettingsTest {
     @BeforeEach
     void setUp() {
         catalogSeedService.ensureSeeded();
-        maker = employee("E-SS-MK", "Settings Maker");
-        checker = employee("E-SS-CK", "Settings Checker");
+        maker = employee("E-SS-MK", "Settings Maker", "IT_ADMIN");
+        checker = employee("E-SS-CK", "Settings Checker", "SYSTEM_ADMINISTRATOR");
         originalTimeout = props.getLdap().getConnectTimeoutMs();
     }
 
@@ -74,7 +74,7 @@ class SystemSettingsTest {
     }
 
     @Test
-    void changeTakesEffectOnlyAfterASecondAdministratorApproves() {
+    void otherAdministratorsChangeTakesEffectOnlyAfterApproval() {
         ConfigChangeRequest ccr = settings.propose("ldap.connect-timeout-ms", "4500", as(maker));
         assertEquals(originalTimeout, props.getLdap().getConnectTimeoutMs(), "nothing changes before approval");
 
@@ -88,6 +88,13 @@ class SystemSettingsTest {
         props.getLdap().setConnectTimeoutMs(1234);
         settings.run(null);
         assertEquals(4500, props.getLdap().getConnectTimeoutMs(), "re-applied at start-up");
+    }
+
+    @Test
+    void systemAdministratorChangeAppliesImmediately() {
+        ConfigChangeRequest ccr = settings.propose("ldap.connect-timeout-ms", "5100", as(checker));
+        assertEquals("Applied", ccr.getStatusCode());
+        assertEquals(5100, props.getLdap().getConnectTimeoutMs(), "in effect at once");
     }
 
     @Test
@@ -130,7 +137,7 @@ class SystemSettingsTest {
         return new UsernamePasswordAuthenticationToken(p, null, p.getAuthorities());
     }
 
-    private Employee employee(String no, String name) {
+    private Employee employee(String no, String name, String roleCode) {
         Employee e = new Employee();
         e.setEmployeeNo(no);
         e.setSamAccountName(no.toLowerCase());
@@ -139,7 +146,7 @@ class SystemSettingsTest {
         e = employeeRepository.save(e);
         EmployeeRoleAssignment row = new EmployeeRoleAssignment();
         row.setEmployee(e);
-        row.setRole(roleRepository.findByCode("SYSTEM_ADMINISTRATOR").orElseThrow(IllegalStateException::new));
+        row.setRole(roleRepository.findByCode(roleCode).orElseThrow(IllegalStateException::new));
         assignmentRepository.save(row);
         assertTrue(e.getEmployeeId() != null);
         return e;

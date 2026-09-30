@@ -128,7 +128,7 @@ class UserAccountAdminTest {
     }
 
     @Test
-    void deactivationIsImmediateAndReactivationNeedsASecondAdmin() throws Exception {
+    void deactivationIsImmediateAndOnlyASystemAdministratorReactivatesDirectly() throws Exception {
         mockMvc.perform(post("/admin/users/{id}/deactivate", requester.getEmployeeId()).with(csrf()).with(authentication(token(admin))))
                 .andExpect(flash().attribute("message", containsString("deactivated immediately")));
         assertFalse(employeeRepository.findById(requester.getEmployeeId()).get().isPortalActive());
@@ -136,16 +136,26 @@ class UserAccountAdminTest {
         mockMvc.perform(post("/admin/users/{id}/deactivate", admin.getEmployeeId()).with(csrf()).with(authentication(token(admin))))
                 .andExpect(flash().attribute("errorMessage", containsString("own portal access")));
 
+        // IT Admin (not a System Administrator): re-activation waits for approval.
+        Employee itAdmin = employee("E-UA-ITA", "IT Admin Person", null, "EMPLOYEE", "IT_ADMIN");
         long pending = changeRequestRepository.countByStatusCode("PendingApproval");
-        mockMvc.perform(post("/admin/users/{id}/propose-active", requester.getEmployeeId()).with(csrf()).with(authentication(token(admin)))
+        mockMvc.perform(post("/admin/users/{id}/propose-active", requester.getEmployeeId()).with(csrf()).with(authentication(token(itAdmin)))
                         .param("active", "true"))
-                .andExpect(flash().attribute("message", containsString("different administrator")));
+                .andExpect(flash().attribute("message", containsString("System Administrator must approve")));
         assertEquals(pending + 1, changeRequestRepository.countByStatusCode("PendingApproval"));
         assertFalse(employeeRepository.findById(requester.getEmployeeId()).get().isPortalActive(), "still off until approved");
-
-        mockMvc.perform(post("/admin/users/{id}/propose-active", requester.getEmployeeId()).with(csrf()).with(authentication(token(admin)))
+        mockMvc.perform(post("/admin/users/{id}/propose-active", requester.getEmployeeId()).with(csrf()).with(authentication(token(itAdmin)))
                         .param("active", "true"))
                 .andExpect(flash().attribute("errorMessage", containsString("already waiting")));
+
+        // System Administrator: final authority, re-activated at once.
+        Employee other = employee("E-UA-OFF", "Offboarded Person", null, "EMPLOYEE");
+        other.setPortalActive(false);
+        employeeRepository.save(other);
+        mockMvc.perform(post("/admin/users/{id}/propose-active", other.getEmployeeId()).with(csrf()).with(authentication(token(admin)))
+                        .param("active", "true"))
+                .andExpect(flash().attribute("message", containsString("re-activated")));
+        assertTrue(employeeRepository.findById(other.getEmployeeId()).get().isPortalActive());
     }
 
     @Test

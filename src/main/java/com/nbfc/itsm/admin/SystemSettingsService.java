@@ -37,8 +37,8 @@ import java.util.regex.Pattern;
 
 /**
  * Admin &gt; System Configuration: runtime-editable settings (LDAP, SMTP, session, workflow, general).
- * A change is a maker-checker request (Config approvals); once a <b>different</b> administrator approves
- * it, the value is saved in {@code system_setting} and applied at once (no redeploy). Saved values override
+ * A System Administrator's change applies at once; anyone else's is a maker-checker request (Config approvals); once approved
+ * the value is saved in {@code system_setting} and applied at once (no redeploy). Saved values override
  * application.yml and are re-applied at every start. Passwords are never stored here (the table forbids
  * secrets): they stay in the external secrets file.
  */
@@ -229,6 +229,16 @@ public class SystemSettingsService implements ApplicationRunner {
         ccr.setStatusCode("PendingApproval");
         ccr.setRequestedBy(makerEmp);
         ccr.setRequestedAtUtc(TimeUtc.now());
+        if (AdminUserService.isSystemAdministrator(maker)) {
+            // Final authority: applied at once, recorded as Applied (maker = reviewer).
+            apply(ccr);
+            ccr.setStatusCode("Applied");
+            ccr.setReviewedBy(makerEmp);
+            ccr.setReviewedAtUtc(TimeUtc.now());
+            ccr.setDescription(ccr.getDescription() + " (applied by System Administrator)");
+            changeRepository.save(ccr);
+            return ccr;
+        }
         changeRepository.save(ccr);
         auditRecorder.record("CONFIG", "PROPOSE", ccr.getDescription(), "SUCCESS");
         return ccr;
