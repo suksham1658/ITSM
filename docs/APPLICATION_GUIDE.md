@@ -375,14 +375,20 @@ Written in the same transaction as the workflow change; never sent to the person
 UI: header bell (unread count + latest 8, `UiModelAdvice.notifUnread/notifLatest`),
 `GET /notifications`, `GET /notifications/{id}/open` (marks read, recipient only), `POST /notifications/read-all`.
 
-### 6.4.1 Ticket e-mails to the requester (`notification/TicketEmailService`)
+### 6.4.1 Ticket e-mails (`notification/TicketEmailService`)
 
-* **When:** a Request or Incident is **submitted** (not a draft) and when the ticket is **Closed** (also when the
-  requester closes it by confirming). Nothing in between (approvals, rejections, assignment, work steps).
+* **Requester (CREATED / CLOSED):** a Request or Incident is **submitted** (not a draft) and when the ticket is
+  **Closed** (also when the requester closes it by confirming).
+* **Queue mail (WAITING):** every time a step becomes current, each person who must act on it gets
+  "Action needed: <type> <number> is in your queue" with what to do: approver(s) at each approval (one per manager
+  in the chain), all IT Service Desk members at assignment, the assigned implementor (or the implementor group),
+  the new owner after a reassign, the person a ticket is sent back to, and the requester when it is resolved and
+  needs confirming. Never the person who moved it. Same people as the in-app notifications
+  (`NotificationService.stepIsWaiting` / `actorsOf`). Nothing after a rejection.
 * **How:** `NotificationService.submitted/closed` publish a `TicketEmailEvent`; `TicketEmailService` sends it **after
   the transaction commits**, in the background (`AsyncConfig` executor `mailExecutor`), so a slow or unreachable mail
   server never delays or fails the user's action. Failures are logged (`Ticket e-mail … could not be sent`).
-* **To:** the requester's e-mail from AD (`employee.email`); skipped (logged) when empty.
+* **Addresses:** each person's e-mail from AD (`employee.email`); people without one (or without portal access) are skipped and logged.
 * **SMTP:** `spring.mail.host/port` = `MAIL_HOST` / `MAIL_PORT`, default `10.65.8.64:25`, no login, no TLS
   (`MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`).
 * **Settings:** `itsm.mail.enabled` (`MAIL_ENABLED`, default true; off in test/h2), `itsm.mail.from`

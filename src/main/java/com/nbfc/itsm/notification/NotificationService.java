@@ -80,10 +80,12 @@ public class NotificationService {
         String type = step.getStageType();
         String number = t.getPublicNumber();
         String who = "raised by " + t.getRequester().getDisplayName();
+        List<Long> mailTo = new ArrayList<Long>();
         for (Employee e : actorsOf(t, step)) {
             if (same(e, actor)) {
                 continue;
             }
+            mailTo.add(e.getEmployeeId());
             if ("APPROVAL".equals(type)) {
                 send(APPROVAL_REQUIRED, e, t, "Approval needed: " + number,
                         "\"" + t.getSubject() + "\" (" + who + ") is waiting for your approval.");
@@ -102,6 +104,11 @@ public class NotificationService {
                 send(RESOLVED, e, t, "Resolved, please confirm: " + number,
                         "\"" + t.getSubject() + "\" was resolved. Open it to confirm it works, or send it back.");
             }
+        }
+        if (!mailTo.isEmpty() && step.getWorkflowInstanceStageId() != null) {
+            // E-mail "now in your queue" to the same people, sent after commit (TicketEmailService).
+            events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.WAITING,
+                    step.getWorkflowInstanceStageId(), mailTo));
         }
     }
 

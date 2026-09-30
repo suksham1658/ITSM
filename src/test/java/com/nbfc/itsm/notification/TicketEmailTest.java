@@ -91,34 +91,68 @@ class TicketEmailTest {
     }
 
     @Test
-    void mailEventsOnlyOnSubmitAndOnClose() {
+    void requesterMailsOnSubmitAndCloseAndQueueMailsToWhoeverMustAct() {
         TicketForm draft = incident();
         draft.setIntent("draft");
         ticketService.save(as(requester), draft);
         assertEquals(0, kinds().size(), "no mail for a draft");
 
         Ticket t = ticketService.save(as(requester), incident());
-        assertEquals(java.util.Collections.singletonList("CREATED:" + t.getTicketId()), kinds());
+        Long id = t.getTicketId();
+        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id), kinds());
+        assertTrue(lastWaitingTo().contains(desk.getEmployeeId()), "service desk told it is in their queue");
+        assertFalse(lastWaitingTo().contains(requester.getEmployeeId()), "not the person who moved it");
 
-        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", "Please check the laptop", impl.getEmployeeId());
-        ticketService.applyAction(as(impl), t.getTicketId(), "START", null, null);
-        ticketService.applyAction(as(impl), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
-        assertEquals(1, kinds().size(), "nothing in between");
+        ticketService.applyAction(as(desk), id, "ASSIGN", "Please check the laptop", impl.getEmployeeId());
+        assertEquals(java.util.Collections.singletonList(impl.getEmployeeId()), lastWaitingTo(), "implementor told");
 
-        ticketService.applyAction(as(requester), t.getTicketId(), "APPROVE", "Working fine now, thank you", null);
-        assertEquals("Closed", ticketRepository.findById(t.getTicketId()).get().getStatusCode());
-        assertEquals(java.util.Arrays.asList("CREATED:" + t.getTicketId(), "CLOSED:" + t.getTicketId()), kinds(),
-                "closed mail even though the requester closed it");
+        ticketService.applyAction(as(impl), id, "START", null, null);
+        assertEquals(3, kinds().size(), "no mail for starting work");
+
+        ticketService.applyAction(as(impl), id, "RESOLVE", "Replaced the faulty RAM module", null);
+        assertEquals(java.util.Collections.singletonList(requester.getEmployeeId()), lastWaitingTo(),
+                "requester asked to confirm");
+
+        ticketService.applyAction(as(requester), id, "APPROVE", "Working fine now, thank you", null);
+        assertEquals("Closed", ticketRepository.findById(id).get().getStatusCode());
+        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id, "WAITING:" + id,
+                "CLOSED:" + id), kinds(), "closed mail even though the requester closed it");
     }
 
     @Test
-    void rejectedServiceRequestGetsNoClosedMail() {
-        Employee manager = employee("E-EM-MGR", "Mail Manager", null, null, null, "EMPLOYEE", "HOD");
+    void approvalChainMailsEachApproverInTurnAndRejectionEndsIt() {
+        Employee hod = employee("E-EM-HOD", "Mail HOD", null, null, null, "EMPLOYEE", "HOD");
+        Employee manager = employee("E-EM-MGR", "Mail Manager", null, hod, null, "EMPLOYEE");
         requester.setManager(manager);
         employeeRepository.save(requester);
         Ticket sr = ticketService.save(as(requester), serviceRequest());
-        ticketService.applyAction(as(manager), sr.getTicketId(), "REJECT", "Not needed for this role", null);
-        assertEquals(java.util.Collections.singletonList("CREATED:" + sr.getTicketId()), kinds());
+        assertEquals(java.util.Collections.singletonList(manager.getEmployeeId()), lastWaitingTo(), "manager first");
+
+        ticketService.applyAction(as(manager), sr.getTicketId(), "APPROVE", "Approved by the manager, go ahead", null);
+        assertEquals(java.util.Collections.singletonList(hod.getEmployeeId()), lastWaitingTo(), "then the HOD");
+
+        ticketService.applyAction(as(hod), sr.getTicketId(), "REJECT", "Not needed for this role", null);
+        assertEquals(java.util.Arrays.asList("CREATED:" + sr.getTicketId(), "WAITING:" + sr.getTicketId(),
+                "WAITING:" + sr.getTicketId()), kinds(), "no closed or queue mail after a rejection");
+    }
+
+    @Test
+    void queueMailTellsTheRecipientWhatToDo() throws Exception {
+        desk.setEmail("mail.desk@authum.com");
+        employeeRepository.save(desk);
+        Ticket t = ticketService.save(as(requester), incident());
+        List<Long> to = lastWaitingTo();
+        assertEquals(1, ticketEmailService.sendWaiting(t.getTicketId(), lastWaitingStage(), to));
+
+        ArgumentCaptor<MimeMessage> sent = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(sent.capture());
+        MimeMessage m = sent.getValue();
+        assertEquals("mail.desk@authum.com", ((InternetAddress) m.getAllRecipients()[0]).getAddress());
+        assertTrue(m.getSubject().startsWith("Action needed: Incident " + t.getPublicNumber() + " is in your queue"),
+                m.getSubject());
+        String html = (String) m.getContent();
+        assertTrue(html.contains("Dear Mail Desk") && html.contains("please assign it to an implementor")
+                && html.contains("Raised by") && html.contains("Mail Requester"), html);
     }
 
     @Test
@@ -153,6 +187,20 @@ class TicketEmailTest {
     private List<String> kinds() {
         return applicationEvents.stream(TicketEmailEvent.class)
                 .map(e -> e.getKind() + ":" + e.getTicketId()).collect(Collectors.toList());
+    }
+
+    private TicketEmailEvent lastWaiting() {
+        List<TicketEmailEvent> w = applicationEvents.stream(TicketEmailEvent.class)
+                .filter(e -> e.getKind() == TicketEmailEvent.Kind.WAITING).collect(Collectors.toList());
+        return w.get(w.size() - 1);
+    }
+
+    private List<Long> lastWaitingTo() {
+        return lastWaiting().getRecipientIds();
+    }
+
+    private Long lastWaitingStage() {
+        return lastWaiting().getStageId();
     }
 
     private TicketForm incident() {
