@@ -119,7 +119,67 @@ class RequestRoutingTest {
         assertTrue(ex.getMessage().contains("no manager is set for you"), ex.getMessage());
     }
 
+    @Test
+    void hodSetOutsideTheChainGoesManagerThenHod() {
+        // Like 50058036: manager Pankaj, whose AD chain continues to Bittu and Rohit; HOD set to Anil,
+        // who is not in that chain. Expected: Pankaj -> Anil, then the CISO stage.
+        Employee rohit = employee("E-RT-ROH", "rt.rohit", "Rohit", null, "EMPLOYEE");
+        Employee bittu = employee("E-RT-BIT", "rt.bittu", "Bittu", rohit, "EMPLOYEE");
+        Employee pankaj = employee("E-RT-PAN", "rt.pankaj", "Pankaj", bittu, "EMPLOYEE");
+        Employee anil = employee("E-RT-ANI", "rt.anil", "Anil", null, "EMPLOYEE", "HOD", "CISO");
+        Employee me = employee("E-RT-ME", "rt.me", "Suksham", pankaj, "EMPLOYEE");
+        me.setHod(anil);
+        employeeRepository.save(me);
+
+        Ticket sr = ticketService.save(as(me), serviceRequest());
+        assertEquals(java.util.Arrays.asList("Pankaj", "Anil"), hierarchyApprovers(sr));
+        assertEquals(pankaj.getEmployeeId(), current(sr).getResolvedEmployee().getEmployeeId());
+
+        ticketService.applyAction(as(pankaj), sr.getTicketId(), "APPROVE", "Approved by the manager for access", null);
+        assertEquals(anil.getEmployeeId(), current(sr).getResolvedEmployee().getEmployeeId(), "straight to the HOD");
+
+        ticketService.applyAction(as(anil), sr.getTicketId(), "APPROVE", "Approved by the HOD, business need ok", null);
+        assertEquals("CISO", current(sr).getResolvedRole().getCode(), "then the CISO stage");
+    }
+
+    @Test
+    void hodSetHigherInTheChainStopsThere() {
+        Employee top = employee("E-RT-TOP", "rt.top", "Top", null, "EMPLOYEE");
+        Employee rohit = employee("E-RT-RO2", "rt.rohit2", "Rohit", top, "EMPLOYEE");
+        Employee bittu = employee("E-RT-BI2", "rt.bittu2", "Bittu", rohit, "EMPLOYEE");
+        Employee pankaj = employee("E-RT-PA2", "rt.pankaj2", "Pankaj", bittu, "EMPLOYEE");
+        Employee me = employee("E-RT-ME2", "rt.me2", "Requester", pankaj, "EMPLOYEE");
+        me.setHod(rohit);
+        employeeRepository.save(me);
+
+        Ticket sr = ticketService.save(as(me), serviceRequest());
+        assertEquals(java.util.Arrays.asList("Pankaj", "Bittu", "Rohit"), hierarchyApprovers(sr), "stops at the HOD, not Top");
+    }
+
+    @Test
+    void hodSameAsManagerIsOneStep() {
+        Employee boss = employee("E-RT-BOS", "rt.boss", "Boss", null, "EMPLOYEE");
+        Employee me = employee("E-RT-ME3", "rt.me3", "Requester", boss, "EMPLOYEE");
+        me.setHod(boss);
+        employeeRepository.save(me);
+
+        Ticket sr = ticketService.save(as(me), serviceRequest());
+        assertEquals(java.util.Collections.singletonList("Boss"), hierarchyApprovers(sr));
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /** Names on the manager-hierarchy steps, in order. */
+    private java.util.List<String> hierarchyApprovers(Ticket t) {
+        WorkflowInstance inst = instanceRepository.findByTicketId(t.getTicketId()).orElseThrow(IllegalStateException::new);
+        java.util.List<String> names = new java.util.ArrayList<String>();
+        for (WorkflowInstanceStage s : instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(inst)) {
+            if ("LDAP_MANAGER".equals(s.getActorStrategy()) && s.getResolvedEmployee() != null) {
+                names.add(s.getResolvedEmployee().getDisplayName());
+            }
+        }
+        return names;
+    }
 
     private boolean inApprovals(Employee who, Ticket t) {
         for (Ticket x : ticketService.approvalsFor(as(who))) {

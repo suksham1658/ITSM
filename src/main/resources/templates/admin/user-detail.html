@@ -35,15 +35,18 @@
     <div class="card card-pad" style="margin-bottom:18px;">
         <div class="form-section-title">Reporting line (Service Request approvals)</div>
         <p class="phase-note" style="margin-top:0;">
-            Service Requests go to the manager first, then up the chain until someone with the HOD role (or the HOD set here).
-            The manager is filled from Active Directory at each login; set it here if the directory has none.
+            Service Requests go to the manager first. If an HOD is set here, the approvals end at that HOD: up the chain
+            to the HOD when the HOD is above this person, otherwise straight from the manager to the HOD. With no HOD set,
+            they go up the chain until someone with the HOD role. The manager is filled from Active Directory at each login;
+            set it here if the directory has none. Changes apply to new requests, not to requests already raised.
         </p>
         <div class="alert-banner warn" th:if="${setup.managerId == null}" style="margin-bottom:10px;">
             No manager set. This employee's Service Requests cannot be submitted until a manager is set here or in Active Directory.
         </div>
         <p th:if="${!#lists.isEmpty(setup.managerChain)}" style="font-size:13px;margin:0 0 12px;">
-            Approval chain: <b th:text="${#strings.listJoin(setup.managerChain, ' → ')}">Manager → HOD</b>
+            Approval chain for a new request: <b th:text="${#strings.listJoin(setup.managerChain, ' → ')}">Manager → HOD</b>
         </p>
+        <div class="alert-banner warn" th:if="${setup.chainProblem != null}" style="margin-bottom:10px;" th:text="${setup.chainProblem}">problem</div>
         <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
               th:action="@{/admin/users/{id}/reporting-line(id=${employee.employeeId})}" method="post">
             <div class="form-grid">

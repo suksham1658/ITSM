@@ -12,6 +12,7 @@ import com.nbfc.itsm.domain.EmployeeRepository;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
 import com.nbfc.itsm.validation.Validation;
+import com.nbfc.itsm.workflow.WorkflowEngine;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,17 +40,20 @@ public class EmployeeSetupService {
     private final AssignmentGroupRepository groupRepository;
     private final AssignmentGroupMemberRepository memberRepository;
     private final AuditRecorder auditRecorder;
+    private final WorkflowEngine workflowEngine;
 
     public EmployeeSetupService(EmployeeRepository employeeRepository,
                                 DepartmentRepository departmentRepository,
                                 AssignmentGroupRepository groupRepository,
                                 AssignmentGroupMemberRepository memberRepository,
-                                AuditRecorder auditRecorder) {
+                                AuditRecorder auditRecorder,
+                                WorkflowEngine workflowEngine) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.auditRecorder = auditRecorder;
+        this.workflowEngine = workflowEngine;
     }
 
     /** Everything the user page needs to show and edit the set-up. */
@@ -68,14 +72,19 @@ public class EmployeeSetupService {
         for (AssignmentGroupMember m : memberRepository.findByEmployee(e)) {
             memberOf.add(m.getAssignmentGroup().getAssignmentGroupId());
         }
+        // Same routing a new Service Request would get (WorkflowEngine.managerHops), so the preview never disagrees.
         List<String> chain = new ArrayList<String>();
-        Set<Long> seen = new HashSet<Long>();
-        Employee up = e.getManager();
-        while (up != null && seen.add(up.getEmployeeId()) && chain.size() < 10) {
-            chain.add(up.getDisplayName());
-            up = up.getManager();
+        String chainProblem = null;
+        if (e.getManager() != null) {
+            try {
+                for (Employee hop : workflowEngine.managerHops(e)) {
+                    chain.add(hop.getDisplayName());
+                }
+            } catch (ItsmException ex) {
+                chainProblem = ex.getMessage();
+            }
         }
-        return new SetupView(
+        return new SetupView(chainProblem,
                 e.getManager() == null ? null : e.getManager().getEmployeeId(),
                 e.getHod() == null ? null : e.getHod().getEmployeeId(),
                 e.getDepartment() == null ? null : e.getDepartment().getDepartmentId(),
@@ -178,8 +187,9 @@ public class EmployeeSetupService {
         private final List<Department> departments;
         private final List<AssignmentGroup> groups;
         private final Set<Long> memberOf;
+        private final String chainProblem;
 
-        SetupView(Long managerId, Long hodId, Long departmentId, String departmentName, List<String> managerChain,
+        SetupView(String chainProblem, Long managerId, Long hodId, Long departmentId, String departmentName, List<String> managerChain,
                   List<Employee> candidates, List<Department> departments, List<AssignmentGroup> groups,
                   Set<Long> memberOf) {
             this.managerId = managerId;
@@ -191,7 +201,11 @@ public class EmployeeSetupService {
             this.departments = departments;
             this.groups = groups;
             this.memberOf = memberOf;
+            this.chainProblem = chainProblem;
         }
+
+        /** Why a Service Request from this employee could not be routed right now, or null. */
+        public String getChainProblem() { return chainProblem; }
 
         public Long getManagerId() { return managerId; }
         public Long getHodId() { return hodId; }

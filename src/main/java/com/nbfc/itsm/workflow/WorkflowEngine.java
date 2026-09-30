@@ -407,7 +407,8 @@ public class WorkflowEngine {
         }
     }
 
-    List<Employee> managerHops(Employee requester) {
+    /** Approvers of the manager-hierarchy steps for a new Service Request from {@code requester}, in order. */
+    public List<Employee> managerHops(Employee requester) {
         if (isHod(requester)) {
             return new ArrayList<Employee>();
         }
@@ -418,6 +419,23 @@ public class WorkflowEngine {
                             + "Active Directory and sign in again. You can use Save draft to keep your request meanwhile.");
         }
         int cap = hopCap();
+        Employee setHod = requester.getHod();
+        if (setHod != null) {
+            // An HOD set on Admin > Users always ends the chain: climb to it if it is above the requester,
+            // otherwise go from the immediate manager straight to it.
+            List<Employee> hops = pathToHod(requester.getManager(), setHod, cap);
+            if (hops == null) {
+                hops = new ArrayList<Employee>();
+                hops.add(requester.getManager());
+                if (!requester.getManager().getEmployeeId().equals(setHod.getEmployeeId())) {
+                    hops.add(setHod);
+                }
+            }
+            for (Employee hop : hops) {
+                requireActive(hop);
+            }
+            return hops;
+        }
         List<Employee> hops = new ArrayList<Employee>();
         Set<Long> seen = new HashSet<Long>();
         Employee current = requester.getManager();
@@ -426,14 +444,9 @@ public class WorkflowEngine {
             if (!seen.add(current.getEmployeeId())) {
                 break;
             }
-            if (!current.isPortalActive()) {
-                throw new ItsmException("INACTIVE_MANAGER",
-                        "Your approval chain includes " + current.getDisplayName() + ", whose portal access is disabled. "
-                                + "Ask the System Administrator to enable it or change the reporting line.");
-            }
+            requireActive(current);
             hops.add(current);
-            if (isHod(current) || (requester.getHod() != null
-                    && requester.getHod().getEmployeeId().equals(current.getEmployeeId()))) {
+            if (isHod(current)) {
                 break;
             }
             Employee next = current.getManager();
@@ -447,6 +460,29 @@ public class WorkflowEngine {
             throw new ItsmException("NO_MANAGER_CHAIN", "Manager chain is empty.");
         }
         return hops;
+    }
+
+    /** Managers from {@code start} up to and including {@code hod}; null when {@code hod} is not in that chain. */
+    private static List<Employee> pathToHod(Employee start, Employee hod, int cap) {
+        List<Employee> path = new ArrayList<Employee>();
+        Set<Long> seen = new HashSet<Long>();
+        Employee current = start;
+        while (current != null && path.size() <= cap && seen.add(current.getEmployeeId())) {
+            path.add(current);
+            if (current.getEmployeeId().equals(hod.getEmployeeId())) {
+                return path;
+            }
+            current = current.getManager();
+        }
+        return null;
+    }
+
+    private static void requireActive(Employee approver) {
+        if (!approver.isPortalActive()) {
+            throw new ItsmException("INACTIVE_MANAGER",
+                    "Your approval chain includes " + approver.getDisplayName() + ", whose portal access is disabled. "
+                            + "Ask the System Administrator to enable it or change the reporting line.");
+        }
     }
 
     private boolean isHod(Employee employee) {
