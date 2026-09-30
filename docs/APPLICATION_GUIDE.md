@@ -375,6 +375,21 @@ Written in the same transaction as the workflow change; never sent to the person
 UI: header bell (unread count + latest 8, `UiModelAdvice.notifUnread/notifLatest`),
 `GET /notifications`, `GET /notifications/{id}/open` (marks read, recipient only), `POST /notifications/read-all`.
 
+### 6.4.1 Ticket e-mails to the requester (`notification/TicketEmailService`)
+
+* **When:** a Request or Incident is **submitted** (not a draft) and when the ticket is **Closed** (also when the
+  requester closes it by confirming). Nothing in between (approvals, rejections, assignment, work steps).
+* **How:** `NotificationService.submitted/closed` publish a `TicketEmailEvent`; `TicketEmailService` sends it **after
+  the transaction commits**, in the background (`AsyncConfig` executor `mailExecutor`), so a slow or unreachable mail
+  server never delays or fails the user's action. Failures are logged (`Ticket e-mail … could not be sent`).
+* **To:** the requester's e-mail from AD (`employee.email`); skipped (logged) when empty.
+* **SMTP:** `spring.mail.host/port` = `MAIL_HOST` / `MAIL_PORT`, default `10.65.8.64:25`, no login, no TLS
+  (`MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`).
+* **Settings:** `itsm.mail.enabled` (`MAIL_ENABLED`, default true; off in test/h2), `itsm.mail.from`
+  (`MAIL_FROM`, default `no-reply@authum.com`), `itsm.mail.from-name` (`MAIL_FROM_NAME`, default `Authum – ITSM`),
+  `itsm.mail.portal-url` (`ITSM_PORTAL_URL`, e.g. `http://<server-ip>:8090/itsm-portal`; adds an "Open the ticket"
+  link; blank = no link).
+
 ### 6.5 SLA (`sla/SlaService`)
 
 `startClocks` on submit (policy by priority, business calendar/holidays), `markFirstResponse` on first

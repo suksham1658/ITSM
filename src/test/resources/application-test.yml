@@ -20,6 +20,8 @@ spring:
       mode: never
 
 itsm:
+  mail:
+    enabled: false
   ldap:
     url:
     bind-dn: ""

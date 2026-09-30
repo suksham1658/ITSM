@@ -17,6 +17,8 @@ spring:
           time_zone: UTC
 
 itsm:
+  mail:
+    enabled: false
   ldap:
     url:
     bind-dn: ""

@@ -155,8 +155,21 @@ public class ItsmProperties {
         }
     }
 
+    /** Ticket e-mails to the requester (created / closed). SMTP server itself is spring.mail.*. */
     public static class Mail {
+        private boolean enabled = false;
         private String from = "";
+        private String fromName = "Authum – ITSM";
+        /** Portal address for the "Open ticket" link, e.g. http://10.65.x.x:8090/itsm-portal (blank: no link). */
+        private String portalUrl = "";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public String getFrom() {
             return from;
@@ -164,6 +177,22 @@ public class ItsmProperties {
 
         public void setFrom(String from) {
             this.from = from;
+        }
+
+        public String getFromName() {
+            return fromName;
+        }
+
+        public void setFromName(String fromName) {
+            this.fromName = fromName;
+        }
+
+        public String getPortalUrl() {
+            return portalUrl;
+        }
+
+        public void setPortalUrl(String portalUrl) {
+            this.portalUrl = portalUrl;
         }
     }
 

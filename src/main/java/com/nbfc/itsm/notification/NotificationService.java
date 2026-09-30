@@ -11,6 +11,7 @@ import com.nbfc.itsm.util.TimeUtc;
 import com.nbfc.itsm.workflow.GroupMembershipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,15 +43,18 @@ public class NotificationService {
     private final GroupMembershipService groupMembership;
     private final EmployeeRoleAssignmentRepository roleAssignmentRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final ApplicationEventPublisher events;
 
     public NotificationService(NotificationRepository notificationRepository,
                                GroupMembershipService groupMembership,
                                EmployeeRoleAssignmentRepository roleAssignmentRepository,
-                               JdbcTemplate jdbcTemplate) {
+                               JdbcTemplate jdbcTemplate,
+                               ApplicationEventPublisher events) {
         this.notificationRepository = notificationRepository;
         this.groupMembership = groupMembership;
         this.roleAssignmentRepository = roleAssignmentRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.events = events;
     }
 
     // ------------------------------------------------------------------ events
@@ -60,6 +64,8 @@ public class NotificationService {
     public void submitted(Ticket t, WorkflowInstanceStage first) {
         send(TICKET_CREATED, t.getRequester(), t, "Submitted: " + t.getPublicNumber(),
                 "Your request \"" + t.getSubject() + "\" was submitted. " + nowWith(first));
+        // E-mail to the requester, sent after commit (TicketEmailService).
+        events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.CREATED));
     }
 
     /**
@@ -144,6 +150,8 @@ public class NotificationService {
 
     @Transactional
     public void closed(Ticket t, Employee by) {
+        // The e-mail goes out even when the requester closed it (confirmation), unlike the in-app notice.
+        events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.CLOSED));
         if (!same(t.getRequester(), by)) {
             send(null, t.getRequester(), t, "Closed: " + t.getPublicNumber(), "\"" + t.getSubject() + "\" is closed.");
         }

@@ -46,16 +46,21 @@ spring:
     user: ${spring.datasource.username}
     password: ${spring.datasource.password}
   mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:587}
+    # Company SMTP relay: port 25, no login, no TLS (ticket e-mails, see itsm.mail).
+    host: ${MAIL_HOST:10.65.8.64}
+    port: ${MAIL_PORT:25}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${MAIL_SMTP_AUTH:false}
           starttls:
-            enable: true
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 server:
   port: ${SERVER_PORT:8092}
@@ -119,7 +124,12 @@ itsm:
     type: ${FILE_STORAGE_TYPE:filesystem}
     root: ${FILE_STORAGE_ROOT:}
   mail:
-    from: ${MAIL_FROM:}
+    # E-mail to the requester when a request / incident is submitted and when it is closed.
+    enabled: ${MAIL_ENABLED:true}
+    from: ${MAIL_FROM:no-reply@authum.com}
+    from-name: ${MAIL_FROM_NAME:Authum – ITSM}
+    # Link in the mail, e.g. http://<server-ip>:8090/itsm-portal (blank = no link)
+    portal-url: ${ITSM_PORTAL_URL:}
   security:
     test-login-enabled: false
     preview-password: ${H2_PREVIEW_PASSWORD:}
