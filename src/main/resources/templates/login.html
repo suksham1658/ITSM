@@ -32,6 +32,7 @@
       <p class="login-sub">Authenticate with your corporate LDAP credentials.</p>
       <div class="login-error show" th:if="${loginError}"><i class="fa-solid fa-triangle-exclamation"></i><span>Sign-in failed. Check your credentials or contact IT Service Desk.</span></div>
       <div class="login-error show" th:if="${loginDenied}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your directory account is valid, but this portal profile is missing or disabled. Contact IT Admin.</span></div>
+      <div class="login-error show" th:if="${sessionEnded}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your session ended (for example after the portal was restarted). Please sign in again and repeat your last action.</span></div>
       <div class="login-error show" th:if="${sessionExpired}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your session reached the maximum lifetime. Sign in again.</span></div>
       <div class="alert-banner ok" th:if="${loggedOut}">You have been signed out.</div>
       <form th:action="@{/login}" method="post">

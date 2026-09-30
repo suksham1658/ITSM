@@ -93,7 +93,7 @@ public class SecurityConfig {
                     .anyRequest().authenticated()
                 .and()
                 .exceptionHandling()
-                    .accessDeniedPage("/403")
+                    .accessDeniedHandler(new PortalAccessDeniedHandler())
                 .and()
                 .formLogin()
                     .loginPage("/login")

@@ -12,6 +12,7 @@ public class LoginController {
     public String login(@RequestParam(value = "error", required = false) String error,
                         @RequestParam(value = "logout", required = false) String logout,
                         @RequestParam(value = "expired", required = false) String expired,
+                        @RequestParam(value = "ended", required = false) String ended,
                         Model model) {
         if ("denied".equals(error)) {
             model.addAttribute("loginDenied", Boolean.TRUE);
@@ -20,6 +21,9 @@ public class LoginController {
         }
         if (logout != null) {
             model.addAttribute("loggedOut", Boolean.TRUE);
+        }
+        if (ended != null) {
+            model.addAttribute("sessionEnded", Boolean.TRUE);
         }
         if (expired != null) {
             model.addAttribute("sessionExpired", Boolean.TRUE);

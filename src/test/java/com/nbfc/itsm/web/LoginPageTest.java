@@ -109,11 +109,13 @@ class LoginPageTest {
     }
 
     @Test
-    void loginPostWithoutCsrfIsForbidden() throws Exception {
+    void loginPostWithoutCsrfIsNotProcessed() throws Exception {
+        // Refused before authentication (credentials never checked); back to the login page with a clear message.
         mockMvc.perform(post("/login")
                         .param("username", "jdoe")
                         .param("password", "Secret123!"))
-                .andExpect(status().isForbidden());
+                .andExpect(redirectedUrl("/login?ended=1"))
+                .andExpect(org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated());
     }
 
     @Test
