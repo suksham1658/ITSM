@@ -157,12 +157,6 @@ public class PortalPageController {
                 "No knowledge articles have been published yet.");
     }
 
-    @GetMapping("/audit")
-    public String audit(Model model) {
-        return listPage(model, "auditTrail", "Audit Trail", "audit",
-                "Open a ticket to see its history of status changes, assignments and approvals.");
-    }
-
     @GetMapping("/assets")
     public String assets(Model model) {
         return listPage(model, "assets", "Asset Management", "assets",

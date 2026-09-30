@@ -13,13 +13,18 @@
       <div>
         <div class="breadcrumb">ITSM Portal / Administration / <span>Users</span></div>
         <h1>Portal users</h1>
-        <p class="page-sub">Enable or disable portal access and assign roles. Changes require a checker. Roles never come from LDAP.</p>
+        <p class="page-sub" th:text="${#lists.size(employees)} + ' employees. Identity fields sync from Active Directory; roles, portal access and delegates are managed here.'">Employees</p>
       </div>
     </div>
     <form class="filter-bar" method="get" th:action="@{/admin/users}">
         <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
             <input type="search" name="q" th:value="${q}" th:attr="maxlength=${limits.searchMax}" placeholder="Name, employee no, or SAM" aria-label="Search users"/>
         </div>
+        <select name="status" class="form-control" style="width:auto;" aria-label="Portal access" data-autosubmit="true">
+            <option value="" th:selected="${status == null}">All statuses</option>
+            <option value="active" th:selected="${status == 'active'}">Active</option>
+            <option value="inactive" th:selected="${status == 'inactive'}">Deactivated</option>
+        </select>
         <button type="submit" class="btn btn-outline btn-sm">Search</button>
     </form>
     <div class="card" th:if="${employees == null or #lists.isEmpty(employees)}">
@@ -29,15 +34,16 @@
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
-                <tr><th>Employee no</th><th>Name</th><th>SAM</th><th>Portal</th><th></th></tr>
+                <tr><th>Employee</th><th>Employee no</th><th>Manager</th><th>Delegate</th><th>Portal access</th><th></th></tr>
                 </thead>
                 <tbody>
                 <tr th:each="e : ${employees}">
+                    <td><div style="font-weight:600;" th:text="${e.displayName}">Name</div><div class="phase-note" style="margin:0;" th:text="${e.designation} ?: ''">title</div></td>
                     <td class="mono" th:text="${e.employeeNo}">E1</td>
-                    <td th:text="${e.displayName}">Name</td>
-                    <td class="mono" th:text="${e.samAccountName}">sam</td>
-                    <td><span class="badge" th:classappend="${e.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${e.portalActive} ? 'Active' : 'Disabled'">Active</span></td>
-                    <td><a th:href="@{/admin/users/{id}(id=${e.employeeId})}">Open</a></td>
+                    <td th:text="${e.manager != null} ? ${e.manager.displayName} : '—'">—</td>
+                    <td th:text="${e.delegate != null} ? ${e.delegate.displayName} : 'None'">None</td>
+                    <td><span class="badge" th:classappend="${e.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${e.portalActive} ? 'Active' : 'Deactivated'">Active</span></td>
+                    <td style="text-align:right;"><a class="btn btn-outline btn-xs" th:href="@{/admin/users/{id}(id=${e.employeeId})}"><i class="fa-regular fa-pen-to-square"></i> Manage</a></td>
                 </tr>
                 </tbody>
             </table>

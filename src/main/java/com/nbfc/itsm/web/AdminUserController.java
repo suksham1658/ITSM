@@ -2,6 +2,7 @@ package com.nbfc.itsm.web;
 
 import com.nbfc.itsm.admin.AdminUserService;
 import com.nbfc.itsm.admin.EmployeeSetupService;
+import com.nbfc.itsm.admin.UserAccountService;
 import com.nbfc.itsm.domain.ConfigChangeRequest;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.Role;
@@ -29,18 +30,24 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
     private final EmployeeSetupService employeeSetupService;
+    private final UserAccountService userAccountService;
 
-    public AdminUserController(AdminUserService adminUserService, EmployeeSetupService employeeSetupService) {
+    public AdminUserController(AdminUserService adminUserService, EmployeeSetupService employeeSetupService,
+                               UserAccountService userAccountService) {
         this.adminUserService = adminUserService;
         this.employeeSetupService = employeeSetupService;
+        this.userAccountService = userAccountService;
     }
 
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
-    public String users(@RequestParam(value = "q", required = false) String q, Model model) {
+    public String users(@RequestParam(value = "q", required = false) String q,
+                        @RequestParam(value = "status", required = false) String status, Model model) {
         q = SearchText.clean(q);
-        model.addAttribute("employees", adminUserService.list(q));
+        String s = "active".equals(status) || "inactive".equals(status) ? status : null;
+        model.addAttribute("employees", adminUserService.list(q, s));
         model.addAttribute("q", q);
+        model.addAttribute("status", s);
         model.addAttribute("nav", "adminUsers");
         model.addAttribute("pageTitle", "Portal users");
         return "admin/users";
@@ -55,8 +62,25 @@ public class AdminUserController {
         for (Role role : employee.getRoles()) {
             assignedRoleIds.add(role.getRoleId());
         }
+        EmployeeSetupService.SetupView setup = employeeSetupService.view(id);
+        List<ConfigChangeRequest> pending = adminUserService.pendingFor(id);
+        Set<String> pendingRoleKeys = new HashSet<String>();
+        boolean reactivationPending = false;
+        for (ConfigChangeRequest c : pending) {
+            if (c.getChangeType() != null && c.getChangeType().startsWith("USER_ROLE_")) {
+                pendingRoleKeys.add(c.getEntityKey());
+            } else if ("USER_PORTAL_ACTIVE".equals(c.getChangeType())) {
+                reactivationPending = true;
+            }
+        }
         model.addAttribute("employee", employee);
-        model.addAttribute("setup", employeeSetupService.view(id));
+        model.addAttribute("setup", setup);
+        model.addAttribute("delegateCandidates", setup.getCandidates());
+        model.addAttribute("currentDelegateId", employee.getDelegate() == null ? null : employee.getDelegate().getEmployeeId());
+        model.addAttribute("currentDelegateName", employee.getDelegate() == null ? null : employee.getDelegate().getDisplayName());
+        model.addAttribute("pendingChanges", pending);
+        model.addAttribute("pendingRoleKeys", pendingRoleKeys);
+        model.addAttribute("reactivationPending", reactivationPending);
         model.addAttribute("allRoles", adminUserService.roles());
         model.addAttribute("assignedRoleIds", assignedRoleIds);
         model.addAttribute("nav", "adminUsers");
@@ -64,14 +88,78 @@ public class AdminUserController {
         return "admin/user-detail";
     }
 
+    /** Re-activation only: goes to a second administrator. Deactivation is immediate ({@link #deactivate}). */
     @PostMapping("/users/{id}/propose-active")
     @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
     public String proposeActive(@PathVariable("id") Long id,
                                 @RequestParam("active") boolean active,
                                 @AuthenticationPrincipal ItsmUserPrincipal maker,
                                 RedirectAttributes ra) {
-        adminUserService.proposePortalActive(id, active, maker);
-        ra.addFlashAttribute("message", "Submitted for checker approval.");
+        if (!active) {
+            return deactivate(id, maker, ra);
+        }
+        try {
+            adminUserService.proposePortalActive(id, true, maker);
+            ra.addFlashAttribute("message", "Re-activation submitted. A different administrator must approve it in Config approvals.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/deactivate")
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    public String deactivate(@PathVariable("id") Long id, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                             RedirectAttributes ra) {
+        try {
+            userAccountService.deactivate(id, actor);
+            ra.addFlashAttribute("message", "Portal access deactivated immediately. The user is signed out on their next click.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/basic")
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    public String basicInfo(@PathVariable("id") Long id, @RequestParam("displayName") String name,
+                            @RequestParam(value = "email", required = false) String email,
+                            @RequestParam(value = "designation", required = false) String designation,
+                            @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        try {
+            userAccountService.updateBasicInfo(id, name, email, designation, actor);
+            ra.addFlashAttribute("message", "Basic information saved.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/delegate")
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    public String delegate(@PathVariable("id") Long id,
+                           @RequestParam(value = "delegateId", required = false) Long delegateId,
+                           @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        try {
+            userAccountService.setDelegate(id, delegateId, actor);
+            ra.addFlashAttribute("message", delegateId == null ? "Delegate removed." : "Delegate set. It applies immediately.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/resync")
+    @PreAuthorize("hasAuthority('ADMIN_USER_MANAGE')")
+    public String resync(@PathVariable("id") Long id, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                         RedirectAttributes ra) {
+        try {
+            Employee e = userAccountService.resync(id, actor);
+            ra.addFlashAttribute("message", e.getDisplayName() + " re-synced from LDAP: name, e-mail, title, department and "
+                    + "manager refreshed. Roles, delegate and portal access were kept.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/admin/users/" + id;
     }
 
@@ -88,7 +176,7 @@ public class AdminUserController {
                 ra.addFlashAttribute("message", (assign ? "Role assigned. " : "Role removed. ")
                         + "The change is in effect now; the user gets it on their next page load.");
             } else {
-                ra.addFlashAttribute("message", "Role change submitted for checker approval.");
+                ra.addFlashAttribute("message", "Role change submitted. A different administrator must approve it in Config approvals.");
             }
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());

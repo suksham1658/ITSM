@@ -17,18 +17,46 @@
         <p class="page-sub" th:text="${employee.employeeNo + (employee.samAccountName != null ? ' · ' + employee.samAccountName : '')}">E1</p>
       </div>
     </div>
+    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-circle-info"></i><div>Identity fields (name, e-mail,
+        title, department, manager) sync from LDAP/AD at every login. <b>Roles, portal access and the delegate are managed here</b>
+        and are never overwritten by the next AD sync.</div></div>
+
     <div class="card card-pad" style="margin-bottom:18px;">
-        <div class="form-grid">
-            <div class="form-group"><label>Email</label><div th:text="${employee.email} ?: '—'">—</div></div>
-            <div class="form-group"><label>Designation</label><div th:text="${employee.designation} ?: '—'">—</div></div>
-            <div class="form-group"><label>Portal access</label>
-                <span class="badge" th:classappend="${employee.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${employee.portalActive} ? 'Active' : 'Disabled'">Active</span>
-            </div>
-            <div class="form-group"><label>Last LDAP sync (IST)</label><div class="mono" th:text="${employee.lastLdapSyncUtc == null} ? 'Never' : ${@ui.dateTime(employee.lastLdapSyncUtc)}">Never</div></div>
+        <div class="info-list">
+            <div class="info-item"><div class="il-label">Employee ID</div><div class="il-value mono" th:text="${employee.employeeNo}">E1</div></div>
+            <div class="info-item"><div class="il-label">Login ID</div><div class="il-value mono" th:text="${employee.samAccountName} ?: '—'">sam</div></div>
+            <div class="info-item"><div class="il-label">Roles</div><div class="il-value">
+                <span class="badge badge-navy" th:each="r : ${employee.roles}" th:text="${r.name}" style="margin:0 4px 4px 0;">Employee</span>
+                <span class="text-muted" th:if="${#sets.isEmpty(employee.roles)}">None</span></div></div>
+            <div class="info-item"><div class="il-label">Portal access</div><div class="il-value">
+                <span class="badge" th:classappend="${employee.portalActive} ? ' badge-approved' : ' badge-rejected'" th:text="${employee.portalActive} ? 'Active' : 'Deactivated'">Active</span></div></div>
+            <div class="info-item"><div class="il-label">Delegate</div><div class="il-value" th:text="${currentDelegateName} ?: 'None'">None</div></div>
+            <div class="info-item"><div class="il-label">Last LDAP sync (IST)</div><div class="il-value mono" th:text="${employee.lastLdapSyncUtc == null} ? 'Never' : ${@ui.dateTime(employee.lastLdapSyncUtc)}">Never</div></div>
         </div>
-        <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post" style="margin-top:12px;">
-            <input type="hidden" name="active" th:value="${!employee.portalActive}"/>
-            <button type="submit" class="btn btn-sm" th:classappend="${employee.portalActive} ? 'btn-danger-outline' : 'btn-success'" th:text="${employee.portalActive} ? 'Propose disable' : 'Propose enable'">Propose</button>
+    </div>
+
+    <div class="alert-banner warn" style="margin-bottom:18px;" th:if="${!#lists.isEmpty(pendingChanges)}">
+        <b>Waiting for a second administrator:</b>
+        <ul style="margin:6px 0 0 18px;">
+            <li th:each="c : ${pendingChanges}" th:text="${c.description} + ' — proposed by ' + (${c.requestedBy} != null ? ${c.requestedBy.displayName} : '?') + ', ' + ${@ui.dateTime(c.requestedAtUtc)}">change</li>
+        </ul>
+        <span class="phase-note" sec:authorize="hasAuthority('ADMIN_MASTERDATA_APPROVE')">Approve or reject in <a th:href="@{/admin/change-requests}">Config approvals</a> (not your own proposals).</span>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Basic Information</div>
+        <p class="phase-note" style="margin-top:0;">Corrects profile data only — it doesn't change access, so it applies immediately (no second admin).
+            For an AD-synced employee these fields are refreshed at the next login or re-sync; edit here mainly to bridge a gap before AD catches up.</p>
+        <form th:action="@{/admin/users/{id}/basic(id=${employee.employeeId})}" method="post">
+            <div class="form-grid">
+                <div class="form-group"><label for="bName">Full name <span class="req">*</span></label>
+                    <input class="form-control" id="bName" name="displayName" th:value="${employee.displayName}" required="required" minlength="2" maxlength="256"/></div>
+                <div class="form-group"><label for="bEmail">E-mail</label>
+                    <input class="form-control" id="bEmail" type="email" name="email" th:value="${employee.email}" maxlength="256"/></div>
+                <div class="form-group"><label for="bDesig">Designation</label>
+                    <input class="form-control" id="bDesig" name="designation" th:value="${employee.designation}" maxlength="256"/></div>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm" style="margin-top:8px;"><i class="fa-regular fa-floppy-disk"></i> Save basic info</button>
         </form>
     </div>
 
@@ -101,37 +129,85 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-head"><div><h3>Roles</h3>
-            <div class="ch-sub" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">As System Administrator your assign/remove takes effect immediately; no approval is needed.</div>
-            <div class="ch-sub" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Assigned only after checker approval. Employees cannot self-provision.</div>
+    <div class="card" style="margin-bottom:18px;">
+        <div class="card-head"><div><h3>Role Override</h3>
+            <div class="ch-sub">Roles decide what this person can see and do in the portal. A change goes to a <b>second administrator</b>
+                for approval (Config approvals) before it takes effect. You cannot change your own roles.</div>
         </div></div>
         <div class="empty-state" th:if="${allRoles == null or #lists.isEmpty(allRoles)}"><p>No roles in catalogue.</p></div>
         <div class="table-wrap" th:if="${allRoles != null and !#lists.isEmpty(allRoles)}">
             <table class="data-table">
                 <thead><tr><th>Code</th><th>Name</th><th>Status</th><th></th></tr></thead>
                 <tbody>
-                <tr th:each="role : ${allRoles}">
+                <tr th:each="role : ${allRoles}" th:with="assigned=${assignedRoleIds.contains(role.roleId)},
+                        pendingKey=${employee.employeeId + ':' + role.roleId}">
                     <td class="mono" th:text="${role.code}">EMPLOYEE</td>
                     <td th:text="${role.name}">Employee</td>
-                    <td><span class="badge" th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'badge-flow' : 'badge-draft'"
-                              th:text="${assignedRoleIds.contains(role.roleId)} ? 'Assigned' : 'Not assigned'">Assigned</span></td>
-                    <td sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')">
-                        <form th:action="@{/admin/users/{id}/propose-role(id=${employee.employeeId})}" method="post">
+                    <td><span class="badge" th:classappend="${assigned} ? 'badge-flow' : 'badge-draft'"
+                              th:text="${assigned} ? 'Assigned' : 'Not assigned'">Assigned</span>
+                        <span class="badge badge-gold" th:if="${pendingRoleKeys.contains(pendingKey)}">Pending approval</span></td>
+                    <td sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" style="text-align:right;">
+                        <form th:action="@{/admin/users/{id}/propose-role(id=${employee.employeeId})}" method="post"
+                              th:unless="${pendingRoleKeys.contains(pendingKey)}">
                             <input type="hidden" name="roleId" th:value="${role.roleId}"/>
-                            <input type="hidden" name="assign" th:value="${!assignedRoleIds.contains(role.roleId)}"/>
-                            <button type="submit" class="btn btn-xs" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
-                                    th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'btn-danger-outline' : 'btn-success-outline'"
-                                    th:text="${assignedRoleIds.contains(role.roleId)} ? 'Remove' : 'Assign'">Assign</button>
-                            <button type="submit" class="btn btn-xs" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
-                                    th:classappend="${assignedRoleIds.contains(role.roleId)} ? 'btn-danger-outline' : 'btn-success-outline'"
-                                    th:text="${assignedRoleIds.contains(role.roleId)} ? 'Propose remove' : 'Propose assign'">Propose</button>
+                            <input type="hidden" name="assign" th:value="${!assigned}"/>
+                            <button type="submit" class="btn btn-xs"
+                                    th:classappend="${assigned} ? 'btn-danger-outline' : 'btn-success-outline'"
+                                    th:text="${assigned} ? 'Propose remove' : 'Propose assign'">Propose</button>
                         </form>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Delegate (Backup Approver)</div>
+        <p class="phase-note" style="margin-top:0;">If <b th:text="${employee.displayName}">Name</b> is unavailable, their delegate may act on
+            approvals resolved to them (and is notified). Applied immediately — it grants no new access by itself: the delegate
+            still needs a role that can approve.</p>
+        <form th:action="@{/admin/users/{id}/delegate(id=${employee.employeeId})}" method="post">
+            <div class="form-group" style="max-width:480px;">
+                <select class="form-control" name="delegateId" aria-label="Delegate">
+                    <option value="">— None —</option>
+                    <option th:each="c : ${delegateCandidates}" th:value="${c.employeeId}" th:selected="${c.employeeId == currentDelegateId}"
+                            th:text="${c.displayName} + ' (' + ${c.employeeNo} + ')' + (${c.designation} != null ? ' — ' + ${c.designation} : '')">Name</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-user-group"></i> Set delegate</button>
+        </form>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Portal Access</div>
+        <th:block th:if="${employee.portalActive}">
+            <p class="phase-note" style="margin-top:0;">Deactivating is immediate — offboarding and security actions can't wait for a second admin.
+                The person is signed out on their next click; their tickets and history are kept.</p>
+            <form th:action="@{/admin/users/{id}/deactivate(id=${employee.employeeId})}" method="post"
+                  th:attr="data-confirm='Deactivate portal access for ' + ${employee.displayName} + ' now?'">
+                <button type="submit" class="btn btn-danger-outline btn-sm"><i class="fa-solid fa-user-slash"></i> Deactivate portal access</button>
+            </form>
+        </th:block>
+        <th:block th:unless="${employee.portalActive}">
+            <p class="phase-note" style="margin-top:0;">Re-activating requires a second administrator's approval.</p>
+            <div class="alert-banner info" th:if="${reactivationPending}">Re-activation is waiting for approval.</div>
+            <form sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:unless="${reactivationPending}"
+                  th:action="@{/admin/users/{id}/propose-active(id=${employee.employeeId})}" method="post">
+                <input type="hidden" name="active" value="true"/>
+                <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-user-check"></i> Propose re-activation</button>
+            </form>
+        </th:block>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+        <div class="form-section-title">Directory Sync</div>
+        <p class="phase-note" style="margin-top:0;">Reads this person from Active Directory now (with the portal's service account) and refreshes
+            name, e-mail, title, department and manager chain. Roles, delegate and portal access are kept.
+            Last sync: <span class="mono" th:text="${employee.lastLdapSyncUtc == null} ? 'never' : ${@ui.dateTime(employee.lastLdapSyncUtc)}">never</span>.</p>
+        <form th:action="@{/admin/users/{id}/resync(id=${employee.employeeId})}" method="post">
+            <button type="submit" class="btn btn-outline btn-sm"><i class="fa-solid fa-rotate"></i> Re-sync now from LDAP</button>
+        </form>
     </div>
 </main>
 </div>

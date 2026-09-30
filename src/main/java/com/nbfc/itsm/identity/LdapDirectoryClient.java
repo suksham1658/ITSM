@@ -222,6 +222,31 @@ public class LdapDirectoryClient {
         }
     }
 
+    /**
+     * Directory attributes and manager chain of {@code username}, read with the service account (no user
+     * password): Admin &gt; Users &gt; "Re-sync now from LDAP". Null when the account is not in the directory.
+     */
+    public LdapPerson loadPerson(String username) throws NamingException {
+        ItsmProperties.Ldap ldap = properties.getLdap();
+        DirContext ctx = serviceContext(ldap);
+        try {
+            String dn;
+            try {
+                dn = searchDn(ctx, username, ldap);
+            } catch (javax.naming.PartialResultException ex) {
+                dn = null;
+            }
+            if (!StringUtils.hasText(dn)) {
+                return null;
+            }
+            LdapPerson person = searchPerson(ctx, username, ldap, dn);
+            person.setManagerChain(loadManagerChain(ctx, person, ldap));
+            return person;
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
     /** Current status of one account, looked up by its login ID with LDAP_USER_SEARCH_FILTER; null if not found. */
     public AdAccountStatus readAccount(String username) throws NamingException {
         ItsmProperties.Ldap ldap = properties.getLdap();

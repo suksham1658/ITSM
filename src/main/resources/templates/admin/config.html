@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">ITSM Portal / Administration / <span>System Configuration</span></div>
+        <h1>System Configuration</h1>
+        <p class="page-sub">LDAP, SMTP, session, workflow and general settings — runtime-editable, no redeploy required.</p>
+      </div>
+    </div>
+    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-circle-info"></i><div>Every change below is proposed as a
+        <b>maker-checker</b> request and only takes effect once a <b>different</b> administrator approves it in
+        <a th:href="@{/admin/change-requests}">Config approvals</a>. Values set here override <code>application.yml</code> and survive
+        restarts. Passwords and the database connection are intentionally <b>not</b> editable here.</div></div>
+
+    <div class="card card-pad" style="margin-bottom:16px;" th:each="cat : ${categories}">
+      <h3 style="font-size:14px;margin-bottom:14px;" th:text="${cat.value}">LDAP Settings</h3>
+      <div th:each="r : ${rows}" th:if="${r.category == cat.key}" style="padding:10px 0;border-bottom:1px solid var(--slate-100);">
+        <form th:action="@{/admin/config}" method="post">
+          <input type="hidden" name="key" th:value="${r.key}"/>
+          <label th:for="'s_' + ${r.key}" style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">
+            <span th:text="${r.label}">Label</span>
+            <span class="mono text-muted" style="font-weight:400;font-size:11px;" th:text="${r.key}">key</span>
+            <span class="badge badge-outline" th:if="${r.saved}" title="Set on this page (stored in the database)">custom</span>
+            <span class="badge badge-gold" th:if="${r.pendingValue != null}" th:text="'Pending: ' + ${r.pendingValue}">Pending</span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <th:block th:switch="${r.type}">
+              <select th:case="'bool'" class="form-control" th:id="'s_' + ${r.key}" name="value" style="max-width:200px;">
+                <option value="true" th:selected="${r.value == 'true'}">On</option>
+                <option value="false" th:selected="${r.value != 'true'}">Off</option>
+              </select>
+              <input th:case="'number'" class="form-control" type="number" th:id="'s_' + ${r.key}" name="value" th:value="${r.value}"
+                     th:attr="min=${r.min},max=${r.max}" required="required" style="max-width:200px;"/>
+              <input th:case="*" class="form-control" th:id="'s_' + ${r.key}" name="value" th:value="${r.value}" maxlength="512"
+                     style="flex:1;min-width:240px;"/>
+            </th:block>
+            <button type="submit" class="btn btn-outline btn-sm" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')"
+                    th:disabled="${r.pendingValue != null}"><i class="fa-regular fa-paper-plane"></i> Propose</button>
+          </div>
+          <div class="phase-note" style="margin:4px 0 0;" th:text="${r.help}">help</div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h3 style="font-size:14px;margin-bottom:14px;">Security Settings <span class="text-muted" style="font-weight:400;font-size:12px;">(read-only)</span></h3>
+      <div class="info-list">
+        <div class="info-item span-2" th:each="f : ${securityFacts}">
+          <div class="il-label" th:text="${f[0]}">Fact</div>
+          <div class="il-value" style="font-weight:500;" th:text="${f[1]}">Value</div>
+        </div>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

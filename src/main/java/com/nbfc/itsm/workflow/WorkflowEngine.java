@@ -144,8 +144,16 @@ public class WorkflowEngine {
             throw new ItsmException("WORKFLOW_NO_CURRENT", "There is no current stage to act on.");
         }
         assertCanAct(principal, actor, ticket, current);
+        boolean onBehalf = isDelegateFor(actor, current);
 
         String action = actionCode == null ? "" : actionCode.trim().toUpperCase();
+        if (onBehalf) {
+            auditRecorder.recordTicket("DELEGATE_ACTION", ticket.getTicketId(), current.getResolvedEmployee().getEmployeeNo(),
+                    action + " by " + actor.getEmployeeNo() + " as delegate of " + current.getResolvedEmployee().getEmployeeNo());
+            if (remarks != null && !remarks.trim().isEmpty()) {
+                remarks = "[On behalf of " + current.getResolvedEmployee().getDisplayName() + "] " + remarks.trim();
+            }
+        }
         WorkflowStageTransition transition = resolveTransition(current, action);
         if (transition == null) {
             throw new ItsmException("INVALID_TRANSITION",
@@ -273,6 +281,18 @@ public class WorkflowEngine {
         }
     }
 
+    /**
+     * The actor is the delegate (backup approver, Admin &gt; Users) of the person this approval step is
+     * resolved to. Approval steps only; the delegate still needs the approve permission.
+     */
+    public static boolean isDelegateFor(Employee actor, WorkflowInstanceStage current) {
+        Employee owner = current.getResolvedEmployee();
+        return actor != null && owner != null && "APPROVAL".equals(current.getStageType())
+                && owner.getDelegate() != null && owner.getDelegate().isPortalActive()
+                && owner.getDelegate().getEmployeeId().equals(actor.getEmployeeId())
+                && !owner.getEmployeeId().equals(actor.getEmployeeId());
+    }
+
     public void assertCanAct(ItsmUserPrincipal principal, Employee actor, Ticket ticket, WorkflowInstanceStage current) {
         String type = current.getStageType();
         if ("APPROVAL".equals(type) && !principal.getAuthorities().stream()
@@ -302,6 +322,9 @@ public class WorkflowEngine {
     public boolean isActor(Employee actor, ItsmUserPrincipal principal, WorkflowInstanceStage current) {
         if (current.getResolvedEmployee() != null
                 && current.getResolvedEmployee().getEmployeeId().equals(actor.getEmployeeId())) {
+            return true;
+        }
+        if (isDelegateFor(actor, current)) {
             return true;
         }
         if (current.getResolvedRole() != null) {

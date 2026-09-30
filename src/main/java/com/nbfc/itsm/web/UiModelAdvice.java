@@ -18,13 +18,22 @@ public class UiModelAdvice {
     private final EmployeeRepository employeeRepository;
     private final ConfigChangeRequestRepository configChangeRequestRepository;
     private final NotificationRepository notificationRepository;
+    private final com.nbfc.itsm.admin.SystemSettingsService systemSettings;
 
     public UiModelAdvice(EmployeeRepository employeeRepository,
                          ConfigChangeRequestRepository configChangeRequestRepository,
-                         NotificationRepository notificationRepository) {
+                         NotificationRepository notificationRepository,
+                         com.nbfc.itsm.admin.SystemSettingsService systemSettings) {
         this.employeeRepository = employeeRepository;
         this.configChangeRequestRepository = configChangeRequestRepository;
         this.notificationRepository = notificationRepository;
+        this.systemSettings = systemSettings;
+    }
+
+    /** System Configuration &gt; General &gt; Company name (login page). */
+    @ModelAttribute("companyName")
+    public String companyName() {
+        return systemSettings.getCompanyName();
     }
 
     @ModelAttribute("pendingConfigCount")

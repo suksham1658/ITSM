@@ -53,6 +53,11 @@ public class Employee extends BaseAuditableEntity {
     @JoinColumn(name = "hod_id")
     private Employee hod;
 
+    /** Backup approver: may act on approvals resolved to this employee (Admin &gt; Users &gt; Delegate). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "delegate_id")
+    private Employee delegate;
+
     @Column(name = "portal_active", nullable = false)
     private boolean portalActive;
 
@@ -143,6 +148,14 @@ public class Employee extends BaseAuditableEntity {
 
     public void setHod(Employee hod) {
         this.hod = hod;
+    }
+
+    public Employee getDelegate() {
+        return delegate;
+    }
+
+    public void setDelegate(Employee delegate) {
+        this.delegate = delegate;
     }
 
     public boolean isPortalActive() {

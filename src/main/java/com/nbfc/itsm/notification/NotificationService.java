@@ -197,7 +197,13 @@ public class NotificationService {
     List<Employee> actorsOf(Ticket t, WorkflowInstanceStage step) {
         Map<Long, Employee> out = new LinkedHashMap<Long, Employee>();
         if (step.getResolvedEmployee() != null) {
-            out.put(step.getResolvedEmployee().getEmployeeId(), step.getResolvedEmployee());
+            Employee owner = step.getResolvedEmployee();
+            out.put(owner.getEmployeeId(), owner);
+            // Backup approver (Admin > Users > Delegate) may act on approvals resolved to the owner.
+            Employee delegate = owner.getDelegate();
+            if ("APPROVAL".equals(step.getStageType()) && delegate != null && delegate.isPortalActive()) {
+                out.put(delegate.getEmployeeId(), delegate);
+            }
         } else if (step.getResolvedGroup() != null) {
             for (Employee e : groupMembership.activeMembers(step.getResolvedGroup())) {
                 out.put(e.getEmployeeId(), e);

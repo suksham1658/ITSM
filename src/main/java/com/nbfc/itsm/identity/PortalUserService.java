@@ -56,6 +56,19 @@ public class PortalUserService {
     }
 
     /**
+     * Admin &gt; Users &gt; "Re-sync now from LDAP": the same attribute and manager-chain sync as a login,
+     * read with the service account. Roles, delegate and portal access are never touched.
+     */
+    @Transactional
+    public Employee resyncFromDirectory(Employee employee, LdapPerson person) {
+        applyDirectoryAttributes(employee, person);
+        employee.setLastLdapSyncUtc(TimeUtc.now());
+        employeeRepository.save(employee);
+        syncHierarchy(employee, person);
+        return employee;
+    }
+
+    /**
      * Sync directory attributes onto an existing portal profile. Never creates employees
      * or assigns roles (IT Admin / SysAdmin only via {@code employee_role}).
      */

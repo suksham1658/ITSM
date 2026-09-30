@@ -429,6 +429,32 @@ assign/start, `pause` on hold, `markResolved`, `refresh`/`refreshState` → `WIT
     *Assignment / Service desk group / IT Service Desk*, move it above *Implementor*, Publish.
 - **Config approvals** — `/admin/change-requests`: approve/reject pending changes.
 
+### 6.6.0 Users, System Configuration and Audit Trail (as in the portal design)
+
+**Admin > Users > Manage** (`UserAccountService`, `AdminUserService`, `web/AdminUserController`):
+
+| Section | Applies | Notes |
+|---|---|---|
+| Basic information (name, e-mail, designation) | immediately | profile data only; AD refreshes it at the next login / re-sync |
+| Reporting line, assignment groups | immediately | System Administrator (6.6) |
+| **Role Override** (assign / remove roles) | **second administrator** | pending in Config approvals; nobody changes their own roles; the last holder of user-management / approval rights is protected |
+| **Delegate (backup approver)** | immediately | may act on *approval* steps resolved to the person (and is notified); still needs an approve-capable role; remarks are prefixed "[On behalf of …]" and audited as `DELEGATE_ACTION` |
+| **Portal access – deactivate** | immediately | not yourself; last-admin guard; the person is signed out on the next click |
+| Portal access – re-activate | second administrator | |
+| **Directory sync** | immediately | re-reads the person from AD with the service account (`LdapDirectoryClient.loadPerson`); roles, delegate and portal access are kept |
+
+Schema: `employee.delegate_id` (V10 / `db/install/upgrades/U10__employee_delegate.sql`). Where Flyway is off (SQL Server 2012),
+`SchemaInstaller` runs every idempotent `db/install/upgrades/U*.sql` at start-up, so later schema changes need no manual SQL.
+
+**Admin > System Configuration** (`SystemSettingsService`, `/admin/config`): LDAP, SMTP, Session, Workflow & approvals and General
+settings. Every change is a maker-checker request (`SETTING_UPDATE`) approved by a different administrator in Config approvals;
+then it is stored in `dbo.system_setting`, applied at runtime (LDAP client, mail sender, session timeouts, workflow engine, login
+page) and re-applied at every start, overriding `application.yml`. Passwords are never stored there (the table forbids secrets);
+the Security section is read-only.
+
+**Audit Trail** (`audit/AuditTrailService`, `/audit`, permission `AUDIT_VIEW`): filters for user (name / employee no), ticket
+number, module, action, result, text in details and IST date range; 50 per page, newest first; read-only.
+
 ### 6.6.1 AD Account Unlock (`admin/AdAccountUnlockService`, `web/AdAccountController`)
 
 For IT Service Desk and System Administrator (permission `AD_ACCOUNT_UNLOCK`, sidebar **AD Account Unlock**).
@@ -587,9 +613,10 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V7 | Rebuilds `workflow_rule` with IDENTITY if it was recreated without (only when empty) + restores default rules |
 | V8 | `notification.title/body` back to NVARCHAR if they were VARCHAR |
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
+| V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
 
-Never edit an applied migration (Flyway checksum validation fails); add a new `V10__…` instead.
+Never edit an applied migration (Flyway checksum validation fails); add a new `V11__…` (and the same idempotent `db/install/upgrades/U11__…sql`) instead.
 `database/*.sql` are DBA scripts mirroring the migrations — don't run them on a Flyway-managed DB.
 
 ### 9.2 Tables

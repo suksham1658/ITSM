@@ -97,7 +97,7 @@ class NewUserOnboardingTest {
     }
 
     @Test
-    void systemAdministratorAssignmentAppliesImmediatelyWithoutApproval() throws Exception {
+    void systemAdministratorRoleChangeGoesToASecondAdministrator() throws Exception {
         Role employeeRole = role("EMPLOYEE");
         long pendingBefore = changeRequestRepository.countByStatusCode("PendingApproval");
 
@@ -106,18 +106,17 @@ class NewUserOnboardingTest {
                         .param("roleId", String.valueOf(employeeRole.getRoleId()))
                         .param("assign", "true"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("message", containsString("Role assigned")));
+                .andExpect(flash().attribute("message", containsString("different administrator")));
+        assertFalse(assignmentRepository.findByEmployeeAndRole(newUser, employeeRole).isPresent(), "not applied yet");
+        assertEquals(pendingBefore + 1, changeRequestRepository.countByStatusCode("PendingApproval"));
 
-        assertTrue(assignmentRepository.findByEmployeeAndRole(newUser, employeeRole).isPresent(), "applied at once");
-        assertEquals(pendingBefore, changeRequestRepository.countByStatusCode("PendingApproval"),
-                "nothing forwarded for approval");
-
-        mockMvc.perform(post("/admin/users/{id}/propose-role", newUser.getEmployeeId())
-                        .session(sysAdminSession).with(csrf())
-                        .param("roleId", String.valueOf(employeeRole.getRoleId()))
-                        .param("assign", "false"))
-                .andExpect(flash().attribute("message", containsString("Role removed")));
+        Long ccrId = latestPendingId();
+        mockMvc.perform(post("/admin/change-requests/{id}/approve", ccrId).session(sysAdminSession).with(csrf()))
+                .andExpect(flash().attribute("errorMessage", containsString("Maker and checker must be different")));
         assertFalse(assignmentRepository.findByEmployeeAndRole(newUser, employeeRole).isPresent());
+
+        approveAsSecondAdmin(ccrId);
+        assertTrue(assignmentRepository.findByEmployeeAndRole(newUser, employeeRole).isPresent(), "applied after approval");
     }
 
     @Test
@@ -131,7 +130,7 @@ class NewUserOnboardingTest {
                         .session(sessionFor(portalUserService.toPrincipal(itAdmin))).with(csrf())
                         .param("roleId", String.valueOf(employeeRole.getRoleId()))
                         .param("assign", "true"))
-                .andExpect(flash().attribute("message", containsString("checker approval")));
+                .andExpect(flash().attribute("message", containsString("different administrator")));
 
         assertFalse(assignmentRepository.findByEmployeeAndRole(newUser, employeeRole).isPresent());
         assertEquals(pendingBefore + 1, changeRequestRepository.countByStatusCode("PendingApproval"));
@@ -147,6 +146,7 @@ class NewUserOnboardingTest {
                         .param("roleId", String.valueOf(role("EMPLOYEE").getRoleId()))
                         .param("assign", "true"))
                 .andExpect(status().is3xxRedirection());
+        approveAsSecondAdmin(latestPendingId());
 
         // Same session as before the assignment: permissions are picked up on the next request.
         mockMvc.perform(get("/tickets/raise").session(newUserSession))
@@ -199,23 +199,52 @@ class NewUserOnboardingTest {
     }
 
     @Test
-    void systemAdministratorCannotRemoveTheLastAdministrator() throws Exception {
+    void administratorsCannotChangeTheirOwnRolesOrRemoveTheLastAdministrator() throws Exception {
         Employee sysAdmin = employeeRepository.findByEmployeeNo("E-ONB-SYS").orElseThrow(IllegalStateException::new);
-        for (Employee e : employeeRepository.findAll()) {
-            if (!e.getEmployeeId().equals(sysAdmin.getEmployeeId())) {
-                e.setPortalActive(false);
-            }
-        }
         Role sys = role("SYSTEM_ADMINISTRATOR");
         mockMvc.perform(post("/admin/users/{id}/propose-role", sysAdmin.getEmployeeId())
                         .session(sysAdminSession).with(csrf())
                         .param("roleId", String.valueOf(sys.getRoleId()))
                         .param("assign", "false"))
-                .andExpect(flash().attribute("errorMessage", containsString("would leave no active employee")));
+                .andExpect(flash().attribute("errorMessage", containsString("cannot change your own roles")));
+
+        // Only one active administrator left: another admin may not propose removing that person's role.
+        Employee other = employee("E-ONB-OTH", "onb.other", "Onboarding Other Admin");
+        grant(other, "IT_ADMIN");
+        MockHttpSession otherSession = sessionFor(portalUserService.toPrincipal(other));
+        other.setPortalActive(false);
+        for (Employee e : employeeRepository.findAll()) {
+            if (!e.getEmployeeId().equals(sysAdmin.getEmployeeId())) {
+                e.setPortalActive(false);
+            }
+        }
+        employeeRepository.flush();
+        mockMvc.perform(post("/admin/users/{id}/propose-role", sysAdmin.getEmployeeId())
+                        .session(otherSession).with(csrf())
+                        .param("roleId", String.valueOf(sys.getRoleId()))
+                        .param("assign", "false"))
+                .andExpect(status().is3xxRedirection());
         assertTrue(assignmentRepository.findByEmployeeAndRole(sysAdmin, sys).isPresent());
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private Long latestPendingId() {
+        return changeRequestRepository.findByStatusCodeOrderByRequestedAtUtcDesc("PendingApproval").get(0)
+                .getConfigChangeRequestId();
+    }
+
+    /** A different System Administrator approves the change in Config approvals. */
+    private void approveAsSecondAdmin(Long ccrId) throws Exception {
+        Employee checker = employeeRepository.findByEmployeeNo("E-ONB-SY2").orElseGet(() -> {
+            Employee e = employee("E-ONB-SY2", "onb.sysadmin2", "Onboarding Second SysAdmin");
+            grant(e, "SYSTEM_ADMINISTRATOR");
+            return e;
+        });
+        mockMvc.perform(post("/admin/change-requests/{id}/approve", ccrId)
+                        .session(sessionFor(portalUserService.toPrincipal(checker))).with(csrf()))
+                .andExpect(flash().attribute("message", containsString("approved and applied")));
+    }
 
     private MockHttpSession sessionFor(ItsmUserPrincipal principal) {
         SecurityContext context = new SecurityContextImpl(

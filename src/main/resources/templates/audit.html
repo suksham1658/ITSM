@@ -11,12 +11,81 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
-        <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Page</span></div>
-        <h1 th:text="${pageTitle}">Page</h1>
+        <div class="breadcrumb">ITSM Portal / <span>Audit Trail</span></div>
+        <h1>Audit Trail</h1>
+        <p class="page-sub" th:text="${result.total} + ' events match · newest first · times in IST'">events</p>
       </div>
     </div>
-    <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
+    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-lock"></i><div><b>Immutable log.</b>
+        Audit entries are write-once: they cannot be edited or deleted from the portal, and the database rejects any
+        UPDATE or DELETE on the audit table.</div></div>
 
+    <div class="card">
+      <form class="filter-bar" method="get" th:action="@{/audit}" style="flex-wrap:wrap;">
+        <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
+          <input type="search" name="user" th:value="${f.user}" maxlength="100" placeholder="User name or employee no" aria-label="User"/></div>
+        <input class="form-control" type="search" name="ticket" th:value="${f.ticket}" maxlength="40" placeholder="Ticket no"
+               aria-label="Ticket number" style="width:150px;"/>
+        <select class="form-control" name="module" aria-label="Module" style="width:auto;">
+          <option value="">All modules</option>
+          <option th:each="m : ${modules}" th:value="${m}" th:text="${m}" th:selected="${m == f.module}">TICKET</option>
+        </select>
+        <select class="form-control" name="action" aria-label="Action" style="width:auto;">
+          <option value="">All actions</option>
+          <option th:each="a : ${actions}" th:value="${a}" th:text="${a}" th:selected="${a == f.action}">LOGIN</option>
+        </select>
+        <select class="form-control" name="result" aria-label="Result" style="width:auto;">
+          <option value="">All results</option>
+          <option value="SUCCESS" th:selected="${f.result == 'SUCCESS'}">Success</option>
+          <option value="FAILURE" th:selected="${f.result == 'FAILURE'}">Failure</option>
+          <option value="FAILED" th:selected="${f.result == 'FAILED'}">Failed</option>
+        </select>
+        <input class="form-control" type="search" name="text" th:value="${f.text}" maxlength="100" placeholder="Text in details"
+               aria-label="Text in details" style="width:170px;"/>
+        <label class="phase-note" style="margin:0;display:flex;align-items:center;gap:4px;">From
+          <input class="form-control" type="date" name="from" th:value="${f.from}" style="width:150px;"/></label>
+        <label class="phase-note" style="margin:0;display:flex;align-items:center;gap:4px;">To
+          <input class="form-control" type="date" name="to" th:value="${f.to}" style="width:150px;"/></label>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+        <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+      </form>
+
+      <div th:if="${#lists.isEmpty(result.rows)}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
+        <h3>No matching events</h3><p>Change or reset the filters.</p></div>
+
+      <div class="table-wrap" th:if="${!#lists.isEmpty(result.rows)}">
+        <table class="data-table">
+          <thead><tr><th>Time (IST)</th><th>User</th><th>Emp ID</th><th>Role</th><th>Module</th><th>Action</th><th>Ticket</th>
+            <th>Details</th><th>IP address</th><th>Browser</th><th>Result</th></tr></thead>
+          <tbody>
+          <tr th:each="r : ${result.rows}">
+            <td class="cell-date" th:text="${@ui.dateTime(r.log.occurredAtUtc)}">time</td>
+            <td th:text="${r.userName} ?: '—'">user</td>
+            <td class="mono" th:text="${r.log.employeeNo} ?: '—'">no</td>
+            <td th:text="${r.log.roleCode} ?: '—'">role</td>
+            <td th:text="${r.log.moduleCode}">TICKET</td>
+            <td><span class="badge badge-outline" th:text="${r.log.actionCode}">ACTION</span></td>
+            <td><a class="cell-link" th:if="${r.ticketNumber != null}" th:href="@{/tickets/{id}(id=${r.log.ticketId})}"
+                   th:text="${r.ticketNumber}">ITSM</a><span th:if="${r.ticketNumber == null}">—</span></td>
+            <td style="max-width:320px;font-size:12px;word-break:break-word;">
+              <span th:if="${r.log.oldValue != null}" class="text-muted" th:text="${r.log.oldValue} + ' → '">old</span>
+              <span th:text="${r.log.newValue} ?: '—'">new</span></td>
+            <td class="mono" style="font-size:11px;" th:text="${r.log.ipAddress} ?: '—'">ip</td>
+            <td style="font-size:11px;max-width:160px;word-break:break-word;" class="text-muted" th:text="${r.log.userAgent} ?: '—'">ua</td>
+            <td><span class="badge" th:classappend="${r.log.resultCode == 'SUCCESS'} ? ' badge-approved' : ' badge-rejected'"
+                      th:text="${r.log.resultCode}">SUCCESS</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager" th:if="${result.totalPages > 1}">
+        <a class="btn btn-outline btn-sm" th:if="${result.hasPrevious}"
+           th:href="@{/audit(user=${f.user},ticket=${f.ticket},module=${f.module},action=${f.action},result=${f.result},text=${f.text},from=${f.from},to=${f.to},page=${result.page - 1})}">Previous</a>
+        <span class="page-sub" th:text="'Page ' + ${result.page + 1} + ' of ' + ${result.totalPages}">Page</span>
+        <a class="btn btn-outline btn-sm" th:if="${result.hasNext}"
+           th:href="@{/audit(user=${f.user},ticket=${f.ticket},module=${f.module},action=${f.action},result=${f.result},text=${f.text},from=${f.from},to=${f.to},page=${result.page + 1})}">Next</a>
+      </div>
+    </div>
 </main>
 </div>
 </div>

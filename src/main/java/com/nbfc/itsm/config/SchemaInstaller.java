@@ -9,6 +9,8 @@ import org.springframework.boot.autoconfigure.orm.jpa.EntityManagerFactoryDepend
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.StreamUtils;
 
 import javax.sql.DataSource;
@@ -20,6 +22,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -37,6 +41,7 @@ public class SchemaInstaller implements InitializingBean {
     private static final Logger log = LoggerFactory.getLogger(SchemaInstaller.class);
 
     static final String SCRIPT = "db/install/install-itsm-portal.sql";
+    static final String UPGRADES = "classpath:db/install/upgrades/U*.sql";
     /** sqlcmd / SSMS batch separator: a line holding only GO. */
     private static final Pattern GO = Pattern.compile("(?im)^\\s*GO\\s*$");
 
@@ -62,9 +67,10 @@ public class SchemaInstaller implements InitializingBean {
             }
             if (tablesExist(con)) {
                 log.info("Schema check: ITSM tables present in database '{}'; no install needed.", con.getCatalog());
-                return;
+            } else {
+                install(con);
             }
-            install(con);
+            upgrade(con);
         } finally {
             release(con);
         }
@@ -113,6 +119,47 @@ public class SchemaInstaller implements InitializingBean {
             throw ex;
         } finally {
             con.setAutoCommit(autoCommit);
+        }
+    }
+
+    /**
+     * Schema changes after the install script (V10+): each {@code db/install/upgrades/U*.sql} is idempotent
+     * (checks before it adds) and runs at every start, in file-name order, each in its own transaction.
+     */
+    private void upgrade(Connection con) throws SQLException, IOException {
+        Resource[] scripts = new PathMatchingResourcePatternResolver().getResources(UPGRADES);
+        Arrays.sort(scripts, Comparator.comparing(Resource::getFilename));
+        for (Resource r : scripts) {
+            List<String> batches;
+            InputStream in = r.getInputStream();
+            try {
+                batches = batches(StreamUtils.copyToString(in, StandardCharsets.UTF_8));
+            } finally {
+                in.close();
+            }
+            boolean autoCommit = con.getAutoCommit();
+            con.setAutoCommit(false);
+            try {
+                Statement st = con.createStatement();
+                try {
+                    for (String batch : batches) {
+                        st.execute(batch);
+                        while (st.getMoreResults() || st.getUpdateCount() != -1) {
+                            // drain
+                        }
+                    }
+                } finally {
+                    st.close();
+                }
+                con.commit();
+                log.info("Schema upgrade {} checked/applied in database '{}'.", r.getFilename(), con.getCatalog());
+            } catch (SQLException ex) {
+                rollbackQuietly(con);
+                log.error("Schema upgrade {} FAILED and was rolled back: {}", r.getFilename(), ex.getMessage());
+                throw ex;
+            } finally {
+                con.setAutoCommit(autoCommit);
+            }
         }
     }
 

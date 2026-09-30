@@ -1,30 +1,40 @@
 package com.nbfc.itsm.web;
 
+import com.nbfc.itsm.admin.SystemSettingsService;
 import com.nbfc.itsm.domain.Category;
 import com.nbfc.itsm.domain.CategoryRepository;
 import com.nbfc.itsm.domain.SubCategory;
 import com.nbfc.itsm.domain.SubCategoryRepository;
+import com.nbfc.itsm.exception.ItsmException;
+import com.nbfc.itsm.security.ItsmUserPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
 
-/** Categories, SLA and configuration pages. Workflow Config lives in {@link AdminWorkflowController}. */
+/** Categories, SLA and System Configuration pages. Workflow Config lives in {@link AdminWorkflowController}. */
 @Controller
 @RequestMapping("/admin")
 public class AdminCatalogController {
 
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
+    private final SystemSettingsService systemSettings;
 
     public AdminCatalogController(CategoryRepository categoryRepository,
-                                  SubCategoryRepository subCategoryRepository) {
+                                  SubCategoryRepository subCategoryRepository,
+                                  SystemSettingsService systemSettings) {
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
+        this.systemSettings = systemSettings;
     }
 
     @GetMapping("/categories")
@@ -57,9 +67,25 @@ public class AdminCatalogController {
     @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
     public String config(Model model) {
         model.addAttribute("nav", "adminConfig");
-        model.addAttribute("pageTitle", "Configuration");
-        model.addAttribute("emptyMessage",
-                "");
-        return "admin/stub";
+        model.addAttribute("pageTitle", "System Configuration");
+        model.addAttribute("categories", SystemSettingsService.CATEGORIES);
+        model.addAttribute("rows", systemSettings.rows());
+        model.addAttribute("securityFacts", systemSettings.securityFacts());
+        return "admin/config";
+    }
+
+    /** Proposes a setting change; a different administrator approves it in Config approvals. */
+    @PostMapping("/config")
+    @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
+    public String proposeSetting(@RequestParam("key") String key, @RequestParam(value = "value", required = false) String value,
+                                 @AuthenticationPrincipal ItsmUserPrincipal maker, RedirectAttributes ra) {
+        try {
+            systemSettings.propose(key, value == null ? "false" : value, maker);
+            ra.addFlashAttribute("message", "Change to " + key + " submitted. It takes effect once a different administrator "
+                    + "approves it in Config approvals.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/config";
     }
 }
