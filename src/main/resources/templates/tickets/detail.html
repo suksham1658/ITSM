@@ -74,17 +74,33 @@
                 <option th:each="a : ${detail.allowed}" th:value="${a.actionCode}" th:text="${a.actionCode}">APPROVE</option>
               </select>
             </div>
-            <div class="form-group" th:if="${!assignees.empty}">
-              <label for="assigneeId">Assign to <span class="text-muted" th:if="${assigneePoolName != null}"
+            <div class="form-group" th:if="${deskStep and !assignees.empty}" id="implementorPicker">
+              <label>Send to implementor(s) <span class="text-muted" th:if="${assigneePoolName != null}"
+                     th:text="'(' + ${assigneePoolName} + ')'">(IT Implementors)</span></label>
+              <p class="phase-note" style="margin-top:0;">For ASSIGN: tick one implementor to give it to them, or several (or all) —
+                everyone ticked sees it and gets an e-mail, and the first to accept or start it takes it over.</p>
+              <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px;">
+                <input type="checkbox" id="assigneeAll" data-select-all="assigneeIds"/> Select all
+                (<span th:text="${#lists.size(assignees)}">3</span>)</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px 18px;max-height:220px;overflow:auto;border:1px solid var(--slate-200);border-radius:8px;padding:8px 10px;">
+                <label th:each="e : ${assignees}" style="display:flex;align-items:center;gap:6px;font-size:13px;min-width:220px;">
+                  <input type="checkbox" name="assigneeIds" th:value="${e.employeeId}"/>
+                  <span th:text="${e.displayName}">Name</span>
+                  <span class="text-muted" style="font-size:11px;" th:text="${e.employeeNo}">no</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group" th:if="${!deskStep and !assignees.empty}">
+              <label for="assigneeId">Hand over to <span class="text-muted" th:if="${assigneePoolName != null}"
                      th:text="'(' + ${assigneePoolName} + ')'">(IT Implementors)</span></label>
               <select class="form-control" id="assigneeId" name="assigneeId">
-                <option value="">Select a person (required for ASSIGN / REASSIGN)</option>
+                <option value="">Select a person (required for REASSIGN)</option>
                 <option th:each="e : ${assignees}" th:value="${e.employeeId}" th:text="${e.displayName}">Name</option>
               </select>
             </div>
             <div class="alert-banner warn" th:if="${assignees.empty and assigneePoolName != null}" style="margin-bottom:10px;">
               Nobody is in <b th:text="${assigneePoolName}">IT Implementors</b>, so this ticket cannot be assigned yet.
-              Ask the System Administrator to add members (Admin &gt; Users &gt; Assignment groups).
+              Ask the System Administrator to assign implementors to this category (Admin &gt; Categories) or add members to the group (Admin &gt; Users).
             </div>
             <div class="form-group">
               <label>Remarks <span class="req" id="remarksReq">*</span></label>

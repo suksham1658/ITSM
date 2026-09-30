@@ -457,6 +457,7 @@ public class CatalogSeedService {
             WorkflowStage cf = stage(inc, 30, "confirmation", "Requester confirmation", "CONFIRMATION", "REQUESTER", null, null, null);
             WorkflowStage cl = stage(inc, 40, "closed", "Closed", "CLOSURE", "SYSTEM", null, null, null);
             trans(s, "ASSIGN", false);
+            trans(s, "REJECT", true);
             trans(s, "REASSIGN", false);
             fulfilTransitions(i);
             confirmTransitions(cf);
@@ -493,6 +494,7 @@ public class CatalogSeedService {
             WorkflowStage cl = stage(priv, 60, "closed", "Closed", "CLOSURE", "SYSTEM", null, null, null);
             approvalTransitions(h, c);
             trans(st, "ASSIGN", false);
+            trans(st, "REJECT", true);
             trans(st, "REASSIGN", false);
             fulfilTransitions(i);
             confirmTransitions(cf);

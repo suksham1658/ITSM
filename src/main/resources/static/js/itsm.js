@@ -281,6 +281,12 @@
       var rem = document.getElementById("actionRemarks");
       if (!act || !rem) { return; }
       var code = (act.value || "").toUpperCase();
+      if (code === "ASSIGN" && document.getElementById("implementorPicker")
+          && !actionForm.querySelector("input[name='assigneeIds']:checked")) {
+        ev.preventDefault();
+        window.showToast("error", "Tick at least one implementor to assign the ticket to.");
+        return;
+      }
       if (code === "APPROVE" || code === "REJECT" || code === "SEND_BACK") {
         var t = (rem.value || "").replace(/^\s+|\s+$/g, "");
         if (t.length < 10) {
@@ -297,6 +303,30 @@
     autoSubmits[a].addEventListener("change", function () {
       if (this.form) { this.form.submit(); }
     });
+  }
+
+  // <input type="checkbox" data-select-all="name"> ticks / unticks every checkbox with that name,
+  // and follows them (ticked when all are ticked).
+  var selectAlls = document.querySelectorAll("input[data-select-all]");
+  for (var sa = 0; sa < selectAlls.length; sa++) {
+    (function (all) {
+      var name = all.getAttribute("data-select-all");
+      var boxes = function () {
+        return (all.form || document).querySelectorAll("input[type='checkbox'][name='" + name + "']");
+      };
+      all.addEventListener("change", function () {
+        var b = boxes();
+        for (var i = 0; i < b.length; i++) { b[i].checked = all.checked; }
+      });
+      var b0 = boxes();
+      for (var j = 0; j < b0.length; j++) {
+        b0[j].addEventListener("change", function () {
+          var b = boxes(), every = b.length > 0;
+          for (var k = 0; k < b.length; k++) { if (!b[k].checked) { every = false; } }
+          all.checked = every;
+        });
+      }
+    })(selectAlls[sa]);
   }
 
   // <form data-confirm="Question?"> asks before submitting (delete, publish, discard).

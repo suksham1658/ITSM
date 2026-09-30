@@ -59,7 +59,7 @@ public class WorkflowDesignService {
 
     static {
         STAGE_TYPES.put("APPROVAL", "Approval (approve / reject / send back)");
-        STAGE_TYPES.put("ASSIGNMENT", "Assignment (a group assigns a person, e.g. IT Service Desk)");
+        STAGE_TYPES.put("ASSIGNMENT", "Assignment (e.g. IT Service Desk: send to implementor(s) or reject)");
         STAGE_TYPES.put("FULFILMENT", "Fulfilment (the work: accept / start / hold / resolve)");
         STAGE_TYPES.put("CONFIRMATION", "Requester confirmation");
         STAGE_TYPES.put("CLOSURE", "Closed (always the last stage)");
@@ -710,6 +710,7 @@ public class WorkflowDesignService {
             t.add(new String[] {"SEND_BACK", "true"});
         } else if ("ASSIGNMENT".equals(stageType)) {
             t.add(new String[] {"ASSIGN", "false"});
+            t.add(new String[] {"REJECT", "true"});
             t.add(new String[] {"REASSIGN", "false"});
         } else if ("FULFILMENT".equals(stageType)) {
             for (String a : new String[] {"ACCEPT", "START", "HOLD", "RESOLVE", "REASSIGN"}) {

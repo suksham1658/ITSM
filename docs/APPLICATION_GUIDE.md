@@ -455,6 +455,22 @@ the Security section is read-only.
 **Audit Trail** (`audit/AuditTrailService`, `/audit`, permission `AUDIT_VIEW`): filters for user (name / employee no), ticket
 number, module, action, result, text in details and IST date range; 50 per page, newest first; read-only.
 
+### 6.6.0a IT Service Desk: send to implementor(s) or reject
+
+* **Admin > Categories** (`CategoryImplementorService`, System Administrator): tick the implementors who handle each category
+  (choices = members and role holders of IT Implementors). None ticked = the whole IT Implementors group.
+* **Desk step** (a workflow stage of type *Assignment*): **Take action** shows a checklist of those implementors with
+  **Select all** (each person once). **ASSIGN** with one ticked → that person owns the implementation step; with several →
+  all of them get it (bell, e-mail, *My Assigned Tickets*) and the **first to Accept / Start / Hold / Resolve owns it**; people not
+  ticked cannot act. **REJECT** (remarks required) ends the ticket. `WorkflowEngine.eligibleImplementors` /
+  `applyActionFor`; the selection is stored in `workflow_instance_stage_assignee`.
+* **Implementation step REASSIGN**: hand over to exactly one colleague in the implementor group (unchanged).
+* Schema: V11 / `db/install/upgrades/U11__desk_multi_assign.sql` (`category_implementor`, `workflow_instance_stage_assignee`,
+  REJECT added to every Assignment stage, including those of running tickets).
+* A workflow whose service desk stage is an *Approval* (e.g. Service Request v2 edited on 30 Sep 2026) only offers
+  Approve / Reject / Send back. To get the implementor checklist, edit the workflow and change that stage to
+  **Type: Assignment, Who acts: Service desk group, Group: IT Service Desk**, then Publish.
+
 ### 6.6.1 AD Account Unlock (`admin/AdAccountUnlockService`, `web/AdAccountController`)
 
 For IT Service Desk and System Administrator (permission `AD_ACCOUNT_UNLOCK`, sidebar **AD Account Unlock**).
@@ -614,9 +630,10 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V8 | `notification.title/body` back to NVARCHAR if they were VARCHAR |
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
+| V11 | Implementors per category, several implementors per step, REJECT at the service desk; also `U11__desk_multi_assign.sql` |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
 
-Never edit an applied migration (Flyway checksum validation fails); add a new `V11__…` (and the same idempotent `db/install/upgrades/U11__…sql`) instead.
+Never edit an applied migration (Flyway checksum validation fails); add a new `V12__…` (and the same idempotent `db/install/upgrades/U12__…sql`) instead.
 `database/*.sql` are DBA scripts mirroring the migrations — don't run them on a Flyway-managed DB.
 
 ### 9.2 Tables

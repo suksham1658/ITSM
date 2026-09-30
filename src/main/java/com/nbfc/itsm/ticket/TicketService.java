@@ -154,12 +154,19 @@ public class TicketService {
 
     @Transactional
     public Ticket applyAction(ItsmUserPrincipal principal, Long ticketId, String action, String remarks, Long assigneeId) {
+        return applyActionFor(principal, ticketId, action, remarks,
+                assigneeId == null ? java.util.Collections.<Long>emptyList() : java.util.Collections.singletonList(assigneeId));
+    }
+
+    /** {@code assigneeIds}: one or more implementors for ASSIGN at the service desk, one for REASSIGN. */
+    @Transactional
+    public Ticket applyActionFor(ItsmUserPrincipal principal, Long ticketId, String action, String remarks, List<Long> assigneeIds) {
         requireView(principal, ticketId);
         if (remarks != null && remarks.trim().length() > FieldLimits.REMARKS_MAX) {
             throw new ItsmException("REMARKS_TOO_LONG",
                     "Remarks must be at most " + FieldLimits.REMARKS_MAX + " characters.");
         }
-        return workflowEngine.applyAction(ticketId, principal, action, remarks == null ? null : remarks.trim(), assigneeId);
+        return workflowEngine.applyActionFor(ticketId, principal, action, remarks == null ? null : remarks.trim(), assigneeIds);
     }
 
     @Transactional
@@ -361,7 +368,22 @@ public class TicketService {
             return new ArrayList<Ticket>();
         }
         Specification<Ticket> spec = (root, query, cb) -> cb.equal(root.get("assignedImplementor"), me);
-        List<Ticket> list = ticketRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAtUtc", "ticketId"));
+        List<Ticket> list = new ArrayList<Ticket>(
+                ticketRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAtUtc", "ticketId")));
+        // Also tickets the service desk sent to several implementors including me, not yet picked up.
+        java.util.Set<Long> seen = new java.util.HashSet<Long>();
+        for (Ticket t : list) {
+            seen.add(t.getTicketId());
+        }
+        for (WorkflowInstanceStage s : instanceStageRepository.findByStatusCodeAndStageType("Current", "FULFILMENT")) {
+            if (s.getResolvedEmployee() == null && s.getAssigneeIds().contains(me.getEmployeeId())) {
+                Long ticketId = s.getWorkflowInstance().getTicketId();
+                if (seen.add(ticketId)) {
+                    ticketRepository.findById(ticketId).ifPresent(list::add);
+                }
+            }
+        }
+        list.sort(NEWEST_FIRST);
         for (Ticket t : list) {
             hydrate(t);
         }

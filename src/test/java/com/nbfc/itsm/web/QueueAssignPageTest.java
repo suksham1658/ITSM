@@ -78,7 +78,7 @@ class QueueAssignPageTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(
                         containsString("id=\"take-action\""),
-                        containsString("Assign to"),
+                        containsString("Send to implementor(s)"),
                         containsString("Queue Implementor"),
                         containsString("it is your turn"))));
     }

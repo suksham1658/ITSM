@@ -132,6 +132,14 @@ public class WorkflowEngine {
     @Transactional
     public Ticket applyAction(Long ticketId, ItsmUserPrincipal principal, String actionCode,
                               String remarks, Long assigneeId) {
+        return applyActionFor(ticketId, principal, actionCode, remarks,
+                assigneeId == null ? java.util.Collections.<Long>emptyList() : java.util.Collections.singletonList(assigneeId));
+    }
+
+    /** {@code assigneeIds}: for ASSIGN at the service desk one or more implementors; for REASSIGN exactly one. */
+    @Transactional
+    public Ticket applyActionFor(Long ticketId, ItsmUserPrincipal principal, String actionCode,
+                              String remarks, List<Long> assigneeIds) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ItsmException("TICKET_NOT_FOUND", "Ticket not found."));
         Employee actor = employeeRepository.findById(principal.getEmployeeId())
@@ -147,6 +155,13 @@ public class WorkflowEngine {
         boolean onBehalf = isDelegateFor(actor, current);
 
         String action = actionCode == null ? "" : actionCode.trim().toUpperCase();
+        if ("FULFILMENT".equals(current.getStageType()) && current.getResolvedEmployee() == null
+                && current.getAssigneeIds().contains(actor.getEmployeeId())
+                && ("ACCEPT".equals(action) || "START".equals(action) || "HOLD".equals(action) || "RESOLVE".equals(action))) {
+            // Sent to several implementors: the first one who works on it owns it.
+            current.setResolvedEmployee(actor);
+            ticket.setAssignedImplementor(actor);
+        }
         if (onBehalf) {
             auditRecorder.recordTicket("DELEGATE_ACTION", ticket.getTicketId(), current.getResolvedEmployee().getEmployeeNo(),
                     action + " by " + actor.getEmployeeNo() + " as delegate of " + current.getResolvedEmployee().getEmployeeNo());
@@ -183,26 +198,40 @@ public class WorkflowEngine {
             sendBack(ticket, instance, stages, current, remarks);
         } else if ("ASSIGN".equals(action) || "REASSIGN".equals(action)) {
             AssignmentGroup pool = assigneePool(stages, current);
-            Employee assignee = resolveAssignee(assigneeId, pool);
-            ticket.setAssignedImplementor(assignee);
+            List<Employee> chosen = resolveAssignees(assigneeIds, eligibleImplementors(ticket, stages, current));
             if (pool != null) {
                 ticket.setAssignedGroup(pool);
             }
             if ("FULFILMENT".equals(current.getStageType())) {
                 // Hand the work to another implementor; the ticket stays on the implementation step.
-                current.setResolvedEmployee(assignee);
+                if (chosen.size() != 1) {
+                    throw new ItsmException("ASSIGNEE_ONE", "Choose one implementor to hand the work over to.");
+                }
+                ticket.setAssignedImplementor(chosen.get(0));
+                current.setResolvedEmployee(chosen.get(0));
+                current.getAssigneeIds().clear();
                 current.setActionCode(action);
                 current.setRemarks(trim(remarks));
                 current.setActedAtUtc(TimeUtc.now());
                 ticket.setStatusCode("Assigned");
             } else {
-                // Service desk / triage step is done: the chosen implementor owns the next step.
+                // Service desk step is done. One implementor: they own the next step. Several: all of them see
+                // it and the first to accept / start owns it.
                 complete(current, actor, action, remarks);
                 WorkflowInstanceStage next = nextPending(stages, current);
                 if (next != null && ("IMPLEMENTOR".equals(next.getActorStrategy())
                         || "FULFILMENT".equals(next.getStageType()))) {
-                    next.setResolvedEmployee(assignee);
+                    next.getAssigneeIds().clear();
+                    if (chosen.size() == 1) {
+                        next.setResolvedEmployee(chosen.get(0));
+                    } else {
+                        next.setResolvedEmployee(null);
+                        for (Employee e : chosen) {
+                            next.getAssigneeIds().add(e.getEmployeeId());
+                        }
+                    }
                 }
+                ticket.setAssignedImplementor(chosen.size() == 1 ? chosen.get(0) : null);
                 advance(ticket, instance, stages, current);
                 slaService.markFirstResponse(ticket);
             }
@@ -326,6 +355,10 @@ public class WorkflowEngine {
         }
         if (isDelegateFor(actor, current)) {
             return true;
+        }
+        if (current.getResolvedEmployee() == null && !current.getAssigneeIds().isEmpty()) {
+            // Sent by the service desk to these implementors only, until one of them picks it up.
+            return current.getAssigneeIds().contains(actor.getEmployeeId());
         }
         if (current.getResolvedRole() != null) {
             String code = current.getResolvedRole().getCode();
@@ -703,20 +736,57 @@ public class WorkflowEngine {
         return current.getResolvedGroup();
     }
 
-    private Employee resolveAssignee(Long assigneeId, AssignmentGroup group) {
-        if (assigneeId == null) {
-            throw new ItsmException("ASSIGNEE_REQUIRED", "Select an implementor.");
+    /**
+     * Who may be chosen at this step. At the service desk (ASSIGNMENT): the implementors the administrator
+     * assigned to the ticket's category (Admin &gt; Categories), or, when none are set, the members of the next
+     * implementation group. At an implementation step (REASSIGN): that step's group. Active people only, no repeats.
+     */
+    public List<Employee> eligibleImplementors(Ticket ticket, List<WorkflowInstanceStage> stages, WorkflowInstanceStage current) {
+        if ("ASSIGNMENT".equals(current.getStageType()) && ticket.getCategory() != null
+                && !ticket.getCategory().getImplementorIds().isEmpty()) {
+            List<Employee> list = new ArrayList<Employee>();
+            for (Employee e : employeeRepository.findAllById(ticket.getCategory().getImplementorIds())) {
+                if (e.isPortalActive()) {
+                    list.add(e);
+                }
+            }
+            if (!list.isEmpty()) {
+                list.sort(java.util.Comparator.comparing(Employee::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+                return list;
+            }
         }
-        Employee assignee = employeeRepository.findById(assigneeId)
-                .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Assignee not found."));
-        if (!assignee.isPortalActive()) {
-            throw new ItsmException("ASSIGNEE_INACTIVE", "Assignee is not portal-active.");
+        AssignmentGroup pool = assigneePool(stages, current);
+        return pool == null ? new ArrayList<Employee>() : groupMembership.activeMembers(pool);
+    }
+
+    /** The chosen people, each once, all from {@code eligible}. */
+    private List<Employee> resolveAssignees(List<Long> ids, List<Employee> eligible) {
+        Set<Long> wanted = new java.util.LinkedHashSet<Long>();
+        if (ids != null) {
+            for (Long id : ids) {
+                if (id != null) {
+                    wanted.add(id);
+                }
+            }
         }
-        if (group != null && !groupMembership.isMember(group, assignee)) {
-            throw new ItsmException("ASSIGNEE_NOT_IN_GROUP",
-                    assignee.getDisplayName() + " is not a member of " + group.getName() + ".");
+        if (wanted.isEmpty()) {
+            throw new ItsmException("ASSIGNEE_REQUIRED", "Select at least one implementor.");
         }
-        return assignee;
+        java.util.Map<Long, Employee> byId = new java.util.LinkedHashMap<Long, Employee>();
+        for (Employee e : eligible) {
+            byId.put(e.getEmployeeId(), e);
+        }
+        List<Employee> out = new ArrayList<Employee>();
+        for (Long id : wanted) {
+            Employee e = byId.get(id);
+            if (e == null) {
+                Employee who = employeeRepository.findById(id).orElse(null);
+                throw new ItsmException("ASSIGNEE_NOT_IN_GROUP", (who == null ? "The selected person" : who.getDisplayName())
+                        + " is not an implementor for this ticket's category.");
+            }
+            out.add(e);
+        }
+        return out;
     }
 
     private TicketMatchContext contextOf(Ticket ticket) {

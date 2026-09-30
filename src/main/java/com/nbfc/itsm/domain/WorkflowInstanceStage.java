@@ -55,6 +55,24 @@ public class WorkflowInstanceStage {
     @JoinColumn(name = "resolved_group_id")
     private AssignmentGroup resolvedGroup;
 
+    /**
+     * Fulfilment step sent by the IT Service Desk to several implementors at once: only these people may
+     * pick it up, and the first to Accept / Start owns it ({@link #getResolvedEmployee()}).
+     */
+    @javax.persistence.ElementCollection(fetch = FetchType.EAGER)
+    @javax.persistence.CollectionTable(name = "workflow_instance_stage_assignee",
+            joinColumns = @JoinColumn(name = "workflow_instance_stage_id"))
+    @Column(name = "employee_id")
+    private java.util.Set<Long> assigneeIds = new java.util.LinkedHashSet<Long>();
+
+    public java.util.Set<Long> getAssigneeIds() {
+        return assigneeIds;
+    }
+
+    public void setAssigneeIds(java.util.Set<Long> assigneeIds) {
+        this.assigneeIds = assigneeIds;
+    }
+
     @Column(name = "status_code", nullable = false, length = 32)
     private String statusCode;
 

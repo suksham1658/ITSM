@@ -44,12 +44,15 @@ public class NotificationService {
     private final EmployeeRoleAssignmentRepository roleAssignmentRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ApplicationEventPublisher events;
+    private final com.nbfc.itsm.domain.EmployeeRepository employeeRepository;
 
     public NotificationService(NotificationRepository notificationRepository,
                                GroupMembershipService groupMembership,
                                EmployeeRoleAssignmentRepository roleAssignmentRepository,
                                JdbcTemplate jdbcTemplate,
-                               ApplicationEventPublisher events) {
+                               ApplicationEventPublisher events,
+                               com.nbfc.itsm.domain.EmployeeRepository employeeRepository) {
+        this.employeeRepository = employeeRepository;
         this.notificationRepository = notificationRepository;
         this.groupMembership = groupMembership;
         this.roleAssignmentRepository = roleAssignmentRepository;
@@ -203,6 +206,13 @@ public class NotificationService {
             Employee delegate = owner.getDelegate();
             if ("APPROVAL".equals(step.getStageType()) && delegate != null && delegate.isPortalActive()) {
                 out.put(delegate.getEmployeeId(), delegate);
+            }
+        } else if (!step.getAssigneeIds().isEmpty()) {
+            // Sent by the service desk to these implementors (first to pick it up owns it).
+            for (Employee e : employeeRepository.findAllById(step.getAssigneeIds())) {
+                if (e.isPortalActive()) {
+                    out.put(e.getEmployeeId(), e);
+                }
             }
         } else if (step.getResolvedGroup() != null) {
             for (Employee e : groupMembership.activeMembers(step.getResolvedGroup())) {

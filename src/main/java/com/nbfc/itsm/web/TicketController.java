@@ -17,7 +17,6 @@ import com.nbfc.itsm.ticket.AttachmentService;
 import com.nbfc.itsm.ticket.TicketDetail;
 import com.nbfc.itsm.ticket.TicketForm;
 import com.nbfc.itsm.ticket.TicketService;
-import com.nbfc.itsm.workflow.GroupMembershipService;
 import com.nbfc.itsm.workflow.WorkflowEngine;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,7 +52,6 @@ public class TicketController {
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final AttachmentService attachmentService;
-    private final GroupMembershipService groupMembership;
     private final EmployeeRepository employeeRepository;
     private final WorkflowEngine workflowEngine;
 
@@ -62,7 +60,6 @@ public class TicketController {
                             CategoryRepository categoryRepository,
                             SubCategoryRepository subCategoryRepository,
                             AttachmentService attachmentService,
-                            GroupMembershipService groupMembership,
                             EmployeeRepository employeeRepository,
                             WorkflowEngine workflowEngine) {
         this.ticketService = ticketService;
@@ -70,7 +67,6 @@ public class TicketController {
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.attachmentService = attachmentService;
-        this.groupMembership = groupMembership;
         this.employeeRepository = employeeRepository;
         this.workflowEngine = workflowEngine;
     }
@@ -171,13 +167,21 @@ public class TicketController {
         model.addAttribute("nav", "myTickets");
         model.addAttribute("pageTitle", detail.getTicket().getPublicNumber());
         model.addAttribute("detail", detail);
-        // Service desk step: choose from the implementors of the next step; implementation step: colleagues.
-        AssignmentGroup pool = detail.getCurrent() == null || detail.getStages() == null ? null
-                : workflowEngine.assigneePool(detail.getStages(), detail.getCurrent());
-        // Members added on Admin > Users plus holders of the group's role (e.g. IT Implementor).
-        List<Employee> assignees = pool == null ? new ArrayList<Employee>() : groupMembership.activeMembers(pool);
+        // Service desk step: the implementors assigned to the ticket's category (else the implementor group);
+        // implementation step: colleagues in that step's group.
+        boolean hasCurrent = detail.getCurrent() != null && detail.getStages() != null;
+        AssignmentGroup pool = hasCurrent ? workflowEngine.assigneePool(detail.getStages(), detail.getCurrent()) : null;
+        List<Employee> assignees = hasCurrent
+                ? workflowEngine.eligibleImplementors(detail.getTicket(), detail.getStages(), detail.getCurrent())
+                : new ArrayList<Employee>();
+        boolean deskStep = hasCurrent && "ASSIGNMENT".equals(detail.getCurrent().getStageType());
+        boolean categoryList = deskStep && detail.getTicket().getCategory() != null
+                && !detail.getTicket().getCategory().getImplementorIds().isEmpty();
         model.addAttribute("assignees", assignees);
-        model.addAttribute("assigneePoolName", pool == null ? null : pool.getName());
+        model.addAttribute("deskStep", deskStep);
+        model.addAttribute("assigneePoolName", categoryList
+                ? "implementors for " + detail.getTicket().getCategory().getName()
+                : (pool == null ? null : pool.getName()));
         return "tickets/detail";
     }
 
@@ -187,9 +191,17 @@ public class TicketController {
                          @RequestParam("actionCode") String actionCode,
                          @RequestParam(value = "remarks", required = false) String remarks,
                          @RequestParam(value = "assigneeId", required = false) Long assigneeId,
+                         @RequestParam(value = "assigneeIds", required = false) List<Long> assigneeIds,
                          RedirectAttributes ra) {
         try {
-            ticketService.applyAction(user, id, actionCode, remarks, assigneeId);
+            List<Long> chosen = new ArrayList<Long>();
+            if (assigneeIds != null) {
+                chosen.addAll(assigneeIds);
+            }
+            if (assigneeId != null) {
+                chosen.add(assigneeId);
+            }
+            ticketService.applyActionFor(user, id, actionCode, remarks, chosen);
             ra.addFlashAttribute("message", "Action " + actionCode + " recorded.");
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());

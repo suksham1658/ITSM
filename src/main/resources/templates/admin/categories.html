@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
 <div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
@@ -17,14 +17,41 @@
       </div>
     </div>
     <div class="card" style="margin-bottom:16px;">
+      <div class="card-head"><div><h3>Categories and their implementors</h3>
+        <div class="ch-sub">The IT Service Desk sends a ticket to the implementors of its category (one, several or all).
+          A category without implementors uses the whole IT Implementors group.</div></div></div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Code</th><th>Name</th><th>Sort</th></tr></thead>
+          <thead><tr><th>Code</th><th>Name</th><th>Implementors</th><th></th></tr></thead>
           <tbody>
-          <tr th:each="c : ${categories}">
+          <tr th:each="c : ${categories}" th:with="ids=${categoryImplementors[c.categoryId]}">
             <td class="cell-id" th:text="${c.code}">c</td>
             <td th:text="${c.name}">n</td>
-            <td th:text="${c.sortOrder}">1</td>
+            <td>
+              <span th:if="${ids == null or #sets.isEmpty(ids)}" class="text-muted">All IT Implementors</span>
+              <th:block th:if="${ids != null}">
+                <span class="badge badge-outline" th:each="id : ${ids}" th:text="${implementorNames[id]} ?: ${id}"
+                      style="margin:0 4px 4px 0;">Name</span>
+              </th:block>
+            </td>
+            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="min-width:260px;">
+              <details>
+                <summary class="btn btn-outline btn-xs" style="display:inline-flex;"><i class="fa-regular fa-pen-to-square"></i>&nbsp;Choose implementors</summary>
+                <form th:action="@{/admin/categories/{id}/implementors(id=${c.categoryId})}" method="post" style="margin-top:8px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;">
+                    <input type="checkbox" data-select-all="employeeIds"/> Select all</label>
+                  <div style="max-height:180px;overflow:auto;border:1px solid var(--slate-200);border-radius:8px;padding:6px 8px;margin:4px 0 8px;">
+                    <label th:each="e : ${implementorCandidates}" style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
+                      <input type="checkbox" name="employeeIds" th:value="${e.employeeId}"
+                             th:checked="${ids != null and ids.contains(e.employeeId)}"/>
+                      <span th:text="${e.displayName}">Name</span></label>
+                    <span th:if="${#lists.isEmpty(implementorCandidates)}" class="text-muted" style="font-size:12px;">
+                      Nobody has the IT Implementor role or is in the IT Implementors group yet.</span>
+                  </div>
+                  <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+                </form>
+              </details>
+            </td>
           </tr>
           </tbody>
         </table>

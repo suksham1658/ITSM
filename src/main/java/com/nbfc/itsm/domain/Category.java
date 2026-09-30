@@ -28,6 +28,24 @@ public class Category {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    /**
+     * Implementors the administrator assigned to this category (Admin &gt; Categories). The IT Service
+     * Desk chooses from them; empty = the whole implementor group of the workflow.
+     */
+    @javax.persistence.ElementCollection(fetch = javax.persistence.FetchType.LAZY)
+    @javax.persistence.CollectionTable(name = "category_implementor",
+            joinColumns = @javax.persistence.JoinColumn(name = "category_id"))
+    @Column(name = "employee_id")
+    private java.util.Set<Long> implementorIds = new java.util.LinkedHashSet<Long>();
+
+    public java.util.Set<Long> getImplementorIds() {
+        return implementorIds;
+    }
+
+    public void setImplementorIds(java.util.Set<Long> implementorIds) {
+        this.implementorIds = implementorIds;
+    }
+
     public Long getCategoryId() {
         return categoryId;
     }

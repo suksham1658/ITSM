@@ -28,10 +28,13 @@ public class AdminCatalogController {
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final SystemSettingsService systemSettings;
+    private final com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors;
 
     public AdminCatalogController(CategoryRepository categoryRepository,
                                   SubCategoryRepository subCategoryRepository,
-                                  SystemSettingsService systemSettings) {
+                                  SystemSettingsService systemSettings,
+                                  com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors) {
+        this.categoryImplementors = categoryImplementors;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.systemSettings = systemSettings;
@@ -50,7 +53,32 @@ public class AdminCatalogController {
         model.addAttribute("pageTitle", "Categories");
         model.addAttribute("categories", cats);
         model.addAttribute("subCategories", subs);
+        List<com.nbfc.itsm.domain.Employee> candidates = categoryImplementors.candidates();
+        java.util.Map<Long, String> names = new java.util.HashMap<Long, String>();
+        for (com.nbfc.itsm.domain.Employee e : candidates) {
+            names.put(e.getEmployeeId(), e.getDisplayName());
+        }
+        model.addAttribute("implementorCandidates", candidates);
+        model.addAttribute("implementorNames", names);
+        model.addAttribute("categoryImplementors", categoryImplementors.assignments(cats));
         return "admin/categories";
+    }
+
+    /** Implementors who handle a category (the IT Service Desk chooses from them). System Administrator. */
+    @PostMapping("/categories/{id}/implementors")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String saveImplementors(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                   @RequestParam(value = "employeeIds", required = false) List<Long> employeeIds,
+                                   @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        try {
+            int n = categoryImplementors.save(id, employeeIds, actor);
+            ra.addFlashAttribute("message", n == 0
+                    ? "No implementors set: the service desk will choose from the whole IT Implementors group."
+                    : n + " implementor(s) saved for this category.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/categories";
     }
 
     @GetMapping("/sla")
