@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
 <div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
@@ -13,50 +13,136 @@
       <div>
         <div class="breadcrumb">ITSM Portal / Admin / <span>Workflow</span></div>
         <h1>Workflow configuration</h1>
-        <p class="page-sub" th:text="${designerNote}">Note</p>
+        <p class="page-sub">A <b>rule</b> decides which <b>workflow</b> a new ticket follows; a workflow is the list of stages
+          (approvals, service desk, implementor, …). Changes apply to tickets submitted after the change.</p>
       </div>
     </div>
     <div class="alert-banner error" th:if="${activeRuleCount == 0}" style="margin-bottom:16px;">
-      There are no active workflow rules, so nobody can submit a request. Restart the application to let
-      the database migration restore the default rules, or activate a rule below.
+      There are no active rules, so nobody can submit a request. Activate or add a rule below.
     </div>
+    <div class="alert-banner info" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="margin-bottom:16px;">
+      You can view the workflow set-up. Only the System Administrator can change it.
+    </div>
+
+    <!-- ===================================================== workflows -->
     <div class="card card-pad" style="margin-bottom:16px;">
-      <h3 style="font-size:14px;margin-bottom:10px;">Templates</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <h3 style="font-size:14px;margin:0;">Workflows</h3>
+        <a class="btn btn-outline btn-xs" th:href="@{/admin/workflow(retired=${!showRetired})}"
+           th:text="${showRetired} ? 'Hide old versions' : 'Show old versions'">Show old versions</a>
+      </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Code</th><th>Name</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Name</th><th>Version</th><th>Status</th><th>Stages</th><th>Rules</th><th>Tickets</th><th></th></tr></thead>
           <tbody>
-          <tr th:each="d : ${definitions}">
-            <td class="cell-id" th:text="${d.code}">code</td>
-            <td th:text="${d.name}">name</td>
-            <td><span class="badge" th:classappend="${@ui.configStatusClass(d.statusCode)}" th:text="${d.statusCode}">Active</span></td>
-            <td><a class="cell-link" th:href="@{/admin/workflow/{id}(id=${d.workflowDefinitionId})}">Stages</a></td>
+          <tr th:each="w : ${workflows}">
+            <td class="cell-id" th:text="${w.definition.code}">SR</td>
+            <td th:text="${w.definition.name}">name</td>
+            <td th:text="'v' + ${w.definition.versionNo}">v1</td>
+            <td><span class="badge" th:classappend="${@ui.configStatusClass(w.definition.statusCode)}" th:text="${w.definition.statusCode}">Active</span>
+              <span class="badge badge-draft" th:if="${w.draft != null}" th:text="'draft v' + ${w.draft.versionNo}">draft</span></td>
+            <td style="max-width:360px;font-size:12px;" th:text="${w.flow}">flow</td>
+            <td th:text="${w.ruleCount}">1</td>
+            <td th:text="${w.ticketCount}">0</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <a class="btn btn-outline btn-xs" th:href="@{/admin/workflow/{id}(id=${w.definition.workflowDefinitionId})}">
+                <i class="fa-regular fa-eye"></i> Open</a>
+            </td>
           </tr>
           </tbody>
         </table>
       </div>
-    </div>
-    <div class="card card-pad">
-      <h3 style="font-size:14px;margin-bottom:10px;">Rule matrix</h3>
-      <p class="phase-note">The active rule with the lowest priority number wins; an empty condition <code>{}</code> matches every ticket. To skip CISO approval for a category, point its rule at SR_CHAIN_TO_HOD_IMPL.</p>
-      <div th:each="r : ${rules}" class="rule-edit">
-        <form th:action="@{/admin/workflow/rules/{id}(id=${r.workflowRuleId})}" method="post" class="card card-pad" style="margin-bottom:12px;">
+
+      <details sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="margin-top:14px;">
+        <summary class="btn btn-accent btn-sm" style="display:inline-flex;"><i class="fa-solid fa-plus"></i>&nbsp;New workflow</summary>
+        <form th:action="@{/admin/workflow/new}" method="post" class="card card-pad" style="margin-top:10px;">
           <div class="form-grid">
-            <div class="form-group"><label>Name</label><input class="form-control" name="name" th:value="${r.name}" required="required" th:attr="minlength=${limits.ruleNameMin},maxlength=${limits.ruleNameMax}"/></div>
-            <div class="form-group"><label>Priority</label><input class="form-control" th:value="${r.priority}" disabled="disabled"/></div>
+            <div class="form-group"><label for="nwCode">Code <span class="req">*</span></label>
+              <input class="form-control mono" id="nwCode" name="code" required="required" minlength="3" maxlength="64"
+                     pattern="[A-Za-z0-9_ ]+" placeholder="e.g. SR_WITH_SERVICE_DESK"/></div>
+            <div class="form-group"><label for="nwName">Name <span class="req">*</span></label>
+              <input class="form-control" id="nwName" name="name" required="required" minlength="3" maxlength="128"
+                     placeholder="e.g. Service Request with Service Desk"/></div>
+            <div class="form-group"><label for="nwCopy">Start from</label>
+              <select class="form-control" id="nwCopy" name="copyFromId">
+                <option value="">Empty (confirmation + closed only)</option>
+                <option th:each="d : ${activeDefinitions}" th:value="${d.workflowDefinitionId}"
+                        th:text="'Copy of ' + ${d.code} + ' (v' + ${d.versionNo} + ')'">Copy</option>
+              </select></div>
+            <div class="form-group span-2"><label for="nwDesc">Description</label>
+              <input class="form-control" id="nwDesc" name="description" maxlength="512"/></div>
+          </div>
+          <button type="submit" class="btn btn-success btn-sm" style="margin-top:8px;"><i class="fa-solid fa-plus"></i> Create draft</button>
+        </form>
+      </details>
+    </div>
+
+    <!-- ===================================================== rules -->
+    <div class="card card-pad" id="rules">
+      <h3 style="font-size:14px;margin-bottom:6px;">Rules: which workflow a ticket follows</h3>
+      <p class="phase-note">Active rules are checked from the <b>lowest priority number</b> up; the first whose condition
+        matches the ticket decides the workflow. Condition keys: <code>ticket_type</code>, <code>category</code>,
+        <code>sub_category</code>, <code>confidentiality</code>, <code>department</code>, <code>priority</code>,
+        each with a list of values, e.g. <code>{"ticket_type":["Service Request"],"department":["Information Technology"]}</code>.
+        All keys given must match; <code>{}</code> matches every ticket (use it for a last catch-all rule).</p>
+
+      <div th:each="r : ${rules}" class="card card-pad" style="margin-bottom:12px;">
+        <form th:action="@{/admin/workflow/rules/{id}(id=${r.workflowRuleId})}" method="post">
+          <div class="form-grid">
+            <div class="form-group"><label>Name <span class="req">*</span></label>
+              <input class="form-control" name="name" th:value="${r.name}" required="required"
+                     th:attr="minlength=${limits.ruleNameMin},maxlength=${limits.ruleNameMax}"/></div>
+            <div class="form-group"><label>Priority <span class="req">*</span></label>
+              <input class="form-control" type="number" name="priority" th:value="${r.priority}" required="required" min="1" max="99999"/></div>
             <div class="form-group"><label>Status</label>
               <select class="form-control" name="statusCode">
                 <option th:selected="${r.statusCode == 'Active'}">Active</option>
                 <option th:selected="${r.statusCode == 'Inactive'}">Inactive</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Template</label><input class="form-control" th:value="${r.workflowDefinition.code}" disabled="disabled"/></div>
-            <div class="form-group span-2"><label>condition_json</label>
-              <textarea class="form-control mono" name="conditionJson" th:text="${r.conditionJson}" th:attr="maxlength=${limits.ruleJsonMax}" placeholder="{} matches every ticket">{}</textarea></div>
+              </select></div>
+            <div class="form-group"><label>Workflow</label>
+              <select class="form-control" name="workflowDefinitionId">
+                <option th:each="d : ${activeDefinitions}" th:value="${d.workflowDefinitionId}"
+                        th:selected="${d.code == r.workflowDefinition.code}"
+                        th:text="${d.code} + ' — ' + ${d.name}">SR</option>
+              </select></div>
+            <div class="form-group span-2"><label>Condition (JSON)</label>
+              <textarea class="form-control mono" name="conditionJson" th:text="${r.conditionJson}"
+                        th:attr="maxlength=${limits.ruleJsonMax}" placeholder="{} matches every ticket">{}</textarea></div>
           </div>
-          <button type="submit" class="btn btn-accent btn-sm" style="margin-top:10px;"><i class="fa-regular fa-floppy-disk"></i> Save rule</button>
+          <div sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="margin-top:10px;">
+            <button type="submit" class="btn btn-accent btn-sm"><i class="fa-regular fa-floppy-disk"></i> Save rule</button>
+          </div>
+        </form>
+        <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" th:action="@{/admin/workflow/rules/{id}/delete(id=${r.workflowRuleId})}"
+              method="post" style="margin-top:6px;">
+          <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-regular fa-trash-can"></i> Delete rule</button>
         </form>
       </div>
+
+      <details sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+        <summary class="btn btn-accent btn-sm" style="display:inline-flex;"><i class="fa-solid fa-plus"></i>&nbsp;Add rule</summary>
+        <form th:action="@{/admin/workflow/rules}" method="post" class="card card-pad" style="margin-top:10px;">
+          <div class="form-grid">
+            <div class="form-group"><label for="nrName">Name <span class="req">*</span></label>
+              <input class="form-control" id="nrName" name="name" required="required"
+                     th:attr="minlength=${limits.ruleNameMin},maxlength=${limits.ruleNameMax}" placeholder="e.g. HR service requests"/></div>
+            <div class="form-group"><label for="nrPriority">Priority <span class="req">*</span></label>
+              <input class="form-control" type="number" id="nrPriority" name="priority" required="required" min="1" max="99999"
+                     placeholder="lower = checked first, e.g. 35"/></div>
+            <div class="form-group"><label for="nrStatus">Status</label>
+              <select class="form-control" id="nrStatus" name="statusCode"><option>Active</option><option>Inactive</option></select></div>
+            <div class="form-group"><label for="nrWf">Workflow <span class="req">*</span></label>
+              <select class="form-control" id="nrWf" name="workflowDefinitionId" required="required">
+                <option th:each="d : ${activeDefinitions}" th:value="${d.workflowDefinitionId}"
+                        th:text="${d.code} + ' — ' + ${d.name}">SR</option>
+              </select></div>
+            <div class="form-group span-2"><label for="nrJson">Condition (JSON)</label>
+              <textarea class="form-control mono" id="nrJson" name="conditionJson" th:attr="maxlength=${limits.ruleJsonMax}"
+                        placeholder='{"ticket_type":["Service Request"],"department":["Human Resources"]}'></textarea></div>
+          </div>
+          <button type="submit" class="btn btn-success btn-sm" style="margin-top:8px;"><i class="fa-solid fa-plus"></i> Add rule</button>
+        </form>
+      </details>
     </div>
 </main>
 </div>

@@ -8,4 +8,8 @@ import java.util.Optional;
 public interface WorkflowRuleRepository extends JpaRepository<WorkflowRule, Long> {
     List<WorkflowRule> findByStatusCodeOrderByPriorityAsc(String statusCode);
     Optional<WorkflowRule> findByPriorityAndStatusCode(int priority, String statusCode);
+
+    List<WorkflowRule> findAllByOrderByPriorityAsc();
+
+    List<WorkflowRule> findByWorkflowDefinition(WorkflowDefinition definition);
 }

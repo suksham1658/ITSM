@@ -298,4 +298,48 @@
       if (this.form) { this.form.submit(); }
     });
   }
+
+  // <form data-confirm="Question?"> asks before submitting (delete, publish, discard).
+  var confirmForms = document.querySelectorAll("form[data-confirm]");
+  for (var cf = 0; cf < confirmForms.length; cf++) {
+    confirmForms[cf].addEventListener("submit", function (ev) {
+      if (!window.confirm(this.getAttribute("data-confirm"))) { ev.preventDefault(); }
+    });
+  }
+
+  // Workflow stage editor: only offer "who acts" options that fit the stage type, and show the role /
+  // group / send-back fields only when they apply. The server checks the same rules.
+  var stageForms = document.querySelectorAll("form.stage-form");
+  for (var sf = 0; sf < stageForms.length; sf++) {
+    (function (form) {
+      var type = form.querySelector("[data-stage-type]");
+      var who = form.querySelector("[data-stage-strategy]");
+      if (!type || !who) { return; }
+      var show = function (sel, on) {
+        var el = form.querySelector(sel);
+        if (el) { el.style.display = on ? "" : "none"; }
+      };
+      var refresh = function () {
+        var t = type.value;
+        var firstFit = null;
+        for (var i = 0; i < who.options.length; i++) {
+          var o = who.options[i];
+          var fits = ("," + (o.getAttribute("data-types") || "") + ",").indexOf("," + t + ",") >= 0;
+          o.hidden = !fits;
+          o.disabled = !fits;
+          if (fits && firstFit === null) { firstFit = o; }
+        }
+        if (who.selectedOptions.length === 0 || who.selectedOptions[0].disabled) {
+          if (firstFit) { firstFit.selected = true; }
+        }
+        var s = who.value;
+        show("[data-stage-role]", s === "NAMED_ROLE");
+        show("[data-stage-group]", s === "SERVICE_DESK" || s === "ASSIGNMENT_GROUP" || s === "IMPLEMENTOR");
+        show("[data-stage-sendback]", t === "APPROVAL" || t === "CONFIRMATION");
+      };
+      type.addEventListener("change", refresh);
+      who.addEventListener("change", refresh);
+      refresh();
+    })(stageForms[sf]);
+  }
 })();

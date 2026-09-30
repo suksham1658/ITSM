@@ -390,7 +390,20 @@ assign/start, `pause` on hold, `markResolved`, `refresh`/`refreshState` → `WIT
 - **Roles & Permissions** — `RoleAdminService`: `list/get/formFor`, `proposeCreate/proposeUpdate`
   (maker-checker via `config_change_request`), `apply` (on approval), `deleteBlockers/delete`
   (System Administrator; only unused custom roles). `PermissionCatalog` = labels/pages per permission.
-- **Workflow config** — `AdminCatalogController.updateRule` (name, Active/Inactive, condition must be a JSON object).
+- **Workflow config (designer)** — `WorkflowDesignService` + `web/AdminWorkflowController`. View: ADMIN_MASTERDATA_PROPOSE;
+  changes: **System Administrator only**, all audited (module `WORKFLOW`).
+  - **Rules:** add / edit (name, priority, Active/Inactive, target workflow, condition JSON) / delete. Active priorities
+    must be unique; a rule used by tickets cannot be deleted (set it Inactive); the last active rule is protected.
+  - **Workflows:** an Active workflow is never edited in place (tickets point at its stages for actions and send-back).
+    *Edit workflow* makes a **Draft** copy (next `version_no`); in the draft add / edit / remove / move stages;
+    *Publish* validates, makes it Active, moves all rules of that code to it and marks the old version **Retired**
+    (tickets already raised keep it). *Discard* deletes the draft. *New workflow* starts empty or as a copy.
+  - **Stage types → who acts:** Approval → reporting line to HOD / manager / HOD / role; Assignment → service-desk or
+    assignment group (needs a later Fulfilment stage, whose group is the assignee list); Fulfilment → implementor or
+    assignment group; Confirmation → requester; Closed → system (exactly one, last). Allowed actions are generated
+    from the type (`WorkflowDesignService.defaultTransitions`).
+  - Example: IT Service Desk before the implementor in Service Requests = Edit `SR_CHAIN_TO_HOD_CISO_IMPL`, add
+    *Assignment / Service desk group / IT Service Desk*, move it above *Implementor*, Publish.
 - **Config approvals** — `/admin/change-requests`: approve/reject pending changes.
 
 ### 6.6.1 AD Account Unlock (`admin/AdAccountUnlockService`, `web/AdAccountController`)
@@ -475,8 +488,11 @@ All require login except `/login`, static assets and `/actuator/health|info`. Al
 | GET | `/admin/roles`, `/admin/roles/{id}` | AdminRoleController | ADMIN_USER_MANAGE |
 | GET, POST | `/admin/roles/new`, `/admin/roles`, `/admin/roles/{id}/edit`, `/admin/roles/{id}` | AdminRoleController | ADMIN_USER_MANAGE + ADMIN_MASTERDATA_PROPOSE |
 | GET, POST | `/admin/roles/{id}/delete` | AdminRoleController | ROLE_SYSTEM_ADMINISTRATOR |
-| GET | `/admin/categories`, `/admin/sla`, `/admin/workflow`, `/admin/workflow/{id}`, `/admin/config` | AdminCatalogController | ADMIN_MASTERDATA_PROPOSE |
-| POST | `/admin/workflow/rules/{id}` | AdminCatalogController.updateRule | ADMIN_MASTERDATA_PROPOSE |
+| GET | `/admin/categories`, `/admin/sla`, `/admin/config` | AdminCatalogController | ADMIN_MASTERDATA_PROPOSE |
+| GET | `/admin/workflow`, `/admin/workflow/{id}` | AdminWorkflowController.list / detail | ADMIN_MASTERDATA_PROPOSE |
+| POST | `/admin/workflow/new`, `/{id}/draft`, `/{id}/details`, `/{id}/publish`, `/{id}/discard` | AdminWorkflowController | System Administrator |
+| POST | `/admin/workflow/{id}/stages`, `/{id}/stages/{sid}`, `/{id}/stages/{sid}/delete`, `/{id}/stages/{sid}/move` | AdminWorkflowController | System Administrator |
+| POST | `/admin/workflow/rules`, `/rules/{rid}`, `/rules/{rid}/delete` | AdminWorkflowController | System Administrator |
 | GET | `/403` | AccessDeniedController | any |
 | GET | `/actuator/health`, `/actuator/info` | Spring Boot Actuator | public (details hidden) |
 

@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface WorkflowStageTransitionRepository extends JpaRepository<WorkflowStageTransition, Long> {
     List<WorkflowStageTransition> findByWorkflowStage(WorkflowStage stage);
     Optional<WorkflowStageTransition> findByWorkflowStageAndActionCode(WorkflowStage stage, String actionCode);
+
+    void deleteByWorkflowStage(WorkflowStage stage);
 }

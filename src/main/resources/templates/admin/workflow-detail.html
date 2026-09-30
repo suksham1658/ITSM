@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
 <head th:replace="fragments/head :: head(${pageTitle})"></head>
 <body>
 <div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
@@ -14,28 +14,195 @@
         <a th:replace="fragments/back :: back(href=@{/admin/workflow}, label='Back to Workflow Config')"></a>
         <div class="breadcrumb">ITSM Portal / Admin / <a th:href="@{/admin/workflow}">Workflow</a> / <span th:text="${definition.code}">code</span></div>
         <h1 th:text="${definition.name}">Workflow</h1>
-        <p class="page-sub" th:text="${definition.description}">desc</p>
+        <p class="page-sub">
+          <span class="mono" th:text="${definition.code} + ' v' + ${definition.versionNo}">SR v1</span>
+          <span class="badge" th:classappend="${@ui.configStatusClass(definition.statusCode)}" th:text="${definition.statusCode}">Active</span>
+          <span th:if="${definition.description != null}" th:text="' · ' + ${definition.description}">desc</span>
+        </p>
       </div>
     </div>
-    <div class="card">
+
+    <!-- status / actions -->
+    <div class="alert-banner info" th:if="${!isDraft and draft != null}" style="margin-bottom:16px;">
+      A draft (v<span th:text="${draft.versionNo}">2</span>) of this workflow is being prepared.
+      <a class="cell-link" th:href="@{/admin/workflow/{id}(id=${draft.workflowDefinitionId})}">Open the draft</a>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;" th:if="${!isDraft}">
+      <p style="margin:0 0 10px;font-size:13px;">
+        <span th:if="${definition.statusCode == 'Active'}">This version is <b>active</b>: new tickets that match its rules follow it.</span>
+        <span th:if="${definition.statusCode == 'Retired'}">This is an <b>old version</b>, kept for the tickets that used it.</span>
+        To change it, make a draft copy; tickets keep using this version until you publish the draft.
+      </p>
+      <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" th:if="${definition.statusCode == 'Active'}"
+            th:action="@{/admin/workflow/{id}/draft(id=${definition.workflowDefinitionId})}" method="post">
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-pen"></i>
+          <span th:text="${draft != null} ? 'Continue editing draft' : 'Edit workflow'">Edit workflow</span></button>
+      </form>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:16px;" th:if="${isDraft}">
+      <div class="alert-banner warn" style="margin-bottom:12px;">
+        <b>Draft.</b> Not used by any ticket yet. Change the stages below, then <b>Publish</b>: it becomes active, the rules
+        switch to it and the previous version is kept for tickets already raised.
+      </div>
+      <div th:if="${!#lists.isEmpty(problems)}" class="alert-banner error" style="margin-bottom:12px;">
+        <b>Fix before publishing:</b>
+        <ul style="margin:6px 0 0 18px;"><li th:each="p : ${problems}" th:text="${p}">problem</li></ul>
+      </div>
+      <div sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <form th:action="@{/admin/workflow/{id}/publish(id=${definition.workflowDefinitionId})}" method="post"
+              data-confirm="Publish this draft? New tickets will follow it from now on.">
+          <button type="submit" class="btn btn-success btn-sm" th:disabled="${!#lists.isEmpty(problems)}">
+            <i class="fa-solid fa-circle-check"></i> Publish</button>
+        </form>
+        <form th:action="@{/admin/workflow/{id}/discard(id=${definition.workflowDefinitionId})}" method="post"
+              data-confirm="Delete this draft and all its changes?">
+          <button type="submit" class="btn btn-danger-outline btn-sm"><i class="fa-regular fa-trash-can"></i> Discard draft</button>
+        </form>
+      </div>
+      <details sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="margin-top:12px;">
+        <summary class="phase-note" style="cursor:pointer;">Change name / description</summary>
+        <form th:action="@{/admin/workflow/{id}/details(id=${definition.workflowDefinitionId})}" method="post" style="margin-top:8px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Name <span class="req">*</span></label>
+              <input class="form-control" name="name" th:value="${definition.name}" required="required" minlength="3" maxlength="128"/></div>
+            <div class="form-group"><label>Description</label>
+              <input class="form-control" name="description" th:value="${definition.description}" maxlength="512"/></div>
+          </div>
+          <button type="submit" class="btn btn-accent btn-sm" style="margin-top:8px;">Save</button>
+        </form>
+      </details>
+    </div>
+
+    <!-- flow preview -->
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">Flow</h3>
+      <div class="status-progress">
+        <th:block th:each="s, iter : ${stages}">
+          <div class="sp-step done"><div class="sp-dot"></div><div class="sp-label" th:text="${s.label}">Stage</div></div>
+          <div class="sp-bar done" th:if="${!iter.last}"></div>
+        </th:block>
+      </div>
+      <p class="phase-note" style="margin-bottom:0;">A reporting-line stage becomes one approval per manager (up to the HOD) when a ticket is raised.</p>
+    </div>
+
+    <!-- stages -->
+    <div class="card card-pad">
+      <h3 style="font-size:14px;margin-bottom:10px;">Stages</h3>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Order</th><th>Code</th><th>Label</th><th>Type</th><th>Strategy</th><th>Role / group</th></tr></thead>
+          <thead><tr><th>#</th><th>Stage</th><th>Type</th><th>Who acts</th><th>Send back to</th><th th:if="${isDraft}"></th></tr></thead>
           <tbody>
-          <tr th:each="s : ${stages}">
-            <td th:text="${s.stageOrder}">10</td>
-            <td class="cell-id" th:text="${s.code}">c</td>
-            <td th:text="${s.label}">l</td>
-            <td th:text="${s.stageType}">t</td>
-            <td th:text="${s.actorStrategy}">a</td>
+          <tr th:each="s, iter : ${stages}">
+            <td th:text="${iter.count}">1</td>
+            <td><b th:text="${s.label}">label</b></td>
+            <td th:text="${s.stageType}">APPROVAL</td>
             <td>
-              <span th:if="${s.role != null}" th:text="${s.role.code}">CISO</span>
-              <span th:if="${s.assignmentGroup != null}" th:text="${s.assignmentGroup.code}">G</span>
+              <span th:text="${strategies[s.actorStrategy] ?: s.actorStrategy}">who</span>
+              <span class="badge badge-outline" th:if="${s.role != null}" th:text="${s.role.name}">CISO</span>
+              <span class="badge badge-outline" th:if="${s.assignmentGroup != null}" th:text="${s.assignmentGroup.name}">Group</span>
+            </td>
+            <td th:text="${s.sendBackTarget == null} ? '—' : (${s.sendBackTarget == 'REQUESTER'} ? 'Requester' : 'Previous stage')">—</td>
+            <td th:if="${isDraft}" style="white-space:nowrap;text-align:right;">
+              <th:block sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+                <form th:action="@{/admin/workflow/{id}/stages/{sid}/move(id=${definition.workflowDefinitionId},sid=${s.workflowStageId})}"
+                      method="post" style="display:inline;" th:if="${!iter.first}">
+                  <input type="hidden" name="dir" value="up"/>
+                  <button type="submit" class="btn btn-outline btn-xs" title="Move up" aria-label="Move up"><i class="fa-solid fa-arrow-up"></i></button>
+                </form>
+                <form th:action="@{/admin/workflow/{id}/stages/{sid}/move(id=${definition.workflowDefinitionId},sid=${s.workflowStageId})}"
+                      method="post" style="display:inline;" th:if="${!iter.last}">
+                  <input type="hidden" name="dir" value="down"/>
+                  <button type="submit" class="btn btn-outline btn-xs" title="Move down" aria-label="Move down"><i class="fa-solid fa-arrow-down"></i></button>
+                </form>
+                <form th:action="@{/admin/workflow/{id}/stages/{sid}/delete(id=${definition.workflowDefinitionId},sid=${s.workflowStageId})}"
+                      method="post" style="display:inline;" th:attr="data-confirm='Remove the stage ' + ${s.label} + '?'">
+                  <button type="submit" class="btn btn-danger-outline btn-xs" title="Remove" aria-label="Remove"><i class="fa-regular fa-trash-can"></i></button>
+                </form>
+              </th:block>
             </td>
           </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- edit forms (draft only) -->
+      <th:block th:if="${isDraft}" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+        <details th:each="s : ${stages}" style="margin-top:10px;">
+          <summary class="phase-note" style="cursor:pointer;" th:text="'Edit stage: ' + ${s.label}">Edit</summary>
+          <form th:action="@{/admin/workflow/{id}/stages/{sid}(id=${definition.workflowDefinitionId},sid=${s.workflowStageId})}"
+                method="post" class="card card-pad stage-form" style="margin-top:8px;">
+            <div class="form-grid">
+              <div class="form-group"><label>Stage name <span class="req">*</span></label>
+                <input class="form-control" name="label" th:value="${s.label}" required="required" minlength="2" maxlength="128"/></div>
+              <div class="form-group"><label>Type</label>
+                <select class="form-control" name="stageType" data-stage-type="true">
+                  <option th:each="t : ${stageTypes}" th:value="${t.key}" th:text="${t.value}" th:selected="${t.key == s.stageType}">APPROVAL</option>
+                </select></div>
+              <div class="form-group"><label>Who acts</label>
+                <select class="form-control" name="actorStrategy" data-stage-strategy="true">
+                  <option th:each="st : ${strategies}" th:value="${st.key}" th:text="${st.value}" th:selected="${st.key == s.actorStrategy}"
+                          th:attr="data-types=${typesByStrategy[st.key]}">who</option>
+                </select></div>
+              <div class="form-group" data-stage-role="true"><label>Role</label>
+                <select class="form-control" name="roleId">
+                  <option value="">Choose a role</option>
+                  <option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.name}" th:selected="${s.role != null and s.role.roleId == r.roleId}">CISO</option>
+                </select></div>
+              <div class="form-group" data-stage-group="true"><label>Group</label>
+                <select class="form-control" name="groupId">
+                  <option value="">Choose a group</option>
+                  <option th:each="g : ${groups}" th:value="${g.assignmentGroupId}" th:text="${g.name}"
+                          th:selected="${s.assignmentGroup != null and s.assignmentGroup.assignmentGroupId == g.assignmentGroupId}">G</option>
+                </select></div>
+              <div class="form-group" data-stage-sendback="true"><label>Send back goes to</label>
+                <select class="form-control" name="sendBackTarget">
+                  <option value="PREVIOUS_STAGE" th:selected="${s.sendBackTarget != 'REQUESTER'}">Previous stage</option>
+                  <option value="REQUESTER" th:selected="${s.sendBackTarget == 'REQUESTER'}">Requester</option>
+                </select></div>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm" style="margin-top:8px;"><i class="fa-regular fa-floppy-disk"></i> Save stage</button>
+          </form>
+        </details>
+
+        <div class="card card-pad" style="margin-top:16px;border:1px dashed var(--slate-300);">
+          <h4 style="font-size:13px;margin:0 0 8px;"><i class="fa-solid fa-plus"></i> Add a stage</h4>
+          <p class="phase-note" style="margin-top:0;">Added just before "Closed"; move it with the arrows. Example: to put the
+            IT Service Desk before the implementor, choose <b>Assignment</b> + <b>Service desk group</b> + <b>IT Service Desk</b>
+            and move it above the Implementor stage.</p>
+          <form th:action="@{/admin/workflow/{id}/stages(id=${definition.workflowDefinitionId})}" method="post" class="stage-form">
+            <div class="form-grid">
+              <div class="form-group"><label for="nsLabel">Stage name <span class="req">*</span></label>
+                <input class="form-control" id="nsLabel" name="label" required="required" minlength="2" maxlength="128" placeholder="e.g. IT Service Desk"/></div>
+              <div class="form-group"><label for="nsType">Type</label>
+                <select class="form-control" id="nsType" name="stageType" data-stage-type="true">
+                  <option th:each="t : ${stageTypes}" th:value="${t.key}" th:text="${t.value}">APPROVAL</option>
+                </select></div>
+              <div class="form-group"><label for="nsWho">Who acts</label>
+                <select class="form-control" id="nsWho" name="actorStrategy" data-stage-strategy="true">
+                  <option th:each="st : ${strategies}" th:value="${st.key}" th:text="${st.value}"
+                          th:attr="data-types=${typesByStrategy[st.key]}">who</option>
+                </select></div>
+              <div class="form-group" data-stage-role="true"><label for="nsRole">Role</label>
+                <select class="form-control" id="nsRole" name="roleId">
+                  <option value="">Choose a role</option>
+                  <option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.name}">CISO</option>
+                </select></div>
+              <div class="form-group" data-stage-group="true"><label for="nsGroup">Group</label>
+                <select class="form-control" id="nsGroup" name="groupId">
+                  <option value="">Choose a group</option>
+                  <option th:each="g : ${groups}" th:value="${g.assignmentGroupId}" th:text="${g.name}">G</option>
+                </select></div>
+              <div class="form-group" data-stage-sendback="true"><label for="nsBack">Send back goes to</label>
+                <select class="form-control" id="nsBack" name="sendBackTarget">
+                  <option value="PREVIOUS_STAGE">Previous stage</option>
+                  <option value="REQUESTER">Requester</option>
+                </select></div>
+            </div>
+            <button type="submit" class="btn btn-success btn-sm" style="margin-top:8px;"><i class="fa-solid fa-plus"></i> Add stage</button>
+          </form>
+        </div>
+      </th:block>
     </div>
 </main>
 </div>

@@ -149,8 +149,21 @@ class FormValidationTest {
     void workflowRuleRejectsInvalidJsonAndBlankName() throws Exception {
         WorkflowRule rule = ruleRepository.findAll().get(0);
         String originalJson = rule.getConditionJson();
+        // IT Admin may look at Workflow Config but not change it (System Administrator only).
         mockMvc.perform(post("/admin/workflow/rules/{id}", rule.getWorkflowRuleId()).with(as(admin)).with(csrf())
+                        .param("name", rule.getName())
+                        .param("priority", String.valueOf(rule.getPriority()))
+                        .param("statusCode", rule.getStatusCode())
+                        .param("conditionJson", "{}")
+                        .param("workflowDefinitionId", String.valueOf(rule.getWorkflowDefinition().getWorkflowDefinitionId())))
+                .andExpect(flash().attribute("errorMessage", containsString("Only the System Administrator")));
+        assertEquals(originalJson, ruleRepository.findById(rule.getWorkflowRuleId()).get().getConditionJson());
+
+        ItsmUserPrincipal sysAdmin = principal("E-VAL-SYS", "val.sys", "Validation SysAdmin", "SYSTEM_ADMINISTRATOR");
+        mockMvc.perform(post("/admin/workflow/rules/{id}", rule.getWorkflowRuleId()).with(as(sysAdmin)).with(csrf())
                         .param("name", " ")
+                        .param("priority", String.valueOf(rule.getPriority()))
+                        .param("workflowDefinitionId", String.valueOf(rule.getWorkflowDefinition().getWorkflowDefinitionId()))
                         .param("statusCode", "Enabled")
                         .param("conditionJson", "{ticket_type: Incident"))
                 .andExpect(status().is3xxRedirection())
@@ -160,8 +173,10 @@ class FormValidationTest {
                         containsString("Condition is not valid JSON"))));
         assertEquals(originalJson, ruleRepository.findById(rule.getWorkflowRuleId()).get().getConditionJson());
 
-        mockMvc.perform(post("/admin/workflow/rules/{id}", rule.getWorkflowRuleId()).with(as(admin)).with(csrf())
+        mockMvc.perform(post("/admin/workflow/rules/{id}", rule.getWorkflowRuleId()).with(as(sysAdmin)).with(csrf())
                         .param("name", rule.getName())
+                        .param("priority", String.valueOf(rule.getPriority()))
+                        .param("workflowDefinitionId", String.valueOf(rule.getWorkflowDefinition().getWorkflowDefinitionId()))
                         .param("statusCode", rule.getStatusCode())
                         .param("conditionJson", "[1,2]"))
                 .andExpect(flash().attribute("errorMessage", containsString("must be a JSON object")));

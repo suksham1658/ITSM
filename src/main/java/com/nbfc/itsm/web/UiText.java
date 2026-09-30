@@ -76,6 +76,7 @@ public class UiText {
                 return "badge-flow";
             case "Applied":
             case "Inactive":
+            case "Retired":
                 return "badge-closed";
             case "Rejected":
                 return "badge-rejected";
