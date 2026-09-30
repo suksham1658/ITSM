@@ -349,9 +349,23 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<Ticket> queueByStageType(String stageType) {
         List<WorkflowInstanceStage> current = instanceStageRepository.findByStatusCodeAndStageType("Current", stageType);
-        List<Ticket> tickets = new ArrayList<Ticket>();
+        java.util.Set<Long> ids = new java.util.LinkedHashSet<Long>();
         for (WorkflowInstanceStage s : current) {
-            Long ticketId = s.getWorkflowInstance().getTicketId();
+            ids.add(s.getWorkflowInstance().getTicketId());
+        }
+        if ("ASSIGNMENT".equals(stageType)) {
+            // Service desk queue: also any other step waiting for the IT Service Desk (e.g. a workflow whose
+            // desk stage is an approval by the IT Service Desk role).
+            for (WorkflowInstanceStage s : instanceStageRepository.findByStatusCode("Current")) {
+                boolean deskRole = s.getResolvedRole() != null && DESK.equals(s.getResolvedRole().getCode());
+                boolean deskGroup = s.getResolvedGroup() != null && DESK.equals(s.getResolvedGroup().getCode());
+                if ((deskRole || deskGroup) && s.getResolvedEmployee() == null) {
+                    ids.add(s.getWorkflowInstance().getTicketId());
+                }
+            }
+        }
+        List<Ticket> tickets = new ArrayList<Ticket>();
+        for (Long ticketId : ids) {
             ticketRepository.findById(ticketId).ifPresent(t -> {
                 hydrate(t);
                 tickets.add(t);
@@ -360,6 +374,9 @@ public class TicketService {
         tickets.sort(NEWEST_FIRST);
         return tickets;
     }
+
+    /** Role and group code of the IT Service Desk. */
+    private static final String DESK = "IT_SERVICE_DESK";
 
     @Transactional(readOnly = true)
     public List<Ticket> assignedTo(ItsmUserPrincipal principal) {

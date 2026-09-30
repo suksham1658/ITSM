@@ -324,7 +324,11 @@ public class WorkflowEngine {
 
     public void assertCanAct(ItsmUserPrincipal principal, Employee actor, Ticket ticket, WorkflowInstanceStage current) {
         String type = current.getStageType();
-        if ("APPROVAL".equals(type) && !principal.getAuthorities().stream()
+        // Approving needs the approve permission, unless the workflow names one of your roles as this step's
+        // approver (e.g. the IT Service Desk role viewing as "IT Service Desk").
+        boolean namedRole = current.getResolvedRole() != null
+                && principal.getRoleCodes().contains(current.getResolvedRole().getCode());
+        if ("APPROVAL".equals(type) && !namedRole && !principal.getAuthorities().stream()
                 .anyMatch(a -> "TICKET_APPROVE_ASSIGNED_STAGE".equals(a.getAuthority()))) {
             throw new AccessDeniedException("Not an assigned approver.");
         }
