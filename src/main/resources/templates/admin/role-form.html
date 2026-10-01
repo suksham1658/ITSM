@@ -13,7 +13,7 @@
       <div>
         <th:block th:if="${role == null}"><a th:replace="fragments/back :: back(href=@{/admin/roles}, label='Back to Roles &amp; Permissions')"></a></th:block>
         <th:block th:if="${role != null}"><a th:replace="fragments/back :: back(href=@{/admin/roles/{id}(id=${role.roleId})}, label='Back to ' + ${role.name})"></a></th:block>
-        <div class="breadcrumb">Authum IT Nexa / <a th:href="@{/admin/roles}">Roles &amp; Permissions</a> /
+        <div class="breadcrumb">IT Nexa / <a th:href="@{/admin/roles}">Roles &amp; Permissions</a> /
             <span th:text="${role == null} ? 'New role' : ${role.name}">New role</span></div>
         <h1 th:text="${role == null} ? 'New Role' : 'Edit Role: ' + ${role.name}">New Role</h1>
         <p class="page-sub">Saved as a pending change. A <b>different</b> administrator must approve it in Config approvals before it takes effect.</p>

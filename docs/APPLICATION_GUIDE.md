@@ -1,4 +1,4 @@
-# Authum IT Nexa (ITSM Portal) — Application Guide
+# IT Nexa (ITSM Portal) — Application Guide
 
 Developer and support reference: architecture, modules and their flows, every HTTP endpoint,
 the main classes and methods, configuration (database, LDAP, security), the database schema,
@@ -755,9 +755,9 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
 
 ## Appendix: Branding, theme and performance (2026-10-01)
 
-* **Name:** the portal is shown as **Authum IT Nexa** (login, sidebar, page titles, breadcrumbs, e-mails). Ticket
+* **Name:** the portal is shown as **IT Nexa** (login, sidebar, page titles, breadcrumbs, e-mails). Ticket
   numbers keep their `ITSM-yyyy-nnnnnn` format. Company name default: `Authum` (System Configuration → General).
-* **Look:** cherry-red sidebar, wine-to-cherry login with only the brand name, light tinted table rows, blush
+* **Look:** sky-blue (#87CFEB) sidebar and login with navy text; Authum logo (`static/images/authum-logo.png`) on a white plate, then "IT Nexa" and "Next Starts Here"; light tinted table rows, light sky
   dashboard tiles that lift on hover (theme block at the end of `static/css/itsm.css`). The horizontal top menu
   and the dashboard "Raise Request" button were removed; the sidebar is the menu.
 * **Speed for 1000+ users:**

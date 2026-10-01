@@ -12,7 +12,7 @@
     <div class="page-header">
       <div>
         <a th:replace="fragments/back :: back(href=@{${backHref}}, label=${backLabel})"></a>
-        <div class="breadcrumb">Authum IT Nexa / <a th:href="@{/admin/users}">Users</a> / <span th:text="${employee.employeeNo}">E1</span></div>
+        <div class="breadcrumb">IT Nexa / <a th:href="@{/admin/users}">Users</a> / <span th:text="${employee.employeeNo}">E1</span></div>
         <h1 th:text="${employee.displayName}">Name</h1>
         <p class="page-sub" th:text="${employee.employeeNo + (employee.samAccountName != null ? ' · ' + employee.samAccountName : '')}">E1</p>
       </div>
