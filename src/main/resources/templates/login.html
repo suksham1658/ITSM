@@ -6,17 +6,15 @@
   <div class="login-brand">
     <div class="login-brand-center">
       <div class="login-logo-plate"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/></div>
-      <!-- "Next Starts Here" sits on the next line, starting under the "x" of Nexa. -->
-      <div class="login-product">
-        <span class="visually-hidden">IT Nexa. Next Starts Here.</span>
-        <span aria-hidden="true">IT Ne<span class="login-x">x<span class="login-tagline">Next Starts Here</span></span>a</span>
-      </div>
+      <!-- Wordmark echoes the logo: red "IT" (the logo's A), navy "Nexa"; slogan centred between hairlines. -->
+      <div class="login-wordmark"><span class="wm-it">IT</span> <span class="wm-nexa">Nexa</span></div>
+      <div class="login-slogan"><span class="sl-line" aria-hidden="true"></span><span class="sl-text">Next Starts Here</span><span class="sl-line" aria-hidden="true"></span></div>
     </div>
     <div class="login-foot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
   </div>
   <div class="login-panel-wrap">
     <div class="login-panel">
-      <div class="login-panel-brand"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/><b>IT Nexa</b></div>
+      <div class="login-panel-brand"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/><b><span class="wm-it">IT</span> <span class="wm-nexa">Nexa</span></b></div>
       <h2>Sign in</h2>
       <p class="login-sub">Use your Windows (domain) login.</p>
       <div class="login-error show" th:if="${loginError}"><i class="fa-solid fa-triangle-exclamation"></i><span>Sign-in failed. Check your credentials or contact IT Service Desk.</span></div>
