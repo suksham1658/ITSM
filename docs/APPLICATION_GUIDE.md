@@ -269,7 +269,7 @@ frame deny, referrer same-origin, CSRF on for all POSTs. Logout `POST /logout` �
 | TICKET_VIEW_TEAM / _DEPARTMENT / _SECURITY | Team / Department / Security Requests (+ Risk) |
 | TICKET_VIEW_QUEUE_ALL | Ticket Queue, Assignment |
 | TICKET_ASSIGN | Assign on the Service Desk step |
-| TICKET_APPROVE_ASSIGNED_STAGE | Approvals page, approve/reject/send back |
+| TICKET_APPROVE_ASSIGNED_STAGE | Approvals page ("waiting for me": approvals, IT Service Desk assignment, implementor work, confirmation; `TicketService.waitingFor`), approve/reject/send back |
 | TICKET_FULFIL | My Assigned Tickets, Work Queue, Change Requests |
 | SLA_MONITOR | SLA Monitoring, Escalations |
 | REPORT_VIEW | Reports |
@@ -595,7 +595,7 @@ All require login except `/login`, static assets and `/actuator/health|info`. Al
 | `AuditLoginSuccessHandler` / `AuditLoginFailureHandler` | Audit login results, redirects | `onAuthentication*` |
 | **identity** `LdapDirectoryClient` | JNDI bind/search, manager chain, error diagnosis | `authenticateAndLoad`, `loadManagerChain`, `diagnose` |
 | `PortalUserService` | Directory person → employee + principal | `loadActivePrincipal`, `syncHierarchy`, `toPrincipal`, `refresh`, `switchActiveRole` |
-| **ticket** `TicketService` | Ticket CRUD, visibility, queues, comments | `save`, `submitDraft`, `applyAction`, `addComment`, `detail`, `search`, `queueByStageType`, `assignedTo`, `approvalsFor`, `canView`, `requireView` |
+| **ticket** `TicketService` | Ticket CRUD, visibility, queues, comments | `save`, `submitDraft`, `applyAction`, `addComment`, `detail`, `search`, `queueByStageType`, `assignedTo`, `approvalsFor`, `waitingFor`, `canView`, `requireView` |
 | `TicketNumberService` | Public number allocation | `allocate` |
 | `AttachmentService` | Attachment policy + filesystem storage | `store`, `resolveFile` |
 | **workflow** `WorkflowEngine` | Rule → stages, actions, status, notifications | `startOnSubmit`, `applyAction`, `assertCanAct`, `isActor`, `managerHops`, `assigneePool`, `loadStages` |

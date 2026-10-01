@@ -441,6 +441,42 @@ public class TicketService {
         return out;
     }
 
+    /**
+     * Approvals page: every open ticket whose current step this user can act on now — approve,
+     * assign as IT Service Desk, work on as implementor, or confirm as requester. Newest first.
+     */
+    @Transactional(readOnly = true)
+    public List<WaitingItem> waitingFor(ItsmUserPrincipal principal) {
+        Employee me = employeeRepository.findById(principal.getEmployeeId()).orElse(null);
+        List<WaitingItem> out = new ArrayList<WaitingItem>();
+        if (me == null) {
+            return out;
+        }
+        for (WorkflowInstanceStage s : instanceStageRepository.findByStatusCode("Current")) {
+            if (!WaitingItem.ACTION_BY_STAGE_TYPE.containsKey(s.getStageType())) {
+                continue;
+            }
+            // A step given to one person waits only for them (or their delegate), not their whole group.
+            if (s.getResolvedEmployee() != null && !s.getResolvedEmployee().getEmployeeId().equals(me.getEmployeeId())
+                    && !WorkflowEngine.isDelegateFor(me, s)) {
+                continue;
+            }
+            try {
+                Ticket t = ticketRepository.findById(s.getWorkflowInstance().getTicketId()).orElse(null);
+                if (t == null || CLOSED.contains(t.getStatusCode())) {
+                    continue;
+                }
+                workflowEngine.assertCanAct(principal, me, t, s);
+                hydrate(t);
+                out.add(new WaitingItem(t, s.getStageType(), s.getLabel()));
+            } catch (AccessDeniedException ex) {
+                /* not this user's step */
+            }
+        }
+        out.sort((a, b) -> NEWEST_FIRST.compare(a.getTicket(), b.getTicket()));
+        return out;
+    }
+
     @Transactional(readOnly = true)
     public Ticket requireView(ItsmUserPrincipal principal, Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId)

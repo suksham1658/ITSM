@@ -13,17 +13,19 @@
       <div>
         <div class="breadcrumb">ITSM Portal / <span th:text="${pageTitle}">Approvals</span></div>
         <h1 th:text="${pageTitle}">Approvals</h1>
-        <p class="page-sub">Stages assigned to you. Remarks are mandatory on Approve, Reject and Send Back.</p>
+        <p class="page-sub">Every ticket waiting for you: approvals, IT Service Desk assignment and implementor work. Remarks are mandatory on Approve, Reject and Send Back.</p>
       </div>
     </div>
-    <div class="card" th:if="${tickets != null and !tickets.empty}">
+    <div class="card" th:if="${items != null and !items.empty}">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Number</th><th>Subject</th><th>Type</th><th>Status</th><th>Priority</th><th>Requester</th><th>Created</th></tr></thead>
+          <thead><tr><th>Number</th><th>Subject</th><th>Your step</th><th>Type</th><th>Status</th><th>Priority</th><th>Requester</th><th>Created</th></tr></thead>
           <tbody>
-          <tr th:each="t : ${tickets}">
+          <tr th:each="i : ${items}" th:with="t=${i.ticket}">
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${t.ticketId})}" th:text="${t.publicNumber}">n</a></td>
             <td th:text="${t.subject}">s</td>
+            <td><span class="badge badge-flow" th:text="${i.action}">Approve</span>
+              <div class="text-muted" th:text="${@ui.stageLabel(i.stepLabel)}">step</div></td>
             <td th:text="${t.ticketType.name}">t</td>
             <td><span class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">st</span></td>
             <td th:text="${t.priorityCode}">p</td>
@@ -34,7 +36,7 @@
         </table>
       </div>
     </div>
-    <div th:if="${tickets == null or tickets.empty}">
+    <div th:if="${items == null or items.empty}">
       <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
     </div>
 </main>

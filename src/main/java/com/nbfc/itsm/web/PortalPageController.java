@@ -64,8 +64,8 @@ public class PortalPageController {
     public String approvals(@AuthenticationPrincipal ItsmUserPrincipal user, Model model) {
         model.addAttribute("nav", "approvals");
         model.addAttribute("pageTitle", "Approvals");
-        model.addAttribute("tickets", ticketService.approvalsFor(user));
-        model.addAttribute("emptyMessage", "No stages are waiting for you. Remarks are mandatory on Approve, Reject and Send Back.");
+        model.addAttribute("items", ticketService.waitingFor(user));
+        model.addAttribute("emptyMessage", "Nothing is waiting for you: no approvals, service desk assignments or implementor work.");
         return "approvals";
     }
 
