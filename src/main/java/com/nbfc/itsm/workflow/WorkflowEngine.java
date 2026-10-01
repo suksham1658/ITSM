@@ -179,6 +179,9 @@ public class WorkflowEngine {
         }
         boolean remarksNeeded = transition.isRemarksRequired()
                 || "APPROVE".equals(action) || "REJECT".equals(action) || "SEND_BACK".equals(action);
+        if ("CONFIRMATION".equals(current.getStageType()) && "APPROVE".equals(action)) {
+            remarksNeeded = false; // the requester just confirms "Resolved"; "Not resolved" still needs a reason
+        }
         if (remarksNeeded) {
             requireRemarks(remarks);
         }
@@ -199,6 +202,9 @@ public class WorkflowEngine {
             instance.setCurrentStageId(current.getWorkflowInstanceStageId());
         } else if ("SEND_BACK".equals(action)) {
             sendBack(ticket, instance, stages, current, remarks);
+            if ("CONFIRMATION".equals(current.getStageType())) {
+                slaService.reopen(ticket); // "Not resolved": the resolution clock runs again
+            }
         } else if ("ASSIGN".equals(action) || "REASSIGN".equals(action)) {
             AssignmentGroup pool = assigneePool(stages, current);
             List<Employee> chosen = resolveAssignees(assigneeIds, eligibleImplementors(ticket, stages, current));
@@ -478,7 +484,190 @@ public class WorkflowEngine {
     public boolean requesterConfirmation() {
         return settingRepository.findById("workflow.requester-confirmation")
                 .map(s -> "true".equalsIgnoreCase(s.getSettingValue()))
-                .orElse(false);
+                .orElse(true);
+    }
+
+    /** Hours a resolved ticket waits for the requester before it closes automatically (default 48). */
+    public int confirmationHours() {
+        return settingRepository.findById("workflow.confirmation-hours")
+                .map(s -> parseInt(s.getSettingValue(), 48)).orElse(48);
+    }
+
+    /** Hours the requester may re-open a ticket after an automatic closure (default 48). */
+    public int reopenHours() {
+        return settingRepository.findById("workflow.reopen-hours")
+                .map(s -> parseInt(s.getSettingValue(), 48)).orElse(48);
+    }
+
+    // ------------------------------------------------------------------ requester confirmation: auto-close / re-open
+
+    /** Action code on the confirmation step when the system closed the ticket for lack of an answer. */
+    public static final String AUTO_CLOSE = "AUTO_CLOSE";
+    /** Action code after the requester confirmed an automatically closed ticket (no re-open any more). */
+    public static final String CONFIRMED = "CONFIRMED";
+
+    /** When the ticket reached the requester for confirmation: the time the step before it was completed. */
+    public java.time.Instant waitingSince(List<WorkflowInstanceStage> stages, WorkflowInstanceStage confirmation) {
+        WorkflowInstanceStage prev = previousCompleted(stages, confirmation);
+        return prev != null ? prev.getActedAtUtc() : null;
+    }
+
+    /** When a ticket waiting for the requester closes on its own, or null. */
+    public java.time.Instant autoCloseAt(List<WorkflowInstanceStage> stages, WorkflowInstanceStage confirmation) {
+        java.time.Instant since = waitingSince(stages, confirmation);
+        return since == null ? null : since.plus(java.time.Duration.ofHours(confirmationHours()));
+    }
+
+    /**
+     * Closes a ticket whose requester did not confirm within the window. Safe to call repeatedly and from
+     * several servers: it does nothing unless the step is still waiting and the window has passed.
+     */
+    @Transactional
+    public boolean autoCloseIfDue(Long stageId, java.time.Instant now) {
+        WorkflowInstanceStage stage = instanceStageRepository.findById(stageId).orElse(null);
+        if (stage == null || !"Current".equals(stage.getStatusCode()) || !"CONFIRMATION".equals(stage.getStageType())) {
+            return false;
+        }
+        WorkflowInstance instance = stage.getWorkflowInstance();
+        List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
+        WorkflowInstanceStage current = null;
+        for (WorkflowInstanceStage s : stages) {
+            if (s.getWorkflowInstanceStageId().equals(stageId)) {
+                current = s;
+            }
+        }
+        java.time.Instant due = autoCloseAt(stages, current);
+        if (current == null || due == null || now.isBefore(due)) {
+            return false;
+        }
+        Ticket ticket = ticketRepository.findById(instance.getTicketId()).orElse(null);
+        if (ticket == null) {
+            return false;
+        }
+        current.setStatusCode("Completed");
+        current.setActionCode(AUTO_CLOSE);
+        current.setRemarks("Closed automatically: no answer from the requester within " + hoursText(confirmationHours()) + ".");
+        current.setActedAtUtc(TimeUtc.now());
+        String oldStatus = ticket.getStatusCode();
+        advance(ticket, instance, stages, current);
+        instanceStageRepository.saveAll(stages);
+        instanceRepository.save(instance);
+        ticketRepository.save(ticket);
+        auditRecorder.recordTicket(AUTO_CLOSE, ticket.getTicketId(), oldStatus, ticket.getStatusCode());
+        notifications.autoClosed(ticket);
+        return true;
+    }
+
+    /** Until when the requester may still re-open this automatically closed ticket, or null. */
+    public java.time.Instant reopenUntil(Ticket ticket, List<WorkflowInstanceStage> stages) {
+        if (!"Closed".equals(ticket.getStatusCode())) {
+            return null;
+        }
+        for (WorkflowInstanceStage s : stages) {
+            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode()) && s.getActedAtUtc() != null) {
+                return s.getActedAtUtc().plus(java.time.Duration.ofHours(reopenHours()));
+            }
+        }
+        return null;
+    }
+
+    /** "Not resolved" after an automatic closure: the ticket goes back to the implementor. Requester only. */
+    @Transactional
+    public Ticket reopenAfterAutoClose(Long ticketId, ItsmUserPrincipal principal, String reason) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ItsmException("TICKET_NOT_FOUND", "Ticket not found."));
+        assertRequester(ticket, principal);
+        requireRemarks(reason);
+        WorkflowInstance instance = instanceRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new ItsmException("WORKFLOW_MISSING", "Ticket has no workflow instance."));
+        List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
+        assertReopenable(ticket, stages);
+        WorkflowInstanceStage confirmation = null;
+        for (WorkflowInstanceStage s : stages) {
+            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode())) {
+                confirmation = s;
+            }
+        }
+        WorkflowInstanceStage work = previousCompleted(stages, confirmation);
+        if (work == null) {
+            throw new ItsmException("REOPEN_TARGET", "There is no implementation step to send this ticket back to.");
+        }
+        boolean after = false;
+        for (WorkflowInstanceStage s : stages) {
+            if (s == confirmation) {
+                after = true;
+                continue;
+            }
+            if (after && ("Completed".equals(s.getStatusCode()) || "Current".equals(s.getStatusCode()))) {
+                s.setStatusCode("Pending");
+                s.setActionCode(null);
+                s.setActedAtUtc(null);
+            }
+        }
+        confirmation.setStatusCode("Pending");
+        confirmation.setActionCode("REOPENED");
+        confirmation.setRemarks("Re-opened by the requester: " + trim(reason));
+        confirmation.setActedAtUtc(TimeUtc.now());
+        work.setStatusCode("Current");
+        work.setActionCode(null);
+        instance.setStatusCode("InProgress");
+        instance.setCurrentStageId(work.getWorkflowInstanceStageId());
+        applyTicketStatus(ticket, work);
+        slaService.reopen(ticket);
+        instanceStageRepository.saveAll(stages);
+        instanceRepository.save(instance);
+        ticketRepository.save(ticket);
+        auditRecorder.recordTicket("REOPEN", ticket.getTicketId(), "Closed", ticket.getStatusCode());
+        Employee actor = employeeRepository.findById(principal.getEmployeeId()).orElse(ticket.getRequester());
+        notifications.sentBack(ticket, actor, reason, work);
+        return ticket;
+    }
+
+    /** "Resolved" after an automatic closure: the requester agrees; the ticket stays closed for good. */
+    @Transactional
+    public Ticket confirmAutoClose(Long ticketId, ItsmUserPrincipal principal) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ItsmException("TICKET_NOT_FOUND", "Ticket not found."));
+        assertRequester(ticket, principal);
+        WorkflowInstance instance = instanceRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new ItsmException("WORKFLOW_MISSING", "Ticket has no workflow instance."));
+        List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
+        assertReopenable(ticket, stages);
+        for (WorkflowInstanceStage s : stages) {
+            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode())) {
+                s.setActionCode(CONFIRMED);
+                s.setRemarks("Requester confirmed the issue is resolved (after automatic closure).");
+            }
+        }
+        instanceStageRepository.saveAll(stages);
+        auditRecorder.recordTicket(CONFIRMED, ticket.getTicketId(), "Closed", "Closed");
+        return ticket;
+    }
+
+    private void assertRequester(Ticket ticket, ItsmUserPrincipal principal) {
+        if (ticket.getRequester() == null || !ticket.getRequester().getEmployeeId().equals(principal.getEmployeeId())) {
+            throw new AccessDeniedException("Only the requester can do this.");
+        }
+    }
+
+    private void assertReopenable(Ticket ticket, List<WorkflowInstanceStage> stages) {
+        java.time.Instant until = reopenUntil(ticket, stages);
+        if (until == null) {
+            throw new ItsmException("REOPEN_NOT_ALLOWED", "This ticket was not closed automatically, or it was already confirmed.");
+        }
+        if (TimeUtc.now().isAfter(until)) {
+            throw new ItsmException("REOPEN_EXPIRED", "The re-open period (" + hoursText(reopenHours())
+                    + " after closure) has ended. Please raise a new request.");
+        }
+    }
+
+    /** 48 -> "2 days", 36 -> "36 hours". */
+    public static String hoursText(int hours) {
+        if (hours % 24 == 0) {
+            int d = hours / 24;
+            return d + (d == 1 ? " day" : " days");
+        }
+        return hours + (hours == 1 ? " hour" : " hours");
     }
 
     public int remarksMin() {

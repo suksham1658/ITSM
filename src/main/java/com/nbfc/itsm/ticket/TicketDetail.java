@@ -28,6 +28,36 @@ public class TicketDetail {
     private List<com.nbfc.itsm.domain.TicketAssignmentLog> assignmentLog = new ArrayList<com.nbfc.itsm.domain.TicketAssignmentLog>();
     /** The requester's directory details are shown to everyone working on the ticket, not to the requester. */
     private boolean showRequesterDetails;
+    /** Waiting for the requester: when it closes on its own if they do not answer. */
+    private java.time.Instant autoCloseAt;
+    /** Closed automatically: until when the requester may re-open it (null = not re-openable). */
+    private java.time.Instant reopenUntil;
+    /** The viewer is the requester and the re-open period is still running. */
+    private boolean canReopen;
+
+    public java.time.Instant getAutoCloseAt() {
+        return autoCloseAt;
+    }
+
+    public void setAutoCloseAt(java.time.Instant autoCloseAt) {
+        this.autoCloseAt = autoCloseAt;
+    }
+
+    public java.time.Instant getReopenUntil() {
+        return reopenUntil;
+    }
+
+    public void setReopenUntil(java.time.Instant reopenUntil) {
+        this.reopenUntil = reopenUntil;
+    }
+
+    public boolean isCanReopen() {
+        return canReopen;
+    }
+
+    public void setCanReopen(boolean canReopen) {
+        this.canReopen = canReopen;
+    }
 
     public List<com.nbfc.itsm.domain.TicketAssignmentLog> getAssignmentLog() {
         return assignmentLog;

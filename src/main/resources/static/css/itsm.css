@@ -1218,3 +1218,10 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .wf-move-remarks{margin-top:3px;font-style:italic;color:var(--slate-600);white-space:pre-wrap;}
 .requester-card{border-left:3px solid var(--sky);}
 .requester-card .il-value a{color:var(--sky-800);font-weight:600;}
+
+/* Requester confirmation / re-open: two clear choices. */
+.confirm-card{border-left:4px solid var(--wf-orange);background:linear-gradient(135deg,#fff 0%,#FFF8F0 100%);}
+.confirm-actions{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:10px;}
+.confirm-actions form{margin:0;}
+.confirm-no{display:flex;flex-direction:column;gap:8px;flex:1 1 320px;}
+.confirm-no textarea{min-height:60px;}

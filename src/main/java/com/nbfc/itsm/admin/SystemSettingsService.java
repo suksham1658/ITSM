@@ -134,7 +134,14 @@ public class SystemSettingsService implements ApplicationRunner {
         stored("workflow", "approval.remarks-min-length", "Minimum remarks length", "Characters required on Approve / Reject / Send back.", 1, 200, "10");
         stored("workflow", "workflow.max-manager-hops", "Maximum manager steps", "Cap on reporting-line approvals per request.", 1, 20, "12");
         storedBool("workflow", "workflow.requester-confirmation", "Requester confirmation before closing",
-                "Off = a ticket closes as soon as the implementor resolves it. On = the requester must confirm first.", "false");
+                "On = after the implementor resolves, the requester confirms (Resolved / Not resolved); no answer in the "
+                        + "window below closes it automatically. Off = resolving closes the ticket at once.", "true");
+        stored("workflow", "workflow.confirmation-hours", "Requester confirmation window (hours)",
+                "A resolved ticket waiting for the requester closes automatically after this many hours (48 = 2 days).",
+                1, 720, "48");
+        stored("workflow", "workflow.reopen-hours", "Re-open link valid for (hours)",
+                "After an automatic closure the requester can re-open the ticket for this many hours (48 = 2 days).",
+                1, 720, "48");
 
         text("general", "general.company-name", "Company name", "Shown on the login page.", () -> companyName, v -> companyName = v, null);
     }

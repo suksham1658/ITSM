@@ -53,10 +53,13 @@ public class TicketEmailService {
     private final WorkflowInstanceStageRepository stageRepository;
     private final WorkflowInstanceRepository instanceRepository;
     private final ItsmProperties properties;
+    private final com.nbfc.itsm.domain.SystemSettingRepository settingRepository;
 
     public TicketEmailService(JavaMailSender mailSender, TicketRepository ticketRepository,
                               EmployeeRepository employeeRepository, WorkflowInstanceStageRepository stageRepository,
-                              WorkflowInstanceRepository instanceRepository, ItsmProperties properties) {
+                              WorkflowInstanceRepository instanceRepository, ItsmProperties properties,
+                              com.nbfc.itsm.domain.SystemSettingRepository settingRepository) {
+        this.settingRepository = settingRepository;
         this.mailSender = mailSender;
         this.ticketRepository = ticketRepository;
         this.employeeRepository = employeeRepository;
@@ -139,20 +142,58 @@ public class TicketEmailService {
                 : typeName(t) + " " + t.getPublicNumber() + " closed: " + t.getSubject();
     }
 
-    String body(Ticket t, TicketEmailEvent.Kind kind) {
+    public String body(Ticket t, TicketEmailEvent.Kind kind) {
         StringBuilder b = open(t.getRequester() == null ? "" : t.getRequester().getDisplayName());
         String now = null;
         if (kind == TicketEmailEvent.Kind.CREATED) {
             WorkflowInstanceStage current = currentStep(t);
             now = current == null ? null : nowWith(current);
-            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in the IT Nexa")
+            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in IT Nexa")
                     .append(now == null ? " and is now being processed." : " and is now with <b>" + esc(now) + "</b>.")
                     .append("</p>");
+        } else if (kind == TicketEmailEvent.Kind.AUTO_CLOSED) {
+            int hours = hoursSetting("workflow.reopen-hours", 48);
+            java.time.Instant until = autoClosedAt(t).plus(java.time.Duration.ofHours(hours));
+            b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>, as we did not receive your "
+                    + "confirmation within ").append(esc(com.nbfc.itsm.workflow.WorkflowEngine.hoursText(
+                    hoursSetting("workflow.confirmation-hours", 48)))).append(" of it being resolved.</p>");
+            b.append("<p><b>If you are not satisfied, please re-open this ticket</b>");
+            String url = properties.getMail().getPortalUrl();
+            if (StringUtils.hasText(url)) {
+                String link = url.replaceAll("/+$", "") + "/tickets/" + t.getTicketId() + "/reopen";
+                b.append(": <a href=\"").append(esc(link)).append("\">Re-open ticket ").append(esc(t.getPublicNumber()))
+                        .append("</a>");
+            } else {
+                b.append(" from IT Nexa (open the ticket and choose <b>Not resolved</b>)");
+            }
+            b.append(". The link works until <b>").append(esc(IST.format(until))).append(" IST</b> (")
+                    .append(esc(com.nbfc.itsm.workflow.WorkflowEngine.hoursText(hours))).append(").</p>");
         } else {
             b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>.</p>");
         }
         details(b, t, false, null, now);
         return close(b, t);
+    }
+
+    private int hoursSetting(String key, int fallback) {
+        try {
+            return settingRepository.findById(key).map(s -> Integer.parseInt(s.getSettingValue().trim())).orElse(fallback);
+        } catch (RuntimeException ex) {
+            return fallback;
+        }
+    }
+
+    /** When the system closed the ticket (the automatic closure on its confirmation step); now if not found. */
+    private java.time.Instant autoClosedAt(Ticket t) {
+        com.nbfc.itsm.domain.WorkflowInstance instance = instanceRepository.findByTicketId(t.getTicketId()).orElse(null);
+        if (instance != null) {
+            for (WorkflowInstanceStage s : stageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance)) {
+                if (com.nbfc.itsm.workflow.WorkflowEngine.AUTO_CLOSE.equals(s.getActionCode()) && s.getActedAtUtc() != null) {
+                    return s.getActedAtUtc();
+                }
+            }
+        }
+        return java.time.Instant.now();
     }
 
     /** Who has the ticket at this step, e.g. "Anil Yadav", "IT Service Desk", "CISO (role)". */
@@ -204,7 +245,7 @@ public class TicketEmailService {
         if ("CONFIRMATION".equals(type)) {
             return "It has been resolved; please check and confirm it, or send it back.";
         }
-        return "Please open it in the IT Nexa.";
+        return "Please open it in IT Nexa.";
     }
 
     private static String queueName(WorkflowInstanceStage step) {
@@ -269,9 +310,9 @@ public class TicketEmailService {
         String url = properties.getMail().getPortalUrl();
         if (StringUtils.hasText(url)) {
             String link = url.replaceAll("/+$", "") + "/tickets/" + t.getTicketId();
-            b.append("<p><a href=\"").append(esc(link)).append("\">Open the ticket in the IT Nexa</a></p>");
+            b.append("<p><a href=\"").append(esc(link)).append("\">Open the ticket in IT Nexa</a></p>");
         }
-        b.append("<p style=\"color:#6b7280;font-size:12px;\">This is an automatic message from the IT Nexa. "
+        b.append("<p style=\"color:#6b7280;font-size:12px;\">This is an automatic message from IT Nexa. "
                 + "Please do not reply to this e-mail.</p></div>");
         return b.toString();
     }

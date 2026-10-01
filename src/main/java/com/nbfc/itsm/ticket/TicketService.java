@@ -265,6 +265,14 @@ public class TicketService {
                     }
                 }
                 detail.setCurrent(current);
+                if (current != null && "CONFIRMATION".equals(current.getStageType())) {
+                    detail.setAutoCloseAt(workflowEngine.autoCloseAt(stages, current));
+                }
+                java.time.Instant until = workflowEngine.reopenUntil(ticket, stages);
+                detail.setReopenUntil(until);
+                detail.setCanReopen(until != null && ticket.getRequester() != null
+                        && ticket.getRequester().getEmployeeId().equals(principal.getEmployeeId())
+                        && com.nbfc.itsm.util.TimeUtc.now().isBefore(until));
                 if (current != null && actor != null) {
                     boolean can = false;
                     try {
@@ -639,6 +647,20 @@ public class TicketService {
             }
         }
         return false;
+    }
+
+    /** "Not resolved" after an automatic closure: back to the implementor with the requester's reason. */
+    @Transactional
+    public Ticket reopen(ItsmUserPrincipal principal, Long ticketId, String reason) {
+        requireView(principal, ticketId);
+        return workflowEngine.reopenAfterAutoClose(ticketId, principal, reason);
+    }
+
+    /** "Resolved" after an automatic closure: stays closed and can no longer be re-opened. */
+    @Transactional
+    public Ticket confirmClosed(ItsmUserPrincipal principal, Long ticketId) {
+        requireView(principal, ticketId);
+        return workflowEngine.confirmAutoClose(ticketId, principal);
     }
 
     /** What an implementor can do on the implementation step, in this order (Accept / Start are not offered). */

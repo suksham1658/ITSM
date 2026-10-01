@@ -93,7 +93,47 @@
           <span th:if="${detail.canAct}"> · <b>it is your turn, see Take action below.</b></span>
         </div>
 
-        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}" id="take-action">
+        <!-- Requester confirmation: Resolved closes the ticket, Not resolved sends it back to the implementor. -->
+        <div class="card card-pad confirm-card" style="margin-bottom:16px;" id="take-action"
+             th:if="${detail.canAct and detail.current.stageType == 'CONFIRMATION'}">
+          <h3 style="font-size:15px;margin-bottom:4px;"><i class="fa-regular fa-circle-question"></i> Is your issue resolved?</h3>
+          <p class="phase-note" style="margin-top:0;">The implementor has marked this ticket as resolved. Please confirm.
+            <th:block th:if="${detail.autoCloseAt != null}">If you do not answer, it closes automatically on
+              <b th:text="${@ui.dateTime(detail.autoCloseAt)}">03 Oct 2026, 18:00</b> (IST).</th:block></p>
+          <div class="confirm-actions">
+            <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post">
+              <input type="hidden" name="actionCode" value="APPROVE"/>
+              <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Yes, it's resolved — close ticket</button>
+            </form>
+            <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="confirm-no">
+              <input type="hidden" name="actionCode" value="SEND_BACK"/>
+              <textarea class="form-control" name="remarks" required="required" rows="2"
+                        th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}"
+                        placeholder="What is still not working? (required, at least 10 characters)"></textarea>
+              <button type="submit" class="btn btn-danger-outline"><i class="fa-solid fa-rotate-left"></i> No, not resolved — send back to implementor</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Closed automatically: the requester can still re-open it for a limited time. -->
+        <div class="card card-pad confirm-card" style="margin-bottom:16px;" id="reopen" th:if="${detail.canReopen}">
+          <h3 style="font-size:15px;margin-bottom:4px;"><i class="fa-solid fa-clock-rotate-left"></i> Closed automatically — is your issue resolved?</h3>
+          <p class="phase-note" style="margin-top:0;">This ticket was closed because it was not confirmed in time.
+            If you are not satisfied you can re-open it until <b th:text="${@ui.dateTime(detail.reopenUntil)}">05 Oct 2026, 18:00</b> (IST).</p>
+          <div class="confirm-actions">
+            <form th:action="@{/tickets/{id}/confirm-closed(id=${detail.ticket.ticketId})}" method="post">
+              <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Yes, it's resolved — keep it closed</button>
+            </form>
+            <form th:action="@{/tickets/{id}/reopen(id=${detail.ticket.ticketId})}" method="post" class="confirm-no">
+              <textarea class="form-control" name="remarks" required="required" rows="2"
+                        th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}"
+                        placeholder="What is still not working? (required, at least 10 characters)"></textarea>
+              <button type="submit" class="btn btn-danger-outline"><i class="fa-solid fa-rotate-left"></i> No, not resolved — re-open and send back</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct and detail.current.stageType != 'CONFIRMATION'}" id="take-action">
           <h3 style="font-size:14px;margin-bottom:8px;">Take action</h3>
           <p class="phase-note">Enter remarks of at least 10 characters to Approve, Reject, Send Back or Reassign.</p>
           <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="action-form" id="ticketActionForm">

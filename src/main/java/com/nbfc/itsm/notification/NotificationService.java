@@ -173,6 +173,22 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Closed by the system because the requester did not confirm in time: the requester gets the "closed"
+     * e-mail with a re-open link; requester and implementor get an in-app notice.
+     */
+    @Transactional
+    public void autoClosed(Ticket t) {
+        events.publishEvent(new TicketEmailEvent(t.getTicketId(), TicketEmailEvent.Kind.AUTO_CLOSED));
+        send(null, t.getRequester(), t, "Closed automatically: " + t.getPublicNumber(),
+                "\"" + t.getSubject() + "\" was closed because it was not confirmed in time. Not satisfied? Open the ticket and choose Not resolved.");
+        Employee impl = t.getAssignedImplementor();
+        if (impl != null) {
+            send(null, impl, t, "Closed: " + t.getPublicNumber(),
+                    "\"" + t.getSubject() + "\" was closed automatically (no answer from the requester).");
+        }
+    }
+
     /** New comment: tell the requester and the assigned implementor (internal notes: implementor only). */
     @Transactional
     public void commented(Ticket t, Employee author, boolean internal) {

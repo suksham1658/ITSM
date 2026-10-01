@@ -20,6 +20,8 @@ spring:
       mode: never
 
 itsm:
+  jobs:
+    enabled: false
   mail:
     enabled: false
   ldap:
