@@ -57,6 +57,31 @@
           </div>
         </div>
 
+        <!-- Read-only requester details from Active Directory, for the people working on the ticket. -->
+        <div class="card card-pad requester-card" style="margin-bottom:16px;" th:if="${detail.showRequesterDetails}"
+             th:with="r=${detail.ticket.requester}">
+          <h3 style="font-size:14px;margin-bottom:4px;"><i class="fa-regular fa-id-card"></i> Requester details</h3>
+          <p class="phase-note" style="margin-top:0;">From Active Directory · read only</p>
+          <div class="info-list">
+            <div class="info-item"><div class="il-label">Name</div>
+              <div class="il-value"><span th:text="${r.displayName}">Name</span> <span class="text-muted mono" th:text="'(' + ${r.employeeNo} + ')'">(E1)</span></div></div>
+            <div class="info-item"><div class="il-label">Department</div>
+              <div class="il-value" th:text="${r.department != null} ? ${r.department.name} : '—'">IT</div></div>
+            <div class="info-item"><div class="il-label">Designation</div>
+              <div class="il-value" th:text="${r.designation} ?: '—'">Manager</div></div>
+            <div class="info-item"><div class="il-label">Location / Business address</div>
+              <div class="il-value" th:text="${r.officeLocation} ?: '—'">Head office</div></div>
+            <div class="info-item"><div class="il-label">Phone number</div>
+              <div class="il-value">
+                <a th:if="${r.phoneNumber != null}" th:href="'tel:' + ${#strings.replace(r.phoneNumber, ' ', '')}" th:text="${r.phoneNumber}">+91</a>
+                <span th:if="${r.phoneNumber == null}">—</span></div></div>
+            <div class="info-item"><div class="il-label">Email</div>
+              <div class="il-value">
+                <a th:if="${r.email != null}" th:href="'mailto:' + ${r.email}" th:text="${r.email}">a@b</a>
+                <span th:if="${r.email == null}">—</span></div></div>
+          </div>
+        </div>
+
         <div class="alert-banner info now-with" style="margin-bottom:16px;" th:if="${detail.current != null}">
           <b>Now with:</b>
           <span th:if="${detail.current.resolvedEmployee != null}" th:text="${detail.current.resolvedEmployee.displayName}">Person</span>
@@ -70,12 +95,12 @@
 
         <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canAct}" id="take-action">
           <h3 style="font-size:14px;margin-bottom:8px;">Take action</h3>
-          <p class="phase-note">Enter remarks of at least 10 characters to Approve, Reject or Send Back.</p>
+          <p class="phase-note">Enter remarks of at least 10 characters to Approve, Reject, Send Back or Reassign.</p>
           <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="action-form" id="ticketActionForm">
             <div class="form-group">
               <label>Action</label>
               <select class="form-control" name="actionCode" id="actionCode" required="required">
-                <option th:each="a : ${detail.allowed}" th:value="${a.actionCode}" th:text="${a.actionCode}">APPROVE</option>
+                <option th:each="a : ${detail.allowed}" th:value="${a.actionCode}" th:text="${@ui.actionLabel(a.actionCode)}">Approve</option>
               </select>
             </div>
             <div class="form-group" th:if="${deskStep and !assignees.empty}" id="implementorPicker">
@@ -98,7 +123,7 @@
               <label for="assigneeId">Hand over to <span class="text-muted" th:if="${assigneePoolName != null}"
                      th:text="'(' + ${assigneePoolName} + ')'">(IT Implementors)</span></label>
               <select class="form-control" id="assigneeId" name="assigneeId">
-                <option value="">Select a person (required for REASSIGN)</option>
+                <option value="">Select a person (required for Reassign)</option>
                 <option th:each="e : ${assignees}" th:value="${e.employeeId}" th:text="${e.displayName}">Name</option>
               </select>
             </div>
@@ -108,7 +133,7 @@
             </div>
             <div class="form-group">
               <label>Remarks <span class="req" id="remarksReq">*</span></label>
-              <textarea class="form-control" name="remarks" id="actionRemarks" th:attr="maxlength=${limits.remarksMax}" data-counter="true" placeholder="Required for Approve, Reject and Send Back (at least 10 characters)"></textarea>
+              <textarea class="form-control" name="remarks" id="actionRemarks" th:attr="maxlength=${limits.remarksMax}" data-counter="true" placeholder="Required for Approve, Reject, Send Back and Reassign (at least 10 characters)"></textarea>
             </div>
             <button type="submit" class="btn btn-accent" id="actionSubmit">Submit action</button>
           </form>
@@ -181,7 +206,25 @@
               <strong class="wf-label" th:text="${@ui.stageLabel(s.label)}">Stage</strong>
               <span class="badge" th:classappend="${@ui.stageStatusClass(s.statusCode)}" th:text="${@ui.stageStatusText(s.statusCode)}">Pending</span>
               <div class="phase-note wf-who" th:if="${s.resolvedEmployee != null and s.resolvedEmployee.displayName != @ui.stageLabel(s.label)}" th:text="${s.resolvedEmployee.displayName}">who</div>
-              <div class="phase-note" th:if="${s.remarks != null}" th:text="${s.remarks}">remarks</div>
+              <th:block th:with="moves=${detail.assignmentLog.?[stageId == __${s.workflowInstanceStageId}__]}">
+                <div class="phase-note" th:if="${s.remarks != null and (#lists.isEmpty(moves) or (s.actionCode != 'ASSIGN' and s.actionCode != 'REASSIGN'))}"
+                     th:text="${s.remarks}">remarks</div>
+                <!-- Hand-overs on this step: who gave the ticket to whom, when, and the comment. -->
+                <ul class="wf-moves" th:if="${!#lists.isEmpty(moves)}">
+                  <li th:each="m : ${moves}">
+                    <i class="fa-solid fa-share" aria-hidden="true"></i>
+                    <span th:if="${m.actionCode == 'REASSIGN'}">
+                      <b>Reassigned</b> by <b th:text="${m.byEmployee.displayName}">A</b>
+                      <th:block th:if="${m.fromEmployee != null and m.fromEmployee.employeeId != m.byEmployee.employeeId}">
+                        (from <span th:text="${m.fromEmployee.displayName}">B</span>)</th:block>
+                      to <b th:text="${m.toEmployee.displayName}">C</b></span>
+                    <span th:unless="${m.actionCode == 'REASSIGN'}">
+                      <b>Assigned</b> by <b th:text="${m.byEmployee.displayName}">Desk</b> to <b th:text="${m.toEmployee.displayName}">C</b></span>
+                    <span class="wf-move-time mono" th:text="${@ui.dateTime(m.createdAtUtc)}">01 Oct 2026, 18:22</span>
+                    <div class="wf-move-remarks" th:if="${m.remarks != null}" th:text="'“' + ${m.remarks} + '”'">comment</div>
+                  </li>
+                </ul>
+              </th:block>
             </li>
           </ol>
           <p class="phase-note" th:if="${detail.stages.empty}">This is a draft. Submit it to start the approval workflow.</p>

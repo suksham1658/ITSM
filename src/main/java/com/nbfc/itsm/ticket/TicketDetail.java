@@ -24,6 +24,26 @@ public class TicketDetail {
     private boolean canAct;
     private boolean canCommentInternal;
     private boolean showInternalComments;
+    /** Who assigned / reassigned the ticket to whom, oldest first. */
+    private List<com.nbfc.itsm.domain.TicketAssignmentLog> assignmentLog = new ArrayList<com.nbfc.itsm.domain.TicketAssignmentLog>();
+    /** The requester's directory details are shown to everyone working on the ticket, not to the requester. */
+    private boolean showRequesterDetails;
+
+    public List<com.nbfc.itsm.domain.TicketAssignmentLog> getAssignmentLog() {
+        return assignmentLog;
+    }
+
+    public void setAssignmentLog(List<com.nbfc.itsm.domain.TicketAssignmentLog> assignmentLog) {
+        this.assignmentLog = assignmentLog;
+    }
+
+    public boolean isShowRequesterDetails() {
+        return showRequesterDetails;
+    }
+
+    public void setShowRequesterDetails(boolean showRequesterDetails) {
+        this.showRequesterDetails = showRequesterDetails;
+    }
 
     public Ticket getTicket() {
         return ticket;

@@ -15,6 +15,24 @@ public class LdapPerson {
     private String upn;
     private String managerDn;
     private String department;
+    private String phoneNumber;
+    private String officeLocation;
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getOfficeLocation() {
+        return officeLocation;
+    }
+
+    public void setOfficeLocation(String officeLocation) {
+        this.officeLocation = officeLocation;
+    }
     /** Managers above this person, immediate manager first (filled at login from the directory). */
     private java.util.List<LdapPerson> managerChain = new java.util.ArrayList<LdapPerson>();
 

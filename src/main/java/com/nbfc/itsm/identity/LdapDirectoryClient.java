@@ -95,7 +95,8 @@ public class LdapDirectoryClient {
     private static String[] personAttributes(ItsmProperties.Ldap ldap) {
         return new String[] {
                 "sAMAccountName", "uid", ldap.getEmployeeIdAttribute(), "employeeNumber", "displayName", "cn", "mail",
-                "title", "userPrincipalName", "givenName", "sn", ldap.getManagerAttribute(), "department"
+                "title", "userPrincipalName", "givenName", "sn", ldap.getManagerAttribute(), "department",
+                "telephoneNumber", "mobile", "physicalDeliveryOfficeName", "streetAddress", "l"
         };
     }
 
@@ -588,6 +589,23 @@ public class LdapDirectoryClient {
         person.setUpn(first(attrs, "userPrincipalName", "mail"));
         person.setManagerDn(first(attrs, ldap.getManagerAttribute()));
         person.setDepartment(first(attrs, "department"));
+        person.setPhoneNumber(first(attrs, "telephoneNumber", "mobile"));
+        person.setOfficeLocation(officeOf(first(attrs, "physicalDeliveryOfficeName"), first(attrs, "streetAddress"), first(attrs, "l")));
+    }
+
+    /** Office name if AD has one; otherwise "street, city" (either part may be missing). */
+    static String officeOf(String office, String street, String city) {
+        if (StringUtils.hasText(office)) {
+            return office.trim();
+        }
+        StringBuilder b = new StringBuilder();
+        if (StringUtils.hasText(street)) {
+            b.append(street.trim().replaceAll("\\s*\\r?\\n\\s*", ", "));
+        }
+        if (StringUtils.hasText(city)) {
+            b.append(b.length() > 0 ? ", " : "").append(city.trim());
+        }
+        return b.length() == 0 ? null : b.toString();
     }
 
     private String first(Attributes attrs, String... ids) throws NamingException {

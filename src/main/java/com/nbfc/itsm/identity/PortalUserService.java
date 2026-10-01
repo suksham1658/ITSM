@@ -206,6 +206,10 @@ public class PortalUserService {
         return null;
     }
 
+    private static String clip(String s, int max) {
+        return s.length() > max ? s.substring(0, max) : s;
+    }
+
     private void applyDirectoryAttributes(Employee employee, LdapPerson person) {
         if (StringUtils.hasText(person.getDisplayName())) {
             employee.setDisplayName(person.getDisplayName());
@@ -216,6 +220,12 @@ public class PortalUserService {
         }
         if (StringUtils.hasText(person.getDesignation())) {
             employee.setDesignation(person.getDesignation());
+        }
+        if (StringUtils.hasText(person.getPhoneNumber())) {
+            employee.setPhoneNumber(clip(person.getPhoneNumber().trim(), 64));
+        }
+        if (StringUtils.hasText(person.getOfficeLocation())) {
+            employee.setOfficeLocation(clip(person.getOfficeLocation(), 256));
         }
         if (StringUtils.hasText(person.getSamAccountName())) {
             employee.setSamAccountName(person.getSamAccountName());
@@ -331,6 +341,12 @@ public class PortalUserService {
         employee.setEmail(person.getEmail());
         employee.setDesignation(person.getDesignation());
         employee.setUpn(person.getUpn());
+        if (StringUtils.hasText(person.getPhoneNumber())) {
+            employee.setPhoneNumber(clip(person.getPhoneNumber().trim(), 64));
+        }
+        if (StringUtils.hasText(person.getOfficeLocation())) {
+            employee.setOfficeLocation(clip(person.getOfficeLocation(), 256));
+        }
 
         employee.setPortalActive(true);
 

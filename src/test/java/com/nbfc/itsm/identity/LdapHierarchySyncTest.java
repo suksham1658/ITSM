@@ -87,6 +87,8 @@ class LdapHierarchySyncTest {
             assertNull(neha.getManager(), "top of the chain");
             assertNotNull(asha.getDepartment(), "AD department mapped to a portal department");
             assertEquals("IT", asha.getDepartment().getCode());
+            assertEquals("+91 22 4000 100", asha.getPhoneNumber(), "AD telephoneNumber stored");
+            assertEquals("Mumbai HO, 5th floor", asha.getOfficeLocation(), "AD office stored");
             return null;
         });
     }
@@ -117,6 +119,7 @@ class LdapHierarchySyncTest {
                 "objectClass: inetOrgPerson", "objectClass: organizationalPerson", "objectClass: person",
                 "objectClass: top", "uid: " + uid, "cn: " + cn, "displayName: " + cn, "sn: " + uid,
                 "mail: " + uid + "@corp.in", "employeeNumber: " + no, "department: Information Technology",
+                "telephoneNumber: +91 22 4000 " + no.substring(1), "physicalDeliveryOfficeName: Mumbai HO, 5th floor",
                 "userPassword: Secret123!"));
         if (managerDn != null) {
             lines.add("manager: " + managerDn);

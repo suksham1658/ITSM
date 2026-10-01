@@ -80,6 +80,15 @@ public class UiText {
         return status == null ? "" : status;
     }
 
+    /** Workflow action as shown in the Take action list, e.g. SEND_BACK -&gt; "Send back". */
+    public String actionLabel(String code) {
+        if (code == null) {
+            return "";
+        }
+        String s = code.trim().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     /** Badge class for configuration change requests and workflow definitions/rules. */
     public String configStatusClass(String status) {
         if (status == null) {

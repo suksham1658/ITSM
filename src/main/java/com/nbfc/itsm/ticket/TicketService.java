@@ -77,6 +77,7 @@ public class TicketService {
     private final AuditRecorder auditRecorder;
     private final NotificationService notificationService;
     private final AttachmentService attachmentService;
+    private final com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTypeRepository ticketTypeRepository,
@@ -94,7 +95,8 @@ public class TicketService {
                          SlaService slaService,
                          AuditRecorder auditRecorder,
                          NotificationService notificationService,
-                         AttachmentService attachmentService) {
+                         AttachmentService attachmentService,
+                         com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository) {
         this.ticketRepository = ticketRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -112,6 +114,7 @@ public class TicketService {
         this.auditRecorder = auditRecorder;
         this.notificationService = notificationService;
         this.attachmentService = attachmentService;
+        this.assignmentLogRepository = assignmentLogRepository;
     }
 
     /**
@@ -274,10 +277,29 @@ public class TicketService {
                     if (can && current.getWorkflowStage() != null) {
                         List<WorkflowStageTransition> allowed =
                                 transitionRepository.findByWorkflowStage(current.getWorkflowStage());
+                        if ("FULFILMENT".equals(current.getStageType())) {
+                            allowed = implementorActions(allowed, ticket);
+                        }
                         detail.setAllowed(allowed);
                     }
                 }
             }
+        }
+        List<com.nbfc.itsm.domain.TicketAssignmentLog> handovers =
+                assignmentLogRepository.findByTicketOrderByCreatedAtUtcAscTicketAssignmentLogIdAsc(ticket);
+        for (com.nbfc.itsm.domain.TicketAssignmentLog h : handovers) {
+            h.getToEmployee().getDisplayName();
+            h.getByEmployee().getDisplayName();
+            if (h.getFromEmployee() != null) {
+                h.getFromEmployee().getDisplayName();
+            }
+        }
+        detail.setAssignmentLog(handovers);
+        boolean isRequester = ticket.getRequester() != null
+                && ticket.getRequester().getEmployeeId().equals(principal.getEmployeeId());
+        detail.setShowRequesterDetails(!isRequester);
+        if (ticket.getRequester() != null && ticket.getRequester().getDepartment() != null) {
+            ticket.getRequester().getDepartment().getName();
         }
         List<TicketComment> comments = commentRepository.findByTicketOrderByCreatedAtUtcAsc(ticket);
         boolean showInternal = canSeeInternal(principal);
@@ -617,6 +639,24 @@ public class TicketService {
             }
         }
         return false;
+    }
+
+    /** What an implementor can do on the implementation step, in this order (Accept / Start are not offered). */
+    static final List<String> IMPLEMENTOR_ACTIONS = Arrays.asList("REASSIGN", "HOLD", "RESOLVE");
+
+    private static List<WorkflowStageTransition> implementorActions(List<WorkflowStageTransition> all, Ticket ticket) {
+        List<WorkflowStageTransition> out = new ArrayList<WorkflowStageTransition>();
+        for (String code : IMPLEMENTOR_ACTIONS) {
+            if ("HOLD".equals(code) && "On Hold".equals(ticket.getStatusCode())) {
+                continue; // already on hold: Reassign or Resolve
+            }
+            for (WorkflowStageTransition t : all) {
+                if (code.equals(t.getActionCode())) {
+                    out.add(t);
+                }
+            }
+        }
+        return out;
     }
 
     /** Category code that asks for the device serial number on Raise Request. */
