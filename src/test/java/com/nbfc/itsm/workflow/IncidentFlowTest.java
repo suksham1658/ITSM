@@ -147,6 +147,33 @@ class IncidentFlowTest {
     }
 
     @Test
+    void approvalsPageListsWhateverIsWaitingForTheUser() {
+        Ticket t = ticketService.save(as(requester), incident());
+        assertTrue(waiting(desk, t).contains("ASSIGNMENT"), "desk: assign");
+        assertTrue(waiting(impl1, t).isEmpty(), "implementor: not yet");
+        assertTrue(waiting(requester, t).isEmpty(), "requester: nothing to do");
+
+        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", null, impl1.getEmployeeId());
+        assertTrue(waiting(desk, t).isEmpty(), "desk: done");
+        assertTrue(waiting(impl1, t).contains("FULFILMENT"), "implementor: work on it");
+        assertTrue(waiting(impl2, t).isEmpty(), "other implementor: not theirs");
+
+        ticketService.applyAction(as(impl1), t.getTicketId(), "START", null, null);
+        ticketService.applyAction(as(impl1), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
+        assertTrue(waiting(impl1, t).isEmpty(), "closed tickets drop off");
+    }
+
+    private java.util.List<String> waiting(Employee who, Ticket t) {
+        java.util.List<String> types = new java.util.ArrayList<String>();
+        for (com.nbfc.itsm.ticket.WaitingItem i : ticketService.waitingFor(as(who))) {
+            if (i.getTicket().getTicketId().equals(t.getTicketId())) {
+                types.add(i.getStageType());
+            }
+        }
+        return types;
+    }
+
+    @Test
     void requesterConfirmsWhenSwitchedOnInSystemConfiguration() {
         SystemSetting on = new SystemSetting();
         on.setSettingKey("workflow.requester-confirmation");

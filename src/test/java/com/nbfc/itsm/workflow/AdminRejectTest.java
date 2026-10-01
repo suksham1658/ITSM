@@ -106,6 +106,19 @@ class AdminRejectTest {
     }
 
     @Test
+    void approvalsPageShowsTheApproversStep() throws Exception {
+        Ticket sr = raise();
+        mockMvc.perform(get("/approvals").with(authentication(token(manager))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(sr.getPublicNumber())))
+                .andExpect(content().string(containsString(">Approve</span>")));
+        mockMvc.perform(get("/approvals").with(authentication(token(requester))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("href=\"/tickets/" + sr.getTicketId() + "\""))))
+                .andExpect(content().string(containsString("Nothing is waiting for you")));
+    }
+
+    @Test
     void othersCannotUseTheOverride() throws Exception {
         Ticket sr = raise();
         assertThrows(AccessDeniedException.class,
