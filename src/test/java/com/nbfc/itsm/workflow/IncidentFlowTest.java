@@ -224,6 +224,7 @@ class IncidentFlowTest {
     private TicketForm incident() {
         Category hw = categoryRepository.findByCode("HARDWARE").orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("INCIDENT").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(hw.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(hw).get(0).getSubCategoryId());

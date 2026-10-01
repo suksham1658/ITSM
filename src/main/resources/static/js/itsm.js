@@ -164,6 +164,49 @@
     filterSubs();
   }
 
+  // ---- Raise Request: Serial Number appears (and is mandatory) only for the Hardware category ----
+  var serialGroup = document.getElementById("serialGroup");
+  if (cat && serialGroup) {
+    var serialEnter = document.getElementById("serialEnter");
+    var serialNa = document.getElementById("serialNa");
+    var serialText = document.getElementById("serialNumber");
+    function syncSerialText() {
+      var typing = serialEnter.checked;
+      serialText.required = typing && !serialGroup.hidden;
+      serialText.disabled = serialNa.checked;
+      if (serialNa.checked) { serialText.value = ""; }
+    }
+    function toggleSerial() {
+      var opt = cat.options[cat.selectedIndex];
+      var show = !!opt && opt.getAttribute("data-code") === serialGroup.getAttribute("data-serial-category");
+      serialGroup.hidden = !show;
+      serialEnter.required = show; // a required radio makes the whole Enter / Not Available choice mandatory
+      if (!show) {
+        serialEnter.checked = false;
+        serialNa.checked = false;
+        serialText.value = "";
+      }
+      syncSerialText();
+    }
+    serialText.addEventListener("focus", function () { serialEnter.checked = true; syncSerialText(); });
+    serialEnter.addEventListener("change", function () { syncSerialText(); serialText.focus(); });
+    serialNa.addEventListener("change", syncSerialText);
+    cat.addEventListener("change", toggleSerial);
+    toggleSerial();
+  }
+
+  // ---- Raise Request: warn before upload when a PDF is larger than allowed ----
+  var attachment = document.getElementById("attachment");
+  if (attachment && attachment.getAttribute("data-pdf-max-mb")) {
+    attachment.addEventListener("change", function () {
+      var maxMb = Number(attachment.getAttribute("data-pdf-max-mb"));
+      var f = attachment.files && attachment.files[0];
+      var tooBig = f && /\.pdf$/i.test(f.name) && f.size > maxMb * 1024 * 1024;
+      attachment.setCustomValidity(tooBig ? "PDF files must not exceed " + maxMb + " MB." : "");
+      if (tooBig) { attachment.reportValidity(); }
+    });
+  }
+
   // ---- Mobile tables: each cell gets its column heading as data-label so CSS can show rows as cards ----
   var tables = document.querySelectorAll("table.data-table:not(.no-stack)");
   for (var ti = 0; ti < tables.length; ti++) {

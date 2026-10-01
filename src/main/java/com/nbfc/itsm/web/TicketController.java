@@ -141,9 +141,10 @@ public class TicketController {
     @PreAuthorize("hasAuthority('TICKET_CREATE')")
     public String raiseSubmit(@AuthenticationPrincipal ItsmUserPrincipal user,
                               @ModelAttribute("form") TicketForm form,
+                              @RequestParam(value = "attachment", required = false) MultipartFile attachment,
                               RedirectAttributes ra) {
         try {
-            Ticket ticket = ticketService.save(user, form);
+            Ticket ticket = ticketService.save(user, form, attachment);
             if ("Draft".equals(ticket.getStatusCode())) {
                 ra.addFlashAttribute("message", "Draft saved as " + ticket.getPublicNumber() + ".");
             } else {

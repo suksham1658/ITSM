@@ -29,12 +29,18 @@ public class AdminCatalogController {
     private final SubCategoryRepository subCategoryRepository;
     private final SystemSettingsService systemSettings;
     private final com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors;
+    private final com.nbfc.itsm.admin.CatalogAdminService catalogAdmin;
+    private final com.nbfc.itsm.domain.TicketTypeRepository ticketTypeRepository;
 
     public AdminCatalogController(CategoryRepository categoryRepository,
                                   SubCategoryRepository subCategoryRepository,
                                   SystemSettingsService systemSettings,
-                                  com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors) {
+                                  com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors,
+                                  com.nbfc.itsm.admin.CatalogAdminService catalogAdmin,
+                                  com.nbfc.itsm.domain.TicketTypeRepository ticketTypeRepository) {
         this.categoryImplementors = categoryImplementors;
+        this.catalogAdmin = catalogAdmin;
+        this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.systemSettings = systemSettings;
@@ -61,7 +67,101 @@ public class AdminCatalogController {
         model.addAttribute("implementorCandidates", candidates);
         model.addAttribute("implementorNames", names);
         model.addAttribute("categoryImplementors", categoryImplementors.assignments(cats));
+        model.addAttribute("ticketTypes", ticketTypeRepository.findByActiveTrueOrderBySortOrderAsc());
+        model.addAttribute("lockedTypes", com.nbfc.itsm.admin.CatalogAdminService.LOCKED_TYPES);
+        model.addAttribute("lockedCategories", com.nbfc.itsm.admin.CatalogAdminService.LOCKED_CATEGORIES);
         return "admin/categories";
+    }
+
+    // ------------------------------------------------------------------ catalog: add / edit / delete
+
+    @PostMapping("/catalog/types")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String addType(@RequestParam("name") String name, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                          RedirectAttributes ra) {
+        return run(ra, "types", () -> "Ticket type \"" + catalogAdmin.addType(name, actor).getName() + "\" added.");
+    }
+
+    @PostMapping("/catalog/types/{id}/rename")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String renameType(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                             @RequestParam("name") String name, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                             RedirectAttributes ra) {
+        return run(ra, "types", () -> renamed("Ticket type", catalogAdmin.renameType(id, name, actor)));
+    }
+
+    @PostMapping("/catalog/types/{id}/delete")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String deleteType(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                             @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return run(ra, "types", () -> {
+            catalogAdmin.deleteType(id, actor);
+            return "Ticket type removed from Raise Request (existing tickets keep it).";
+        });
+    }
+
+    @PostMapping("/catalog/categories")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String addCategory(@RequestParam("name") String name, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                              RedirectAttributes ra) {
+        return run(ra, "categories", () -> "Category \"" + catalogAdmin.addCategory(name, actor).getName()
+                + "\" added. Add its sub-categories below.");
+    }
+
+    @PostMapping("/catalog/categories/{id}/rename")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String renameCategory(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                 @RequestParam("name") String name, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                                 RedirectAttributes ra) {
+        return run(ra, "categories", () -> renamed("Category", catalogAdmin.renameCategory(id, name, actor)));
+    }
+
+    @PostMapping("/catalog/categories/{id}/delete")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String deleteCategory(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                 @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return run(ra, "categories", () -> {
+            catalogAdmin.deleteCategory(id, actor);
+            return "Category and its sub-categories removed from Raise Request (existing tickets keep them).";
+        });
+    }
+
+    @PostMapping("/catalog/sub-categories")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String addSubCategory(@RequestParam("categoryId") Long categoryId, @RequestParam("name") String name,
+                                 @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return run(ra, "subcategories", () -> "Sub-category \"" + catalogAdmin.addSubCategory(categoryId, name, actor).getName() + "\" added.");
+    }
+
+    @PostMapping("/catalog/sub-categories/{id}/rename")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String renameSubCategory(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                    @RequestParam("name") String name, @AuthenticationPrincipal ItsmUserPrincipal actor,
+                                    RedirectAttributes ra) {
+        return run(ra, "subcategories", () -> renamed("Sub-category", catalogAdmin.renameSubCategory(id, name, actor)));
+    }
+
+    @PostMapping("/catalog/sub-categories/{id}/delete")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String deleteSubCategory(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                    @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return run(ra, "subcategories", () -> {
+            catalogAdmin.deleteSubCategory(id, actor);
+            return "Sub-category removed from Raise Request (existing tickets keep it).";
+        });
+    }
+
+    private static String renamed(String what, int rules) {
+        return what + " renamed." + (rules > 0 ? " " + rules + " workflow rule(s) updated to the new name." : "");
+    }
+
+    private static String run(RedirectAttributes ra, String anchor, java.util.function.Supplier<String> action) {
+        try {
+            ra.addFlashAttribute("message", action.get());
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/categories#" + anchor;
     }
 
     /** Implementors who handle a category (the IT Service Desk chooses from them). System Administrator. */

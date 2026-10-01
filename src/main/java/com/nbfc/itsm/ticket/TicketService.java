@@ -76,6 +76,7 @@ public class TicketService {
     private final SlaService slaService;
     private final AuditRecorder auditRecorder;
     private final NotificationService notificationService;
+    private final AttachmentService attachmentService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTypeRepository ticketTypeRepository,
@@ -92,7 +93,8 @@ public class TicketService {
                          TicketSlaRepository slaRepository,
                          SlaService slaService,
                          AuditRecorder auditRecorder,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         AttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -109,6 +111,26 @@ public class TicketService {
         this.slaService = slaService;
         this.auditRecorder = auditRecorder;
         this.notificationService = notificationService;
+        this.attachmentService = attachmentService;
+    }
+
+    /**
+     * Raise Request with an optional attachment: the file is checked first (PDF at most 5 MB) so a bad file
+     * stops the whole request, then the ticket and the attachment are saved together.
+     */
+    @Transactional
+    public Ticket save(ItsmUserPrincipal principal, TicketForm form, org.springframework.web.multipart.MultipartFile attachment) {
+        boolean withFile = AttachmentService.present(attachment);
+        if (withFile) {
+            attachmentService.validate(attachment);
+        }
+        Ticket ticket = save(principal, form);
+        if (withFile) {
+            Employee uploader = employeeRepository.findById(principal.getEmployeeId())
+                    .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found."));
+            attachmentService.store(ticket, uploader, attachment);
+        }
+        return ticket;
     }
 
     @Transactional
@@ -597,6 +619,33 @@ public class TicketService {
         return false;
     }
 
+    /** Category code that asks for the device serial number on Raise Request. */
+    public static final String SERIAL_CATEGORY = "HARDWARE";
+    public static final String SERIAL_NOT_AVAILABLE = "Not available";
+
+    /**
+     * Hardware tickets must either carry a serial number or say it is not available; other categories never
+     * store one.
+     */
+    private static String serialNumberOf(Category category, TicketForm form, Validation v) {
+        if (category == null || !SERIAL_CATEGORY.equals(category.getCode())) {
+            return null;
+        }
+        String mode = form.getSerialMode() == null ? "" : form.getSerialMode().trim();
+        if ("NA".equals(mode)) {
+            return SERIAL_NOT_AVAILABLE;
+        }
+        if (!"ENTER".equals(mode)) {
+            v.check(false, "Serial number is required for Hardware: enter it or choose Not available.");
+            return null;
+        }
+        String serial = v.text(form.getSerialNumber(), "Serial number", 2, 100, true);
+        if (serial != null && !serial.matches("[A-Za-z0-9 ._/#-]+")) {
+            v.check(false, "Serial number may contain letters, numbers, spaces and . _ / # - only.");
+        }
+        return serial;
+    }
+
     private Ticket applyForm(Ticket ticket, TicketForm form, Employee requester) {
         Validation lookups = new Validation();
         TicketType type = form.getTicketTypeId() == null ? null
@@ -624,6 +673,7 @@ public class TicketService {
                 FieldLimits.CONFIDENTIALITY);
         String location = v.text(form.getLocation(), "Location", 0, FieldLimits.LOCATION_MAX, false);
         String application = v.text(form.getApplicationName(), "Application", 0, FieldLimits.APPLICATION_MAX, false);
+        String serial = serialNumberOf(category, form, v);
         if (lookups.hasErrors() || v.hasErrors()) {
             List<String> all = new ArrayList<String>(lookups.errors());
             all.addAll(v.errors());
@@ -641,6 +691,7 @@ public class TicketService {
         ticket.setConfidentialityCode(confidentiality);
         ticket.setLocation(location);
         ticket.setApplicationName(application);
+        ticket.setSerialNumber(serial);
         ticket.setMajorIncident(form.isMajorIncident());
         ticket.setRequester(requester);
         ticket.setDepartment(requester.getDepartment());
