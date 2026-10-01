@@ -6,7 +6,7 @@ import java.util.List;
 public class DashboardSnapshot {
 
     private String title = "Executive Dashboard";
-    private String scopeLabel = "No signed-in ITSM principal";
+    private String scopeLabel = "No signed-in user";
     private List<KpiCard> kpis = new ArrayList<KpiCard>();
     private ChartPayload statusChart = emptyChart("doughnut");
     private ChartPayload categoryChart = emptyChart("bar");

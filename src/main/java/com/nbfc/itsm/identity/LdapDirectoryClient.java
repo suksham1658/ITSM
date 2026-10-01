@@ -110,7 +110,7 @@ public class LdapDirectoryClient {
             return dn;
         }
         if (StringUtils.hasText(ldap.getBindDn()) && StringUtils.hasText(ldap.getBindPassword())) {
-            DirContext service = bind(STAGE_SERVICE_BIND, ldap.getBindDn(), ldap.getBindPassword(), ldap);
+            DirContext service = serviceBind(ldap);
             try {
                 String found;
                 try {
@@ -145,7 +145,31 @@ public class LdapDirectoryClient {
 
     private DirContext bind(String stage, String principal, String password, ItsmProperties.Ldap ldap)
             throws NamingException {
+        return bind(stage, principal, password, ldap, false);
+    }
+
+    /**
+     * Service-account bind (user search, attribute load, AD unlock). These connections are pooled and
+     * reused, so a sign-in does not open a new TCP connection to the domain controller each time. The
+     * user's own password check is never pooled.
+     */
+    private DirContext serviceBind(ItsmProperties.Ldap ldap) throws NamingException {
+        return bind(STAGE_SERVICE_BIND, ldap.getBindDn(), ldap.getBindPassword(), ldap, true);
+    }
+
+    static {
+        // Pooled LDAP connections idle for 5 minutes are closed (domain controllers drop idle ones).
+        if (System.getProperty("com.sun.jndi.ldap.connect.pool.timeout") == null) {
+            System.setProperty("com.sun.jndi.ldap.connect.pool.timeout", "300000");
+        }
+    }
+
+    private DirContext bind(String stage, String principal, String password, ItsmProperties.Ldap ldap, boolean pooled)
+            throws NamingException {
         Hashtable<String, String> env = new Hashtable<String, String>();
+        if (pooled) {
+            env.put("com.sun.jndi.ldap.connect.pool", "true");
+        }
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, ldap.getUrl());
         env.put(Context.SECURITY_AUTHENTICATION, "simple");
@@ -360,7 +384,7 @@ public class LdapDirectoryClient {
         if (!StringUtils.hasText(ldap.getBindDn()) || !StringUtils.hasText(ldap.getBindPassword())) {
             throw new NamingException("Service account not configured (LDAP_BIND_DN / LDAP_BIND_PASSWORD)");
         }
-        return bind(STAGE_SERVICE_BIND, ldap.getBindDn(), ldap.getBindPassword(), ldap);
+        return serviceBind(ldap);
     }
 
     private static String baseOf(ItsmProperties.Ldap ldap) {

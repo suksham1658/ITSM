@@ -72,7 +72,7 @@ public class SystemSettingsService implements ApplicationRunner {
     private final int defaultIdleMinutes;
 
     /** Company name shown on the login page (general.company-name). */
-    private volatile String companyName = "Enterprise NBFC";
+    private volatile String companyName = "Authum";
     /** Idle timeout for new sessions, minutes; 0 = server default. */
     private volatile int idleMinutes;
 

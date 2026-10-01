@@ -1,7 +1,6 @@
 package com.nbfc.itsm.web;
 
 import com.nbfc.itsm.domain.ConfigChangeRequestRepository;
-import com.nbfc.itsm.domain.EmployeeRepository;
 import com.nbfc.itsm.domain.Notification;
 import com.nbfc.itsm.domain.NotificationRepository;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
@@ -15,16 +14,13 @@ import java.util.List;
 @ControllerAdvice
 public class UiModelAdvice {
 
-    private final EmployeeRepository employeeRepository;
     private final ConfigChangeRequestRepository configChangeRequestRepository;
     private final NotificationRepository notificationRepository;
     private final com.nbfc.itsm.admin.SystemSettingsService systemSettings;
 
-    public UiModelAdvice(EmployeeRepository employeeRepository,
-                         ConfigChangeRequestRepository configChangeRequestRepository,
+    public UiModelAdvice(ConfigChangeRequestRepository configChangeRequestRepository,
                          NotificationRepository notificationRepository,
                          com.nbfc.itsm.admin.SystemSettingsService systemSettings) {
-        this.employeeRepository = employeeRepository;
         this.configChangeRequestRepository = configChangeRequestRepository;
         this.notificationRepository = notificationRepository;
         this.systemSettings = systemSettings;
@@ -36,14 +32,12 @@ public class UiModelAdvice {
         return systemSettings.getCompanyName();
     }
 
+    /** Sidebar badge on Config approvals; only counted for people who see that menu entry. */
     @ModelAttribute("pendingConfigCount")
-    public long pendingConfigCount() {
-        return configChangeRequestRepository.countByStatusCode("PendingApproval");
-    }
-
-    @ModelAttribute("employeeCount")
-    public long employeeCount() {
-        return employeeRepository.count();
+    public long pendingConfigCount(org.springframework.security.core.Authentication authentication) {
+        boolean approver = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ADMIN_MASTERDATA_APPROVE".equals(a.getAuthority()));
+        return approver ? configChangeRequestRepository.countByStatusCode("PendingApproval") : 0;
     }
 
     /** Field limits shared with the Java validation, for required/minlength/maxlength in forms. */

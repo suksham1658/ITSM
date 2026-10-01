@@ -1,6 +1,6 @@
 spring:
   application:
-    name: ITSM Portal
+    name: Authum IT Nexa
   config:
     # Passwords are NOT kept in the code. Each machine (your PC, the server) has its own file
     # D:\itsm-config\itsm-secrets.yml (template: config-template/itsm-secrets.yml); set ITSM_CONFIG_DIR to use
@@ -12,9 +12,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     hikari:
-      maximum-pool-size: ${HIKARI_MAX_POOL:20}
-      minimum-idle: ${HIKARI_MIN_IDLE:2}
-      connection-timeout: 30000
+      # Sized for 1000+ users: a request holds a connection for milliseconds, so 30 covers the peak, and
+      # 10 warm connections avoid opening new ones (slow over the network) on the first clicks of the day.
+      maximum-pool-size: ${HIKARI_MAX_POOL:30}
+      minimum-idle: ${HIKARI_MIN_IDLE:10}
+      connection-timeout: 20000
       idle-timeout: 600000
       max-lifetime: 1800000
       pool-name: itsm-hikari
@@ -28,10 +30,30 @@ spring:
         # All text columns are NVARCHAR/NCHAR (db/migration, db/install); map every String to them so
         # ddl-auto=validate expects nvarchar, and Unicode (e.g. Hindi) is stored correctly.
         use_nationalized_character_data: true
+        # Load lazy associations of a list (requester, category, roles...) in batches, not one query each.
+        default_batch_fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        query:
+          in_clause_parameter_padding: true
         jdbc:
+          batch_size: 50
           time_zone: UTC
         format_sql: false
     show-sql: false
+  web:
+    resources:
+      # Browsers keep CSS/JS for a year; links carry a content hash (itsm-<hash>.css), so a new WAR
+      # changes the URL and everybody gets the new file at once.
+      cache:
+        cachecontrol:
+          max-age: 365d
+          cache-public: true
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /css/**,/js/**
   flyway:
     # Off by default: production (10.65.7.245:1865, ITSM_PROD) is SQL Server 2012, which Flyway 9
     # Community refuses ("Flyway Teams Edition or SQL Server upgrade required"). The DBA installs the
@@ -64,6 +86,11 @@ spring:
 
 server:
   port: ${SERVER_PORT:8092}
+  # Gzip pages, CSS and JS (embedded Tomcat only; on the server Tomcat set compression in conf/server.xml).
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json,text/plain
+    min-response-size: 2048
   error:
     whitelabel:
       enabled: false

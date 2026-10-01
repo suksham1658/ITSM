@@ -48,6 +48,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -373,12 +374,9 @@ public class TicketService {
                 }
             }
         }
-        List<Ticket> tickets = new ArrayList<Ticket>();
-        for (Long ticketId : ids) {
-            ticketRepository.findById(ticketId).ifPresent(t -> {
-                hydrate(t);
-                tickets.add(t);
-            });
+        List<Ticket> tickets = new ArrayList<Ticket>(ticketsById(ids).values());
+        for (Ticket t : tickets) {
+            hydrate(t);
         }
         tickets.sort(NEWEST_FIRST);
         return tickets;
@@ -401,14 +399,16 @@ public class TicketService {
         for (Ticket t : list) {
             seen.add(t.getTicketId());
         }
+        java.util.Set<Long> offered = new java.util.LinkedHashSet<Long>();
         for (WorkflowInstanceStage s : instanceStageRepository.findByStatusCodeAndStageType("Current", "FULFILMENT")) {
             if (s.getResolvedEmployee() == null && s.getAssigneeIds().contains(me.getEmployeeId())) {
                 Long ticketId = s.getWorkflowInstance().getTicketId();
                 if (seen.add(ticketId)) {
-                    ticketRepository.findById(ticketId).ifPresent(list::add);
+                    offered.add(ticketId);
                 }
             }
         }
+        list.addAll(ticketsById(offered).values());
         list.sort(NEWEST_FIRST);
         for (Ticket t : list) {
             hydrate(t);
@@ -419,22 +419,18 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<Ticket> approvalsFor(ItsmUserPrincipal principal) {
         Employee me = employeeRepository.findById(principal.getEmployeeId()).orElse(null);
-        List<WorkflowInstanceStage> current = instanceStageRepository.findByStatusCodeAndStageType("Current", "APPROVAL");
         List<Ticket> out = new ArrayList<Ticket>();
+        if (me == null) {
+            return out;
+        }
+        List<WorkflowInstanceStage> current = candidates(me,
+                instanceStageRepository.findByStatusCodeAndStageType("Current", "APPROVAL"));
+        Map<Long, Ticket> tickets = ticketsOf(current);
         for (WorkflowInstanceStage s : current) {
-            if (me == null) {
-                continue;
-            }
-            try {
-                Ticket t = ticketRepository.findById(s.getWorkflowInstance().getTicketId()).orElse(null);
-                if (t == null) {
-                    continue;
-                }
-                workflowEngine.assertCanAct(principal, me, t, s);
+            Ticket t = tickets.get(s.getWorkflowInstance().getTicketId());
+            if (t != null && canAct(principal, me, t, s)) {
                 hydrate(t);
                 out.add(t);
-            } catch (AccessDeniedException ex) {
-                /* skip */
             }
         }
         out.sort(NEWEST_FIRST);
@@ -452,28 +448,68 @@ public class TicketService {
         if (me == null) {
             return out;
         }
-        for (WorkflowInstanceStage s : instanceStageRepository.findByStatusCode("Current")) {
-            if (!WaitingItem.ACTION_BY_STAGE_TYPE.containsKey(s.getStageType())) {
-                continue;
+        List<WorkflowInstanceStage> current = new ArrayList<WorkflowInstanceStage>();
+        for (WorkflowInstanceStage s : candidates(me, instanceStageRepository.findByStatusCode("Current"))) {
+            if (WaitingItem.ACTION_BY_STAGE_TYPE.containsKey(s.getStageType())) {
+                current.add(s);
             }
-            // A step given to one person waits only for them (or their delegate), not their whole group.
-            if (s.getResolvedEmployee() != null && !s.getResolvedEmployee().getEmployeeId().equals(me.getEmployeeId())
-                    && !WorkflowEngine.isDelegateFor(me, s)) {
-                continue;
-            }
-            try {
-                Ticket t = ticketRepository.findById(s.getWorkflowInstance().getTicketId()).orElse(null);
-                if (t == null || CLOSED.contains(t.getStatusCode())) {
-                    continue;
-                }
-                workflowEngine.assertCanAct(principal, me, t, s);
+        }
+        Map<Long, Ticket> tickets = ticketsOf(current);
+        for (WorkflowInstanceStage s : current) {
+            Ticket t = tickets.get(s.getWorkflowInstance().getTicketId());
+            if (t != null && !CLOSED.contains(t.getStatusCode()) && canAct(principal, me, t, s)) {
                 hydrate(t);
                 out.add(new WaitingItem(t, s.getStageType(), s.getLabel()));
-            } catch (AccessDeniedException ex) {
-                /* not this user's step */
             }
         }
         out.sort((a, b) -> NEWEST_FIRST.compare(a.getTicket(), b.getTicket()));
+        return out;
+    }
+
+    /**
+     * Drops steps given to one named person other than me (and not delegated to me) before any ticket
+     * is loaded: with many open tickets most current steps belong to someone else.
+     */
+    private static List<WorkflowInstanceStage> candidates(Employee me, List<WorkflowInstanceStage> stages) {
+        List<WorkflowInstanceStage> out = new ArrayList<WorkflowInstanceStage>();
+        for (WorkflowInstanceStage s : stages) {
+            boolean someoneElse = s.getResolvedEmployee() != null
+                    && !s.getResolvedEmployee().getEmployeeId().equals(me.getEmployeeId())
+                    && !WorkflowEngine.isDelegateFor(me, s);
+            if (!someoneElse) {
+                out.add(s);
+            }
+        }
+        return out;
+    }
+
+    private boolean canAct(ItsmUserPrincipal principal, Employee me, Ticket t, WorkflowInstanceStage s) {
+        try {
+            workflowEngine.assertCanAct(principal, me, t, s);
+            return true;
+        } catch (AccessDeniedException ex) {
+            return false;
+        }
+    }
+
+    /** The tickets of these steps in one query (instead of one query per step). */
+    private Map<Long, Ticket> ticketsOf(List<WorkflowInstanceStage> stages) {
+        java.util.Set<Long> ids = new java.util.LinkedHashSet<Long>();
+        for (WorkflowInstanceStage s : stages) {
+            ids.add(s.getWorkflowInstance().getTicketId());
+        }
+        return ticketsById(ids);
+    }
+
+    private Map<Long, Ticket> ticketsById(java.util.Collection<Long> ids) {
+        Map<Long, Ticket> out = new java.util.HashMap<Long, Ticket>();
+        List<Long> all = new ArrayList<Long>(ids);
+        // SQL Server accepts at most 2100 parameters per statement.
+        for (int i = 0; i < all.size(); i += 1000) {
+            for (Ticket t : ticketRepository.findAllById(all.subList(i, Math.min(i + 1000, all.size())))) {
+                out.put(t.getTicketId(), t);
+            }
+        }
         return out;
     }
 

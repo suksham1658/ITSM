@@ -1,4 +1,4 @@
-# ITSM Portal — Application Guide
+# Authum IT Nexa (ITSM Portal) — Application Guide
 
 Developer and support reference: architecture, modules and their flows, every HTTP endpoint,
 the main classes and methods, configuration (database, LDAP, security), the database schema,
@@ -170,7 +170,7 @@ WHERE e.sam_account_name = N'<ad.username>'
 |---|---|---|
 | `DB_URL` | `jdbc:sqlserver://AUTHDDRN0102\AUTHUM;databaseName=ItsmPortal;encrypt=true;trustServerCertificate=true` | JDBC URL |
 | — | `spring.datasource.username` / `password` (hard-coded fallback) | DB login — move to env/secret store |
-| `HIKARI_MAX_POOL` / `HIKARI_MIN_IDLE` | 20 / 2 | Connection pool |
+| `HIKARI_MAX_POOL` / `HIKARI_MIN_IDLE` | 30 / 10 | Connection pool (sized for 1000+ users) |
 | `LDAP_URL` | `ldap://AUTHPDC.Authum.local:389` | Directory server (prefer `ldaps://…:636`) |
 | `LDAP_BASE_DN` | `dc=Authum,dc=local` | Search base |
 | `LDAP_BIND_DN` / `LDAP_BIND_PASSWORD` | service account (fallback in yml) | Used to find the user's DN |
@@ -639,6 +639,7 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
 | V11 | Implementors per category, several implementors per step, REJECT at the service desk; also `U11__desk_multi_assign.sql` |
+| V12 | Performance indexes (current steps by status/type, newest-first tickets, implementor offers, SLA state); also `U12__performance_indexes.sql` |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
 
 Never edit an applied migration (Flyway checksum validation fails); add a new `V12__…` (and the same idempotent `db/install/upgrades/U12__…sql`) instead.
@@ -751,3 +752,22 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
 - Several tables were rebuilt outside Flyway on 2026-09-18 with VARCHAR instead of NVARCHAR; non-Latin
   text is not stored correctly there. Fix with a migration when convenient.
 - The two tests noted in [§2](#2-build-run-test) contradict the current auto-create login.
+
+## Appendix: Branding, theme and performance (2026-10-01)
+
+* **Name:** the portal is shown as **Authum IT Nexa** (login, sidebar, page titles, breadcrumbs, e-mails). Ticket
+  numbers keep their `ITSM-yyyy-nnnnnn` format. Company name default: `Authum` (System Configuration → General).
+* **Look:** cherry-red sidebar, wine-to-cherry login with only the brand name, light tinted table rows, blush
+  dashboard tiles that lift on hover (theme block at the end of `static/css/itsm.css`). The horizontal top menu
+  and the dashboard "Raise Request" button were removed; the sidebar is the menu.
+* **Speed for 1000+ users:**
+  - `U12__performance_indexes.sql` (runs automatically at start) adds indexes for the Approvals page, queues,
+    dashboard and newest-first ticket lists.
+  - Approvals / queues / My Assigned Tickets load their tickets in one query instead of one per ticket, and skip
+    steps that belong to someone else before loading anything.
+  - Hibernate `default_batch_fetch_size: 50`; Hikari pool 30 (10 kept warm).
+  - CSS/JS links carry a content hash (`itsm-<hash>.css`) and are cached by browsers for a year.
+  - The service-account LDAP connection is pooled (5-minute idle timeout); the user's own password check is not.
+  - Per-page queries trimmed (Config-approvals count only for approvers; unused employee count removed).
+  - On the server Tomcat, enable gzip in `conf/server.xml` on the 8090 connector:
+    `compression="on" compressionMinSize="2048" compressibleMimeType="text/html,text/css,application/javascript,application/json"`.

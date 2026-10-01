@@ -4,32 +4,18 @@
 <body>
 <div id="loginScreen">
   <div class="login-brand">
-    <div class="login-brand-top">
-      <div class="brand-mark">IT</div>
-      <div class="brand-word">ENTERPRISE<span>ITSM</span></div>
+    <div class="login-brand-center">
+      <div class="brand-mark">AN</div>
+      <div class="login-brand-name">Authum <span>IT Nexa</span></div>
+      <div class="login-brand-rule"></div>
     </div>
-    <div class="login-hero">
-      <span class="eyebrow">Internal IT Service Management</span>
-      <h1>One portal for every IT request, approval and resolution.</h1>
-      <p>Connected to corporate Active Directory. Requests are routed through an administrator-defined workflow — not a hardcoded chain in the browser.</p>
-      <div class="login-hierarchy">
-        <div class="lh-row"><span class="lh-dot"></span><span class="lh-label">LDAP / ACTIVE DIRECTORY</span></div>
-        <div class="lh-line"></div>
-        <div class="lh-row"><span class="lh-dot"></span><span class="lh-label">EMPLOYEE IDENTITY &amp; DEPARTMENT</span></div>
-        <div class="lh-line"></div>
-        <div class="lh-row"><span class="lh-dot"></span><span class="lh-label">DYNAMIC WORKFLOW</span></div>
-        <div class="lh-line"></div>
-        <div class="lh-row"><span class="lh-dot"></span><span class="lh-label">ROLE / PERMISSION RESOLUTION</span></div>
-        <div class="lh-line"></div>
-        <div class="lh-row"><span class="lh-dot"></span><span class="lh-label">ITSM PORTAL SESSION</span></div>
-      </div>
-    </div>
-    <div class="login-foot"><span th:text="${companyName} ?: 'Enterprise NBFC'">Enterprise NBFC</span> · Internal use only · All access is logged and monitored.</div>
+    <div class="login-foot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
   </div>
   <div class="login-panel-wrap">
     <div class="login-panel">
-      <h2>Sign in to ITSM Portal</h2>
-      <p class="login-sub">Authenticate with your corporate LDAP credentials.</p>
+      <div class="login-panel-brand"><div class="brand-mark">AN</div><b>Authum IT Nexa</b></div>
+      <h2>Sign in</h2>
+      <p class="login-sub">Use your Windows (domain) login.</p>
       <div class="login-error show" th:if="${loginError}"><i class="fa-solid fa-triangle-exclamation"></i><span>Sign-in failed. Check your credentials or contact IT Service Desk.</span></div>
       <div class="login-error show" th:if="${loginDenied}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your directory account is valid, but this portal profile is missing or disabled. Contact IT Admin.</span></div>
       <div class="login-error show" th:if="${sessionEnded}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your session ended (for example after the portal was restarted). Please sign in again and repeat your last action.</span></div>
@@ -37,10 +23,10 @@
       <div class="alert-banner ok" th:if="${loggedOut}">You have been signed out.</div>
       <form th:action="@{/login}" method="post">
         <div class="form-group">
-          <label for="username">Domain username <span class="req">*</span></label>
+          <label for="username">Username <span class="req">*</span></label>
           <div class="input-icon-wrap">
             <i class="fa-solid fa-user"></i>
-            <input id="username" name="username" type="text" class="form-control" autocomplete="username" required="required" maxlength="256" placeholder="CORP\your.id"/>
+            <input id="username" name="username" type="text" class="form-control" autocomplete="username" required="required" maxlength="256" placeholder="Employee ID"/>
           </div>
         </div>
         <div class="form-group">
@@ -50,13 +36,9 @@
             <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required="required" maxlength="256"/>
           </div>
         </div>
-        <p class="login-sub" style="margin-top:-8px;">Password reset is not available here. Use the corporate AD process or raise a Service Desk ticket.</p>
-        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-shield-halved"></i> Login with Corporate LDAP</button>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign in</button>
       </form>
-      <div class="login-security-note">
-        <i class="fa-solid fa-lock"></i>
-        <p><b>Corporate Security Notice:</b> This system is for authorized employees only. Sessions are authenticated via Active Directory, and access is logged for audit under the Information Security Policy. Remember-me is not offered.</p>
-      </div>
+      <p class="login-note">Authorised users only · Access is logged</p>
     </div>
   </div>
 </div>

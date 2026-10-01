@@ -11,12 +11,9 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
-        <div class="breadcrumb">ITSM Portal / <span>Dashboard</span></div>
+        <div class="breadcrumb">Authum IT Nexa / <span>Dashboard</span></div>
         <h1 th:text="${dash.title}">Executive Dashboard</h1>
         <p class="page-sub">Live counts from the database, scoped to <span th:text="${dash.scopeLabel}">your tickets</span>. Trends compare the last 30 days with the 30 days before that. n/a means the prior window had zero matching tickets.</p>
-      </div>
-      <div class="page-header-actions">
-        <a class="btn btn-accent btn-sm" sec:authorize="hasAuthority('TICKET_CREATE')" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i> Raise Request</a>
       </div>
     </div>
     <div class="grid grid-4" style="margin-bottom:18px;">
