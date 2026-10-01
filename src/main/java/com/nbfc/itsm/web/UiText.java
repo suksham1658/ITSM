@@ -66,6 +66,19 @@ public class UiText {
     }
 
     /** Badge class for configuration change requests and workflow definitions/rules. */
+    /** Top menu: is the current page ({@code nav}) one of the comma-separated keys of a menu group? */
+    public boolean navIn(String nav, String keys) {
+        if (nav == null || keys == null) {
+            return false;
+        }
+        for (String k : keys.split(",")) {
+            if (nav.equals(k.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public String configStatusClass(String status) {
         if (status == null) {
             return "badge-draft";

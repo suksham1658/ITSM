@@ -1,4 +1,5 @@
-<header id="topHeader" xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+<header id="topHeader">
     <button type="button" class="header-burger" data-action="toggle-sidebar" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
     <div class="header-spacer"></div>
     <div class="header-right" th:if="${currentUser != null}">
@@ -56,3 +57,5 @@
         </form>
     </div>
 </header>
+<nav th:replace="fragments/topnav :: topnav"></nav>
+</th:block>
