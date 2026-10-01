@@ -1129,7 +1129,7 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .badge-done{background:var(--wf-green-bg);color:var(--wf-green-ink);border:1px solid #A9DEBE;}
 
 /* header box */
-.ticket-hero{background:linear-gradient(135deg,#A6DCF1 0%,var(--sky) 55%,#74C2E2 100%);color:var(--sky-ink);
+.ticket-hero{background:#C9E9F6;color:var(--sky-ink);border:1px solid #B3DEEF;
   box-shadow:0 6px 18px rgba(11,47,69,.10);}
 .ticket-hero-id{color:rgba(11,47,69,.7);}
 .ticket-hero-title{color:var(--sky-ink);}
