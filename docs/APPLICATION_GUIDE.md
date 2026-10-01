@@ -331,10 +331,10 @@ and whoever can act on the **current** step.
 
 | Priority | Condition | Workflow |
 |---|---|---|
-| 10 | sub-category *Privileged Access Request* | PRIVILEGED_ACCESS: chain → CISO → IT Security Team → Implementor → confirm → close |
-| 20–22 | category *Cyber Security* / type *Security Incident* / *Highly Confidential* | SECURITY: chain → CISO → Implementor → confirm → close |
-| 30 | type *Incident* | INCIDENT_SD_THEN_IMPL: Service Desk → Implementor → confirm → close |
-| 40 | type *Service Request* | SR_CHAIN_TO_HOD_CISO_IMPL: chain → CISO → Implementor → confirm → close |
+| 10 | sub-category *Privileged Access Request* | PRIVILEGED_ACCESS: chain → CISO → IT Security Team → Implementor → close (confirm skipped) |
+| 20–22 | category *Cyber Security* / type *Security Incident* / *Highly Confidential* | SECURITY: chain → CISO → Implementor → close (confirm skipped) |
+| 30 | type *Incident* | INCIDENT_SD_THEN_IMPL: Service Desk → Implementor → close (confirm skipped) |
+| 40 | type *Service Request* | SR_CHAIN_TO_HOD_CISO_IMPL: chain → CISO → Implementor → close (confirm skipped) |
 | 999 | `{}` catch-all | SR_CHAIN_TO_HOD_CISO_IMPL |
 
 **Expansion** — `startOnSubmit` copies template stages into `workflow_instance_stage`. A
@@ -348,12 +348,17 @@ capped by `workflow.max-manager-hops`. Step label = the manager's display name.
 |---|---|---|---|
 | APPROVAL | named person (manager hop) or role (CISO) | APPROVE, REJECT, SEND_BACK (remarks ≥10) | next step / ticket Rejected / previous step |
 | ASSIGNMENT | Service Desk (group or role) | ASSIGN, REASSIGN | picks from **next step's group** (IT Implementors); moves on |
-| FULFILMENT | assigned implementor / group | ACCEPT, START, HOLD, REASSIGN, RESOLVE | In Progress / On Hold / hand over / to confirmation |
+| FULFILMENT | assigned implementor / group | ACCEPT, START, HOLD, REASSIGN, RESOLVE | In Progress / On Hold / hand over / Closed (or confirmation if on) |
 | CONFIRMATION | requester | APPROVE (closes), SEND_BACK (reopens) | Closed / back to implementor |
 | CLOSURE | system | — | ticket Closed |
 
+**Requester confirmation is OFF by default** (System Configuration → Workflow → *Requester confirmation before
+closing*, key `workflow.requester-confirmation`). While off, `WorkflowEngine.advance` marks every CONFIRMATION
+step **Skipped**, so **RESOLVE closes the ticket** in every workflow (the requester gets the "closed" e-mail).
+Switch it on to bring the confirmation step back; tickets already waiting at confirmation can still be confirmed.
+
 Ticket status: Draft → Pending Approval / Approved (in desk queue) → Assigned → In Progress ⇄ On Hold →
-Resolved → Closed, or Rejected.
+Closed (or Resolved → Closed when confirmation is on), or Rejected.
 
 **Groups** — `GroupMembershipService.isMember/activeMembers`: a person is in a work group if added on
 Admin → Users **or** holds the linked role (IT_SERVICE_DESK ↔ IT Service Desk, IT_IMPLEMENTOR ↔ IT Implementors).
@@ -378,8 +383,8 @@ UI: header bell (unread count + latest 8, `UiModelAdvice.notifUnread/notifLatest
 ### 6.4.1 Ticket e-mails (`notification/TicketEmailService`)
 
 * **Requester: only two mails** — "created" when a Request or Incident is **submitted** (not a draft; says who
-  has it now) and "closed" when it is **Closed** (also when the requester closes it by confirming). No mail in
-  between, not even at the confirmation step (the requester sees it in the app).
+  has it now) and "closed" when it is **Closed** (normally when the implementor resolves it; also when the
+  requester confirms, if confirmation is switched on). No mail in between.
 * **Queue mail (WAITING):** every time a step becomes current, each person who must act on it gets
   "Action needed: <type> <number> is in your queue" with what to do: approver(s) at each approval (one per manager
   in the chain), all IT Service Desk members at assignment, the assigned implementor (or the implementor group),

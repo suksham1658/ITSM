@@ -11,6 +11,8 @@ import com.nbfc.itsm.domain.EmployeeRoleAssignment;
 import com.nbfc.itsm.domain.EmployeeRoleAssignmentRepository;
 import com.nbfc.itsm.domain.RoleRepository;
 import com.nbfc.itsm.domain.SubCategoryRepository;
+import com.nbfc.itsm.domain.SystemSetting;
+import com.nbfc.itsm.domain.SystemSettingRepository;
 import com.nbfc.itsm.domain.Ticket;
 import com.nbfc.itsm.domain.TicketRepository;
 import com.nbfc.itsm.domain.TicketTypeRepository;
@@ -41,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Incident: requester raises it, it waits in the Service Desk queue, a desk agent assigns an
  * implementor from the IT Implementors group, the implementor starts / reassigns / resolves,
- * and the requester confirms, which closes it.
+ * which closes it (requester confirmation is off by default; it can be switched on in System Configuration).
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -62,6 +64,7 @@ class IncidentFlowTest {
     @Autowired private TicketRepository ticketRepository;
     @Autowired private WorkflowInstanceRepository instanceRepository;
     @Autowired private WorkflowInstanceStageRepository instanceStageRepository;
+    @Autowired private SystemSettingRepository settingRepository;
 
     private Employee requester;
     private Employee desk;
@@ -136,6 +139,24 @@ class IncidentFlowTest {
 
         ticketService.applyAction(as(impl2), t.getTicketId(), "START", null, null);
         ticketService.applyAction(as(impl2), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
+        assertEquals("Closed", status(t), "resolving closes the ticket, no requester confirmation");
+        assertTrue(instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(
+                instanceRepository.findByTicketId(t.getTicketId()).get()).stream()
+                .anyMatch(s -> "CONFIRMATION".equals(s.getStageType()) && "Skipped".equals(s.getStatusCode())),
+                "confirmation step shown as skipped");
+    }
+
+    @Test
+    void requesterConfirmsWhenSwitchedOnInSystemConfiguration() {
+        SystemSetting on = new SystemSetting();
+        on.setSettingKey("workflow.requester-confirmation");
+        on.setSettingValue("true");
+        on.setCategory("workflow");
+        settingRepository.save(on);
+        Ticket t = ticketService.save(as(requester), incident());
+        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", null, impl1.getEmployeeId());
+        ticketService.applyAction(as(impl1), t.getTicketId(), "START", null, null);
+        ticketService.applyAction(as(impl1), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
         assertEquals("CONFIRMATION", current(t).getStageType());
         assertEquals("Resolved", status(t));
 
