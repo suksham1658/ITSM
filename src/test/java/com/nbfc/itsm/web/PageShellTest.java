@@ -150,7 +150,7 @@ class PageShellTest {
                 .andExpect(content().string(not(containsString("ITSM Portal"))));
         mockMvc.perform(get("/").with(authentication(token(user))))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<strong>IT Nexa</strong>")))
+                .andExpect(content().string(containsString("<strong class=\"sb-wordmark\"><span class=\"wm-it\">IT</span> <span class=\"wm-nexa\">Nexa</span></strong>")))
                 .andExpect(content().string(not(containsString("page-header-actions"))))
                 .andExpect(content().string(not(containsString("ITSM Portal"))));
     }
