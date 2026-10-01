@@ -127,9 +127,6 @@ class TicketLifecycleIntegrationTest {
         incident = ticketService.applyAction(principal, incident.getTicketId(), "START", null, null);
         assertEquals("In Progress", incident.getStatusCode());
         incident = ticketService.applyAction(principal, incident.getTicketId(), "RESOLVE", null, null);
-        assertEquals("CONFIRMATION", current(incident).getStageType());
-        incident = ticketService.applyAction(principal, incident.getTicketId(), "APPROVE",
-                "Confirmed the laptop boots again.", null);
         assertEquals("Closed", incident.getStatusCode());
         TicketSla after = ticketSlaRepository.findByTicket(incident).orElse(null);
         assertNotNull(after.getResolvedUtc());
@@ -146,8 +143,6 @@ class TicketLifecycleIntegrationTest {
         assertEquals("FULFILMENT", current(sr).getStageType());
         sr = ticketService.applyAction(principal, sr.getTicketId(), "START", null, null);
         sr = ticketService.applyAction(principal, sr.getTicketId(), "RESOLVE", null, null);
-        sr = ticketService.applyAction(principal, sr.getTicketId(), "APPROVE",
-                "Requester confirms VPN works from HO.", null);
         assertEquals("Closed", sr.getStatusCode());
     }
 

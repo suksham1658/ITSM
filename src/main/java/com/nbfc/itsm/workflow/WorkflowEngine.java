@@ -444,6 +444,13 @@ public class WorkflowEngine {
         }
     }
 
+    /** System Configuration switch; off (default) = a resolved ticket closes without asking the requester. */
+    public boolean requesterConfirmation() {
+        return settingRepository.findById("workflow.requester-confirmation")
+                .map(s -> "true".equalsIgnoreCase(s.getSettingValue()))
+                .orElse(false);
+    }
+
     public int remarksMin() {
         return settingRepository.findById("approval.remarks-min-length")
                 .map(s -> parseInt(s.getSettingValue(), DEFAULT_REMARKS_MIN))
@@ -629,6 +636,13 @@ public class WorkflowEngine {
     private void advance(Ticket ticket, WorkflowInstance instance, List<WorkflowInstanceStage> stages,
                          WorkflowInstanceStage justCompleted) {
         WorkflowInstanceStage next = nextPending(stages, justCompleted);
+        if (!requesterConfirmation()) {
+            while (next != null && "CONFIRMATION".equals(next.getStageType())) {
+                next.setStatusCode("Skipped");
+                next.setActedAtUtc(TimeUtc.now());
+                next = nextPending(stages, next);
+            }
+        }
         while (next != null && "CLOSURE".equals(next.getStageType()) && "SYSTEM".equals(next.getActorStrategy())) {
             next.setStatusCode("Completed");
             next.setActionCode("COMPLETE");

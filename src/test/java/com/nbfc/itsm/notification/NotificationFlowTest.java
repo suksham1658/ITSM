@@ -111,10 +111,9 @@ class NotificationFlowTest {
         ticketService.applyAction(as(impl), inc.getTicketId(), "START", null, null);
         assertTrue(titles(requester, inc).stream().anyMatch(t -> t.startsWith("In progress")));
         ticketService.applyAction(as(impl), inc.getTicketId(), "RESOLVE", "Replaced keyboard", null);
-        assertTrue(titles(requester, inc).stream().anyMatch(t -> t.startsWith("Resolved, please confirm")));
-
-        ticketService.applyAction(as(requester), inc.getTicketId(), "APPROVE", "All working again now", null);
-        assertTrue(titles(impl, inc).stream().anyMatch(t -> t.startsWith("Closed")), "implementor told it closed");
+        assertTrue(titles(requester, inc).stream().anyMatch(t -> t.startsWith("Closed")), "requester told it closed");
+        assertTrue(titles(requester, inc).stream().noneMatch(t -> t.startsWith("Resolved, please confirm")),
+                "no confirmation request");
     }
 
     @Test

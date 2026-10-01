@@ -108,13 +108,9 @@ class TicketEmailTest {
 
         ticketService.applyAction(as(impl), id, "START", null, null);
         ticketService.applyAction(as(impl), id, "RESOLVE", "Replaced the faulty RAM module", null);
-        assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id), kinds(),
-                "no mail for starting work, and none to the requester at confirmation (created / closed only)");
-
-        ticketService.applyAction(as(requester), id, "APPROVE", "Working fine now, thank you", null);
-        assertEquals("Closed", ticketRepository.findById(id).get().getStatusCode());
+        assertEquals("Closed", ticketRepository.findById(id).get().getStatusCode(), "resolving closes it");
         assertEquals(java.util.Arrays.asList("CREATED:" + id, "WAITING:" + id, "WAITING:" + id, "CLOSED:" + id), kinds(),
-                "closed mail even though the requester closed it");
+                "no mail for starting work; the requester gets only created and closed");
         for (TicketEmailEvent e : applicationEvents.stream(TicketEmailEvent.class).collect(Collectors.toList())) {
             assertFalse(e.getRecipientIds().contains(requester.getEmployeeId()), "requester never gets a queue mail");
         }

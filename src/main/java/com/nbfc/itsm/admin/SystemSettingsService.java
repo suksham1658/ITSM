@@ -133,6 +133,8 @@ public class SystemSettingsService implements ApplicationRunner {
 
         stored("workflow", "approval.remarks-min-length", "Minimum remarks length", "Characters required on Approve / Reject / Send back.", 1, 200, "10");
         stored("workflow", "workflow.max-manager-hops", "Maximum manager steps", "Cap on reporting-line approvals per request.", 1, 20, "12");
+        storedBool("workflow", "workflow.requester-confirmation", "Requester confirmation before closing",
+                "Off = a ticket closes as soon as the implementor resolves it. On = the requester must confirm first.", "false");
 
         text("general", "general.company-name", "Company name", "Shown on the login page.", () -> companyName, v -> companyName = v, null);
     }
@@ -329,6 +331,10 @@ public class SystemSettingsService implements ApplicationRunner {
     /** Values the application reads straight from system_setting (workflow engine, SLA). */
     private void stored(String cat, String key, String label, String help, int min, int max, String dflt) {
         defs.put(key, new Def(cat, key, label, help, "number", null, min, max, null, null, dflt));
+    }
+
+    private void storedBool(String cat, String key, String label, String help, String dflt) {
+        defs.put(key, new Def(cat, key, label, help, "bool", null, 0, 0, null, null, dflt));
     }
 
     /** One setting: where it is shown, how it is checked, how it is read and applied. */

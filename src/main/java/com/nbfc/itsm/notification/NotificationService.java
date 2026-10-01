@@ -169,7 +169,7 @@ public class NotificationService {
         Employee impl = t.getAssignedImplementor();
         if (impl != null && !same(impl, by)) {
             send(null, impl, t, "Closed: " + t.getPublicNumber(),
-                    "\"" + t.getSubject() + "\" was confirmed and closed by " + by.getDisplayName() + ".");
+                    "\"" + t.getSubject() + "\" was closed by " + by.getDisplayName() + ".");
         }
     }
 
