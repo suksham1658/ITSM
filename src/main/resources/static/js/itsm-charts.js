@@ -53,6 +53,29 @@
     return series.color;
   }
 
+  /** Shortens a label with "…" so it fits under its own bar instead of running into the next one. */
+  function fitText(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) {
+      return text;
+    }
+    var t = text;
+    while (t.length > 1 && ctx.measureText(t + "…").width > maxW) {
+      t = t.slice(0, -1);
+    }
+    return t + "…";
+  }
+
+  /** True for very light #rrggbb colours that need an outline on a white background. */
+  function isLight(color) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(color).trim());
+    if (!m) {
+      return false;
+    }
+    var n = parseInt(m[1], 16);
+    var lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+    return lum > 225;
+  }
+
   function doughnut(ctx, payload, w, h) {
     var data = (payload.series[0] && payload.series[0].data) || [];
     var total = 0;
@@ -118,14 +141,21 @@
         var bh = (val / max) * (plotH - 4);
         var x = padL + g * groupW + 6 + s * barW;
         var y = padT + plotH - bh;
-        ctx.fillStyle = colorsFor(series[s], g, [series[s].color || "#0B1F33"]);
+        var fill = colorsFor(series[s], g, [series[s].color || "#0B1F33"]);
+        ctx.fillStyle = fill;
         roundRect(ctx, x, y, Math.max(4, barW - 4), bh, 4);
         ctx.fill();
+        if (isLight(fill)) {
+          // e.g. off-white: outline it so the bar is visible on the white card
+          ctx.strokeStyle = "#A89F8C";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
       }
       ctx.fillStyle = "#64748B";
       ctx.font = "11px 'IBM Plex Sans', sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(String(labels[g]).slice(0, 12), padL + g * groupW + groupW / 2, h - 12);
+      ctx.fillText(fitText(ctx, String(labels[g]), groupW - 6), padL + g * groupW + groupW / 2, h - 12);
     }
     legend(ctx.canvas, payload);
   }

@@ -183,7 +183,15 @@ public class ReportingService {
                 new Trend("live", "n/a", "implementor queue"), "fa-user-gear", "navy"));
 
         snap.setStatusChart(statusChart(user, me));
-        snap.setCategoryChart(groupBar(user, me, none, "category", "name", COLOR_NAVY, "bar", extraNone()));
+        ChartPayload byCategory = groupBar(user, me, none, "category", "name", COLOR_NAVY, "bar", extraNone());
+        List<String> barColors = new ArrayList<String>();
+        for (String name : byCategory.getLabels()) {
+            barColors.add(categoryColor(name));
+        }
+        if (!byCategory.getSeries().isEmpty() && !barColors.isEmpty()) {
+            byCategory.getSeries().get(0).setColor(String.join(",", barColors));
+        }
+        snap.setCategoryChart(byCategory);
         snap.setPriorityChart(priorityChart(user, me));
         snap.setTrendChart(monthlyTrendChart(user, me, none, 6, YearMonth.now(IST)));
         return snap;
@@ -407,6 +415,29 @@ public class ReportingService {
         chart.getSeries().add(s);
         chart.setEmpty(total == 0);
         return chart;
+    }
+
+    /** Dashboard "Tickets by category": one fixed colour per category (by name). */
+    private static final Map<String, String> CATEGORY_COLORS = new LinkedHashMap<String, String>();
+
+    static {
+        CATEGORY_COLORS.put("application", "#F57C00");        // orange
+        CATEGORY_COLORS.put("cloud", "#9E9E9E");              // grey
+        CATEGORY_COLORS.put("database", "#00BCD4");           // cyan
+        CATEGORY_COLORS.put("email", "#C41E3A");              // cherry red
+        CATEGORY_COLORS.put("hardware", "#111111");           // black
+        CATEGORY_COLORS.put("network", "#2E7D32");            // green
+        CATEGORY_COLORS.put("software", "#F3EFE4");           // off-white (drawn with an outline)
+        CATEGORY_COLORS.put("access management", "#6A4FB5");  // purple
+        CATEGORY_COLORS.put("cyber security", "#1F3A93");     // dark blue
+        CATEGORY_COLORS.put("infrastructure", "#8D6E63");     // brown
+        CATEGORY_COLORS.put("telephony", "#D81B60");          // pink
+        CATEGORY_COLORS.put("other", "#607D8B");              // blue-grey
+    }
+
+    static String categoryColor(String name) {
+        String c = name == null ? null : CATEGORY_COLORS.get(name.trim().toLowerCase(Locale.ROOT));
+        return c != null ? c : COLOR_SLATE;
     }
 
     private ChartPayload groupBar(ItsmUserPrincipal user, Employee me, ReportFilter filter,
