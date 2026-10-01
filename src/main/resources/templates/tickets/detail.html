@@ -33,7 +33,11 @@
         <th:block th:each="s, iter : ${detail.stages}">
           <div class="sp-step" th:classappend="${s.statusCode == 'Completed'} ? ' done' : (${s.statusCode == 'Current'} ? ' current' : (${s.statusCode == 'Rejected'} ? ' rejected' : ''))">
             <div class="sp-dot"></div>
-            <div class="sp-label" th:text="${@ui.stageLabel(s.label)}">Stage</div>
+            <div class="sp-text">
+              <div class="sp-label" th:text="${@ui.stageLabel(s.label)}">Stage</div>
+              <div class="sp-who" th:if="${s.statusCode == 'Current' and s.resolvedEmployee != null and s.resolvedEmployee.displayName != @ui.stageLabel(s.label)}"
+                   th:text="${s.resolvedEmployee.displayName}">who</div>
+            </div>
           </div>
           <div class="sp-bar" th:if="${!iter.last}" th:classappend="${s.statusCode == 'Completed'} ? ' done'"></div>
         </th:block>
@@ -172,10 +176,11 @@
         <div class="card card-pad">
           <h3 style="font-size:14px;margin-bottom:12px;">Workflow</h3>
           <ol class="wf-rail">
-            <li th:each="s : ${detail.stages}">
-              <strong th:text="${@ui.stageLabel(s.label)}">Stage</strong>
-              <span class="badge" th:classappend="${@ui.stageStatusClass(s.statusCode)}" th:text="${s.statusCode}">Pending</span>
-              <div class="phase-note" th:if="${s.resolvedEmployee != null and s.resolvedEmployee.displayName != @ui.stageLabel(s.label)}" th:text="${s.resolvedEmployee.displayName}">who</div>
+            <li th:each="s : ${detail.stages}" th:classappend="${'wf-' + #strings.toLowerCase(s.statusCode)}">
+              <span class="wf-dot" aria-hidden="true"></span>
+              <strong class="wf-label" th:text="${@ui.stageLabel(s.label)}">Stage</strong>
+              <span class="badge" th:classappend="${@ui.stageStatusClass(s.statusCode)}" th:text="${@ui.stageStatusText(s.statusCode)}">Pending</span>
+              <div class="phase-note wf-who" th:if="${s.resolvedEmployee != null and s.resolvedEmployee.displayName != @ui.stageLabel(s.label)}" th:text="${s.resolvedEmployee.displayName}">who</div>
               <div class="phase-note" th:if="${s.remarks != null}" th:text="${s.remarks}">remarks</div>
             </li>
           </ol>
