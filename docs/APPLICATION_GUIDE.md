@@ -804,3 +804,21 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
 * **Reassign** needs a hand-over person and a comment (≥ 10 characters). Every service-desk assignment and every
   reassignment is stored in `ticket_assignment_log` and shown in the ticket's Workflow list under its step:
   "Assigned by <desk> to <implementor>" / "Reassigned by <A> to <B>", with time and comment.
+
+## Appendix: Requester confirmation with automatic closure (2026-10-01)
+
+* **Requester confirmation is ON by default again** (System Configuration → Workflow → *Requester confirmation before
+  closing*). After the implementor clicks Resolve the ticket is **Resolved** and waits in the requester's Approvals
+  bucket ("Confirm resolution"). The ticket page shows **"Is your issue resolved?"** with:
+  - **Yes, it's resolved — close ticket** (APPROVE, no remarks needed) → Closed, "closed" e-mail;
+  - **No, not resolved — send back to implementor** (SEND_BACK, reason required) → back to the same implementor,
+    SLA resolution clock runs again.
+* **Automatic closure:** `ConfirmationAutoCloseJob` (every 15 minutes, `itsm.jobs.enabled`) closes tickets that waited
+  longer than *Requester confirmation window (hours)* (default 48). The confirmation step gets action `AUTO_CLOSE`;
+  the requester receives the closed e-mail (`TicketEmailEvent.Kind.AUTO_CLOSED`): "…has been closed… If you are not
+  satisfied, please re-open this ticket" with a link to `/tickets/{id}/reopen` (needs *Portal address for links* in
+  System Configuration → SMTP) and the date until which it works.
+* **Re-open:** for *Re-open link valid for (hours)* (default 48) after the automatic closure the requester sees
+  **"Closed automatically — is your issue resolved?"**: *Yes — keep it closed* (stays closed, no more re-open) or
+  *No, not resolved — re-open and send back* (reason required → back to the implementor). After the window the link
+  says it has expired. Only the requester can re-open or confirm.

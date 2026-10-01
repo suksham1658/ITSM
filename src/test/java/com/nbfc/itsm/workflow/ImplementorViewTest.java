@@ -144,6 +144,8 @@ class ImplementorViewTest {
         assertEquals(1, ticketService.waitingFor(as(impl2)).stream()
                 .filter((WaitingItem i) -> i.getTicket().getTicketId().equals(t.getTicketId())).count());
         ticketService.applyAction(as(impl2), t.getTicketId(), "RESOLVE", "Replaced the switch port", null);
+        assertEquals("Resolved", ticketRepository.findById(t.getTicketId()).get().getStatusCode(), "now with the requester");
+        ticketService.applyAction(as(requester), t.getTicketId(), "APPROVE", null, null);
         assertEquals("Closed", ticketRepository.findById(t.getTicketId()).get().getStatusCode());
     }
 
@@ -155,7 +157,7 @@ class ImplementorViewTest {
                 .andExpect(content().string(allOf(containsString("value=\"REASSIGN\""), containsString("value=\"RESOLVE\""),
                         not(containsString("value=\"HOLD\"")))));
         ticketService.applyAction(as(impl1), t.getTicketId(), "RESOLVE", "Part arrived and fitted", null);
-        assertEquals("Closed", ticketRepository.findById(t.getTicketId()).get().getStatusCode());
+        assertEquals("Resolved", ticketRepository.findById(t.getTicketId()).get().getStatusCode());
     }
 
     // ------------------------------------------------------------------ helpers

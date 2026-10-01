@@ -8,10 +8,10 @@ import java.util.List;
 public class TicketEmailEvent {
 
     /**
-     * CREATED / CLOSED: to the requester. WAITING: the ticket is now in the queue of
+     * CREATED / CLOSED / AUTO_CLOSED (closed for lack of confirmation, with a re-open link): to the requester. WAITING: the ticket is now in the queue of
      * {@link #getRecipientIds()} (the people who must act on step {@link #getStageId()}).
      */
-    public enum Kind { CREATED, CLOSED, WAITING }
+    public enum Kind { CREATED, CLOSED, WAITING, AUTO_CLOSED }
 
     private final Long ticketId;
     private final Kind kind;

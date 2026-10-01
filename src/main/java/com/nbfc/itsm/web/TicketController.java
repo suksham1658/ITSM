@@ -200,6 +200,47 @@ public class TicketController {
         return "redirect:/tickets/" + id;
     }
 
+    /**
+     * Re-open link from the "closed automatically" e-mail: opens the ticket at the Resolved / Not resolved
+     * choice while the re-open period runs; afterwards it says the link has expired.
+     */
+    @GetMapping("/tickets/{id}/reopen")
+    public String reopenLink(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
+                             RedirectAttributes ra) {
+        TicketDetail d = ticketService.detail(user, id);
+        if (!d.isCanReopen()) {
+            ra.addFlashAttribute("errorMessage", d.getReopenUntil() != null
+                    ? "This re-open link has expired. Please raise a new request if the issue is still there."
+                    : "This ticket cannot be re-opened (it was not closed automatically, or it was already confirmed).");
+            return "redirect:/tickets/" + id;
+        }
+        return "redirect:/tickets/" + id + "#reopen";
+    }
+
+    @PostMapping("/tickets/{id}/reopen")
+    public String reopen(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
+                         @RequestParam(value = "remarks", required = false) String remarks, RedirectAttributes ra) {
+        try {
+            ticketService.reopen(user, id, remarks);
+            ra.addFlashAttribute("message", "Ticket re-opened and sent back to the implementor.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/tickets/" + id;
+    }
+
+    @PostMapping("/tickets/{id}/confirm-closed")
+    public String confirmClosed(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
+                                RedirectAttributes ra) {
+        try {
+            ticketService.confirmClosed(user, id);
+            ra.addFlashAttribute("message", "Thank you. The ticket stays closed.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/tickets/" + id;
+    }
+
     @PostMapping("/tickets/{id}/action")
     public String action(@AuthenticationPrincipal ItsmUserPrincipal user,
                          @PathVariable("id") Long id,

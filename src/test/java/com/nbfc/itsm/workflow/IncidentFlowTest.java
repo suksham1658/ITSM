@@ -139,7 +139,24 @@ class IncidentFlowTest {
 
         ticketService.applyAction(as(impl2), t.getTicketId(), "START", null, null);
         ticketService.applyAction(as(impl2), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
-        assertEquals("Closed", status(t), "resolving closes the ticket, no requester confirmation");
+        assertEquals("CONFIRMATION", current(t).getStageType(), "requester confirmation is on by default");
+        assertEquals("Resolved", status(t));
+
+        ticketService.applyAction(as(requester), t.getTicketId(), "APPROVE", null, null);
+        assertEquals("Closed", status(t), "Resolved needs no remarks");
+    }
+
+    @Test
+    void resolvingClosesAtOnceWhenConfirmationIsSwitchedOff() {
+        SystemSetting off = new SystemSetting();
+        off.setSettingKey("workflow.requester-confirmation");
+        off.setSettingValue("false");
+        off.setCategory("workflow");
+        settingRepository.save(off);
+        Ticket t = ticketService.save(as(requester), incident());
+        ticketService.applyAction(as(desk), t.getTicketId(), "ASSIGN", null, impl1.getEmployeeId());
+        ticketService.applyAction(as(impl1), t.getTicketId(), "RESOLVE", "Replaced the faulty RAM module", null);
+        assertEquals("Closed", status(t));
         assertTrue(instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(
                 instanceRepository.findByTicketId(t.getTicketId()).get()).stream()
                 .anyMatch(s -> "CONFIRMATION".equals(s.getStageType()) && "Skipped".equals(s.getStatusCode())),

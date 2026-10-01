@@ -95,6 +95,20 @@ public class SlaService {
         ticketSlaRepository.save(sla);
     }
 
+    /** "Not resolved" / re-opened: the ticket is open again, so the resolution clock runs again. */
+    @Transactional
+    public void reopen(Ticket ticket) {
+        TicketSla sla = ticketSlaRepository.findByTicket(ticket).orElse(null);
+        if (sla == null) {
+            return;
+        }
+        sla.setResolvedUtc(null);
+        sla.setPaused(false);
+        sla.setStateCode("WITHIN");
+        refreshState(sla, TimeUtc.now());
+        ticketSlaRepository.save(sla);
+    }
+
     @Transactional
     public void refresh(Ticket ticket) {
         TicketSla sla = ticketSlaRepository.findByTicket(ticket).orElse(null);
