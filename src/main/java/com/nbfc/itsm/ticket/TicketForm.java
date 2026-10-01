@@ -15,6 +15,25 @@ public class TicketForm {
     private String applicationName;
     private boolean majorIncident;
     private String intent = "submit";
+    /** Hardware only: ENTER (type the serial number) or NA (not available). */
+    private String serialMode;
+    private String serialNumber;
+
+    public String getSerialMode() {
+        return serialMode;
+    }
+
+    public void setSerialMode(String serialMode) {
+        this.serialMode = serialMode;
+    }
+
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
 
     public Long getTicketTypeId() {
         return ticketTypeId;

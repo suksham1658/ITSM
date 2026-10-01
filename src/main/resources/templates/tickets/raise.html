@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="grid raise-layout">
-      <form class="card card-pad" id="raiseForm" th:action="@{/tickets/raise}" method="post">
+      <form class="card card-pad" id="raiseForm" th:action="@{/tickets/raise}" method="post" enctype="multipart/form-data">
         <div class="form-section-title">Request Classification</div>
         <div class="form-grid">
           <div class="form-group"><label for="ticketTypeId">Ticket Type <span class="req">*</span></label>
@@ -31,6 +31,7 @@
             <select class="form-control" name="categoryId" id="categorySelect" required="required">
               <option value="">Select category</option>
               <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}"
+                      th:attr="data-code=${c.code}"
                       th:selected="${form.categoryId == c.categoryId}">Hardware</option>
             </select></div>
           <div class="form-group"><label for="subCategorySelect">Sub Category <span class="req">*</span></label>
@@ -40,11 +41,22 @@
                       th:attr="data-category-id=${s.category.categoryId}" th:text="${s.name}"
                       th:selected="${form.subCategoryId == s.subCategoryId}">Laptop</option>
             </select></div>
-          <div class="form-group"><label for="confidentialityCode">Confidentiality</label>
-            <select class="form-control" id="confidentialityCode" name="confidentialityCode">
-              <option th:each="o : ${limits.confidentiality}" th:value="${o}" th:text="${o}"
-                      th:selected="${form.confidentialityCode == o}">Normal</option>
-            </select></div>
+          <!-- Shown (and mandatory) only when the category is Hardware; itsm.js toggles it. -->
+          <div class="form-group serial-group" id="serialGroup" data-serial-category="HARDWARE"
+               th:attr="hidden=${form.serialMode == null} ? 'hidden' : null">
+            <span class="field-label" id="serialLabel">Serial Number <span class="req">*</span></span>
+            <div class="serial-options" role="radiogroup" aria-labelledby="serialLabel">
+              <label class="serial-option">
+                <input type="radio" name="serialMode" value="ENTER" id="serialEnter" th:checked="${form.serialMode == 'ENTER'}"/>
+                <input type="text" class="form-control" id="serialNumber" name="serialNumber" maxlength="100"
+                       placeholder="Enter Serial number" aria-label="Serial number" th:value="${form.serialNumber}"/>
+              </label>
+              <label class="serial-option">
+                <input type="radio" name="serialMode" value="NA" id="serialNa" th:checked="${form.serialMode == 'NA'}"/>
+                <span>Not Available</span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="form-section-title">Request Details</div>
         <div class="form-grid">
@@ -77,6 +89,10 @@
             <input type="text" class="form-control" id="location" name="location"
                    th:attr="maxlength=${limits.locationMax}" th:value="${form.location}"
                    placeholder="e.g. Head office, 3rd floor"/></div>
+          <div class="form-group span-2"><label for="attachment">Attachment <span class="text-muted">(optional)</span></label>
+            <input type="file" class="form-control" id="attachment" name="attachment" data-pdf-max-mb="5"
+                   accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt,.log,.msg"/>
+            <div class="field-hint" id="attachmentHint">PDF up to 5 MB. Word, Excel, images and text files are also accepted.</div></div>
         </div>
         <p class="phase-note">Use <b>Save draft</b> to finish later. <b>Submit Request</b> sends it for approval and starts the SLA clock.</p>
         <div class="form-actions">

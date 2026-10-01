@@ -43,18 +43,30 @@ public class AttachmentService {
         this.properties = properties;
     }
 
-    @Transactional
-    public TicketAttachment store(Ticket ticket, Employee uploader, MultipartFile file) {
+    /** PDFs may not be larger than this (other types follow the attachment policy's limit). */
+    public static final long PDF_MAX_BYTES = 5L * 1024 * 1024;
+
+    /** True when a file was chosen (an empty file input still sends an empty part). */
+    public static boolean present(MultipartFile file) {
+        return file != null && !file.isEmpty() && StringUtils.hasText(file.getOriginalFilename());
+    }
+
+    /** Checks size and type without storing, so a form can be rejected before anything is saved. */
+    public void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ItsmException("ATTACHMENT_EMPTY", "Choose a file to attach.");
         }
         AttachmentPolicy policy = policyRepository.findFirstByOrderByAttachmentPolicyIdAsc().orElse(null);
         int max = policy != null ? policy.getMaxBytes() : 10 * 1024 * 1024;
-        if (file.getSize() > max) {
-            throw new ItsmException("ATTACHMENT_TOO_LARGE", "File exceeds the allowed size of " + max + " bytes.");
-        }
         String original = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
         String ext = extension(original);
+        if ("pdf".equals(ext) && file.getSize() > PDF_MAX_BYTES) {
+            throw new ItsmException("ATTACHMENT_TOO_LARGE", "PDF files must not exceed 5 MB (this one is "
+                    + megabytes(file.getSize()) + ").");
+        }
+        if (file.getSize() > max) {
+            throw new ItsmException("ATTACHMENT_TOO_LARGE", "File exceeds the allowed size of " + megabytes(max) + ".");
+        }
         if (BLOCKED_EXT.contains(ext)) {
             throw new ItsmException("ATTACHMENT_EXECUTABLE", "Executable and script files are not allowed.");
         }
@@ -69,6 +81,18 @@ public class AttachmentService {
                 throw new ItsmException("ATTACHMENT_MIME", "Content type is not allowed.");
             }
         }
+    }
+
+    private static String megabytes(long bytes) {
+        return String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+
+    @Transactional
+    public TicketAttachment store(Ticket ticket, Employee uploader, MultipartFile file) {
+        validate(file);
+        String original = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
+        String ext = extension(original);
+        String contentType = file.getContentType();
         Path root = storageRoot();
         String key = ticket.getTicketId() + "/" + UUID.randomUUID().toString() + (ext.length() > 0 ? "." + ext : "");
         Path dest = root.resolve(key).normalize();

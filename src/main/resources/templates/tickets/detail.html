@@ -52,7 +52,7 @@
             <div class="info-item"><div class="il-label">Requester</div><div class="il-value" th:text="${detail.ticket.requester.displayName}">A</div></div>
             <div class="info-item"><div class="il-label">Category</div><div class="il-value" th:text="${detail.ticket.category.name}">C</div></div>
             <div class="info-item"><div class="il-label">Sub-category</div><div class="il-value" th:text="${detail.ticket.subCategory.name}">S</div></div>
-            <div class="info-item"><div class="il-label">Confidentiality</div><div class="il-value" th:text="${detail.ticket.confidentialityCode}">N</div></div>
+            <div class="info-item" th:if="${detail.ticket.serialNumber != null}"><div class="il-label">Serial number</div><div class="il-value" th:text="${detail.ticket.serialNumber}">SN</div></div>
             <div class="info-item span-2"><div class="il-label">Description</div><div class="il-value" style="font-weight:500;white-space:pre-wrap;" th:text="${detail.ticket.description}">D</div></div>
           </div>
         </div>

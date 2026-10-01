@@ -7,4 +7,6 @@ import java.util.List;
 public interface SubCategoryRepository extends JpaRepository<SubCategory, Long> {
     List<SubCategory> findByCategoryAndActiveTrueOrderBySortOrderAsc(Category category);
     List<SubCategory> findByActiveTrueOrderBySortOrderAsc();
+    List<SubCategory> findByCategory(Category category);
+    java.util.Optional<SubCategory> findByCategoryAndCode(Category category, String code);
 }

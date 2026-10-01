@@ -1187,3 +1187,23 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .status-legend .sl-total{border-bottom:0;border-top:2px solid var(--sky-200);margin-top:4px;padding-top:9px;font-weight:700;color:var(--sky-ink);}
 .status-legend .sl-total .sl-label{padding-left:19px;}
 @media (max-width:700px){.chart-split{flex-direction:column;align-items:stretch;}.status-legend{min-width:0;padding:0 4px 12px;}}
+
+/* Admin > Categories: add row and inline edit / delete actions. */
+.catalog-add{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--slate-100);background:#FBFCFD;}
+.catalog-add .form-control{width:auto;flex:1 1 220px;max-width:360px;}
+.catalog-add select.form-control{flex:0 1 200px;}
+.catalog-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;}
+.catalog-actions details > summary{list-style:none;display:inline-flex;cursor:pointer;}
+.catalog-actions details > summary::-webkit-details-marker{display:none;}
+.catalog-edit{display:flex;gap:6px;margin-top:6px;}
+.catalog-edit .form-control{min-width:200px;padding:6px 9px;font-size:12.5px;}
+
+/* Raise Request: serial number (Hardware only) and attachment hint. */
+[hidden]{display:none !important;}
+.field-label{display:block;font-size:12px;font-weight:600;color:var(--slate-600);margin-bottom:6px;letter-spacing:.2px;}
+.serial-options{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;}
+.serial-option{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate-700);cursor:pointer;margin:0;}
+.serial-option input[type=radio]{width:16px;height:16px;accent-color:var(--sky-800);flex-shrink:0;}
+.serial-option .form-control{width:240px;max-width:60vw;}
+.serial-option .form-control:disabled{background:var(--slate-100);}
+.field-hint{font-size:11.5px;color:var(--slate-500);margin-top:5px;}

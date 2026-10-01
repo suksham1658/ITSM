@@ -216,6 +216,7 @@ class TicketEmailTest {
     private TicketForm incident() {
         Category hw = categoryRepository.findByCode("HARDWARE").orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("INCIDENT").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(hw.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(hw).get(0).getSubCategoryId());
@@ -229,6 +230,7 @@ class TicketEmailTest {
     private TicketForm serviceRequest() {
         Category network = categoryRepository.findByCode("NETWORK").orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("SERVICE_REQUEST").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(network.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(network).get(0).getSubCategoryId());

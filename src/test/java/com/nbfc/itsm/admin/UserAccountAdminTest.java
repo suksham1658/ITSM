@@ -186,6 +186,7 @@ class UserAccountAdminTest {
     private Ticket raiseServiceRequest() {
         Category network = categoryRepository.findByCode("NETWORK").orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("SERVICE_REQUEST").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(network.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(network).get(0).getSubCategoryId());

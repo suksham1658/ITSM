@@ -639,6 +639,7 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
 | V11 | Implementors per category, several implementors per step, REJECT at the service desk; also `U11__desk_multi_assign.sql` |
+| V13 | `ticket.serial_number` (Hardware serial number on Raise Request); also `U13__ticket_serial_number.sql` |
 | V12 | Performance indexes (current steps by status/type, newest-first tickets, implementor offers, SLA state); also `U12__performance_indexes.sql` |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
 
@@ -771,3 +772,21 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
   - Per-page queries trimmed (Config-approvals count only for approvers; unused employee count removed).
   - On the server Tomcat, enable gzip in `conf/server.xml` on the 8090 connector:
     `compression="on" compressionMinSize="2048" compressibleMimeType="text/html,text/css,application/javascript,application/json"`.
+
+## Appendix: Raise Request form and catalog admin (2026-10-01)
+
+* **Admin → Categories** (`CatalogAdminService`, `/admin/catalog/**`, System Administrator only, applied at once):
+  add / edit (rename) / delete **ticket types**, **categories** and **sub-categories**. Codes are generated from the
+  name. Delete hides the entry from Raise Request (deleting a category also hides its sub-categories); tickets that
+  already use it keep it, and adding the same name again restores it. A rename also updates workflow rule
+  conditions that mention the old name. Locked ("System"): types Incident, Service Request, Change Request,
+  Security Incident; categories Hardware, Cyber Security (used by name in reports/security views and by code for the
+  serial number).
+* **Raise Request → Attachment (optional):** one file, saved with the ticket. **PDF max 5 MB**
+  (`AttachmentService.PDF_MAX_BYTES`, also on the ticket page); other types follow the attachment policy (10 MB,
+  Word/Excel/images/text/.msg). A file that is too big or not allowed stops the request before anything is saved.
+* **Raise Request → Serial Number** replaces Confidentiality. Shown and mandatory only for the **Hardware** category
+  (code `HARDWARE`): either type the serial number (2–100 characters: letters, numbers, space . _ / # -) or choose
+  **Not Available** (stored as "Not available"). Stored in `ticket.serial_number` (V13/U13) and shown on the ticket
+  page. Confidentiality is no longer asked; new tickets get "Normal", so the "Highly Confidential" workflow rule
+  (priority 22) no longer matches new tickets.

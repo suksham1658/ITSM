@@ -205,6 +205,7 @@ class DeskMultiAssignTest {
 
     private Ticket raiseIncident() {
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("INCIDENT").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(hardware.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(hardware).get(0).getSubCategoryId());

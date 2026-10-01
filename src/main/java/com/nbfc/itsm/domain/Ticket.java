@@ -62,6 +62,10 @@ public class Ticket {
     @Column(name = "application_name", length = 128)
     private String applicationName;
 
+    /** Hardware tickets: the device serial number, or "Not available". */
+    @Column(name = "serial_number", length = 100)
+    private String serialNumber;
+
     @Column(name = "required_date")
     private LocalDate requiredDate;
 
@@ -216,6 +220,14 @@ public class Ticket {
 
     public String getApplicationName() {
         return applicationName;
+    }
+
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
     }
 
     public void setApplicationName(String applicationName) {

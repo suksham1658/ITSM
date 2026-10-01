@@ -180,6 +180,7 @@ class NewUserOnboardingTest {
                         .param("ticketTypeId", String.valueOf(
                                 ticketTypeRepository.findByCode("INCIDENT").orElseThrow(IllegalStateException::new).getTicketTypeId()))
                         .param("categoryId", String.valueOf(hardware.getCategoryId()))
+                        .param("serialMode", "ENTER").param("serialNumber", "SN-TEST-001")
                         .param("subCategoryId", String.valueOf(subs.get(0).getSubCategoryId()))
                         .param("subject", "New joiner laptop will not start")
                         .param("description", "Raised by a user who was just given the Employee role.")

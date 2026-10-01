@@ -13,20 +13,68 @@
       <div>
         <div class="breadcrumb">IT Nexa / Admin / <span>Categories</span></div>
         <h1>Categories</h1>
-        <p class="page-sub">Categories and sub-categories offered on Raise Request.</p>
+        <p class="page-sub">Ticket types, categories and sub-categories offered on Raise Request.
+          <span sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Changes apply immediately. Delete removes an entry
+          from Raise Request; tickets that already use it keep it. Renaming also updates the workflow rules that mention the name.</span></p>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px;">
+
+    <!-- ===================================================== ticket types -->
+    <div class="card catalog-card" id="types" style="margin-bottom:16px;">
+      <div class="card-head"><div><h3>Ticket types</h3>
+        <div class="ch-sub">Shown in the Ticket Type list on Raise Request.</div></div></div>
+      <form class="catalog-add" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+            th:action="@{/admin/catalog/types}" method="post">
+        <input class="form-control" name="name" required="required" minlength="2" maxlength="100" placeholder="New ticket type, e.g. Onboarding"/>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add ticket type</button>
+      </form>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Code</th><th sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Actions</th></tr></thead>
+          <tbody>
+          <tr th:each="t : ${ticketTypes}">
+            <td th:text="${t.name}">Incident</td>
+            <td class="cell-id" th:text="${t.code}">INCIDENT</td>
+            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+              <span th:if="${lockedTypes.contains(t.code)}" class="badge badge-outline" title="Used by reports and security views">
+                <i class="fa-solid fa-lock"></i> System</span>
+              <div class="catalog-actions" th:unless="${lockedTypes.contains(t.code)}">
+                <details>
+                  <summary class="btn btn-outline btn-xs"><i class="fa-regular fa-pen-to-square"></i>&nbsp;Edit</summary>
+                  <form th:action="@{/admin/catalog/types/{id}/rename(id=${t.ticketTypeId})}" method="post" class="catalog-edit">
+                    <input class="form-control" name="name" th:value="${t.name}" required="required" minlength="2" maxlength="100"/>
+                    <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+                  </form>
+                </details>
+                <form th:action="@{/admin/catalog/types/{id}/delete(id=${t.ticketTypeId})}" method="post"
+                      th:attr="data-confirm='Delete the ticket type ' + ${t.name} + '? It disappears from Raise Request; existing tickets keep it.'">
+                  <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================================================== categories -->
+    <div class="card catalog-card" id="categories" style="margin-bottom:16px;">
       <div class="card-head"><div><h3>Categories and their implementors</h3>
         <div class="ch-sub">The IT Service Desk sends a ticket to the implementors of its category (one, several or all).
           A category without implementors uses the whole IT Implementors group.</div></div></div>
+      <form class="catalog-add" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+            th:action="@{/admin/catalog/categories}" method="post">
+        <input class="form-control" name="name" required="required" minlength="2" maxlength="100" placeholder="New category, e.g. Printers"/>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add category</button>
+      </form>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Code</th><th>Name</th><th>Implementors</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Code</th><th>Implementors</th><th sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Actions</th></tr></thead>
           <tbody>
           <tr th:each="c : ${categories}" th:with="ids=${categoryImplementors[c.categoryId]}">
-            <td class="cell-id" th:text="${c.code}">c</td>
             <td th:text="${c.name}">n</td>
+            <td class="cell-id" th:text="${c.code}">c</td>
             <td>
               <span th:if="${ids == null or #sets.isEmpty(ids)}" class="text-muted">All IT Implementors</span>
               <th:block th:if="${ids != null}">
@@ -34,39 +82,85 @@
                       style="margin:0 4px 4px 0;">Name</span>
               </th:block>
             </td>
-            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="min-width:260px;">
-              <details>
-                <summary class="btn btn-outline btn-xs" style="display:inline-flex;"><i class="fa-regular fa-pen-to-square"></i>&nbsp;Choose implementors</summary>
-                <form th:action="@{/admin/categories/{id}/implementors(id=${c.categoryId})}" method="post" style="margin-top:8px;">
-                  <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;">
-                    <input type="checkbox" data-select-all="employeeIds"/> Select all</label>
-                  <div style="max-height:180px;overflow:auto;border:1px solid var(--slate-200);border-radius:8px;padding:6px 8px;margin:4px 0 8px;">
-                    <label th:each="e : ${implementorCandidates}" style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
-                      <input type="checkbox" name="employeeIds" th:value="${e.employeeId}"
-                             th:checked="${ids != null and ids.contains(e.employeeId)}"/>
-                      <span th:text="${e.displayName}">Name</span></label>
-                    <span th:if="${#lists.isEmpty(implementorCandidates)}" class="text-muted" style="font-size:12px;">
-                      Nobody has the IT Implementor role or is in the IT Implementors group yet.</span>
-                  </div>
-                  <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
-                </form>
-              </details>
+            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="min-width:300px;">
+              <div class="catalog-actions">
+                <details>
+                  <summary class="btn btn-outline btn-xs"><i class="fa-solid fa-user-gear"></i>&nbsp;Choose implementors</summary>
+                  <form th:action="@{/admin/categories/{id}/implementors(id=${c.categoryId})}" method="post" style="margin-top:8px;">
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;">
+                      <input type="checkbox" data-select-all="employeeIds"/> Select all</label>
+                    <div style="max-height:180px;overflow:auto;border:1px solid var(--slate-200);border-radius:8px;padding:6px 8px;margin:4px 0 8px;">
+                      <label th:each="e : ${implementorCandidates}" style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
+                        <input type="checkbox" name="employeeIds" th:value="${e.employeeId}"
+                               th:checked="${ids != null and ids.contains(e.employeeId)}"/>
+                        <span th:text="${e.displayName}">Name</span></label>
+                      <span th:if="${#lists.isEmpty(implementorCandidates)}" class="text-muted" style="font-size:12px;">
+                        Nobody has the IT Implementor role or is in the IT Implementors group yet.</span>
+                    </div>
+                    <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+                  </form>
+                </details>
+                <th:block th:if="${lockedCategories.contains(c.code)}">
+                  <span class="badge badge-outline" title="Used by reports, security views and the serial number field">
+                    <i class="fa-solid fa-lock"></i> System</span>
+                </th:block>
+                <th:block th:unless="${lockedCategories.contains(c.code)}">
+                  <details>
+                    <summary class="btn btn-outline btn-xs"><i class="fa-regular fa-pen-to-square"></i>&nbsp;Edit</summary>
+                    <form th:action="@{/admin/catalog/categories/{id}/rename(id=${c.categoryId})}" method="post" class="catalog-edit">
+                      <input class="form-control" name="name" th:value="${c.name}" required="required" minlength="2" maxlength="100"/>
+                      <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+                    </form>
+                  </details>
+                  <form th:action="@{/admin/catalog/categories/{id}/delete(id=${c.categoryId})}" method="post"
+                        th:attr="data-confirm='Delete the category ' + ${c.name} + ' and its sub-categories? They disappear from Raise Request; existing tickets keep them.'">
+                    <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                  </form>
+                </th:block>
+              </div>
             </td>
           </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><h3>Sub-categories</h3></div>
+
+    <!-- ===================================================== sub-categories -->
+    <div class="card catalog-card" id="subcategories">
+      <div class="card-head"><div><h3>Sub-categories</h3>
+        <div class="ch-sub">Shown in the Sub Category list on Raise Request once the category is chosen.</div></div></div>
+      <form class="catalog-add" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"
+            th:action="@{/admin/catalog/sub-categories}" method="post">
+        <select class="form-control" name="categoryId" required="required" aria-label="Category">
+          <option value="">Category…</option>
+          <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}">Hardware</option>
+        </select>
+        <input class="form-control" name="name" required="required" minlength="2" maxlength="100" placeholder="New sub-category, e.g. Printer jam"/>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add sub-category</button>
+      </form>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Category</th><th>Code</th><th>Name</th></tr></thead>
+          <thead><tr><th>Category</th><th>Name</th><th>Code</th><th sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Actions</th></tr></thead>
           <tbody>
           <tr th:each="s : ${subCategories}">
             <td th:text="${s.category.name}">c</td>
-            <td class="cell-id" th:text="${s.code}">c</td>
             <td th:text="${s.name}">n</td>
+            <td class="cell-id" th:text="${s.code}">c</td>
+            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+              <div class="catalog-actions">
+                <details>
+                  <summary class="btn btn-outline btn-xs"><i class="fa-regular fa-pen-to-square"></i>&nbsp;Edit</summary>
+                  <form th:action="@{/admin/catalog/sub-categories/{id}/rename(id=${s.subCategoryId})}" method="post" class="catalog-edit">
+                    <input class="form-control" name="name" th:value="${s.name}" required="required" minlength="2" maxlength="100"/>
+                    <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+                  </form>
+                </details>
+                <form th:action="@{/admin/catalog/sub-categories/{id}/delete(id=${s.subCategoryId})}" method="post"
+                      th:attr="data-confirm='Delete the sub-category ' + ${s.name} + '? It disappears from Raise Request; existing tickets keep it.'">
+                  <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                </form>
+              </div>
+            </td>
           </tr>
           </tbody>
         </table>

@@ -190,6 +190,7 @@ class CoreItsmServiceTest {
             }
         }
         TicketForm form = new TicketForm();
+        form.setSerialMode("NA");
         form.setTicketTypeId(type.getTicketTypeId());
         form.setCategoryId(cat.getCategoryId());
         form.setSubCategoryId(sub.getSubCategoryId());

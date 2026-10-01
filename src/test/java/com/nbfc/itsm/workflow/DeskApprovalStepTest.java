@@ -118,6 +118,7 @@ class DeskApprovalStepTest {
     private Ticket raise() {
         Category software = categoryRepository.findByCode("SOFTWARE").orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode("SERVICE_REQUEST").orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(software.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(software).get(0).getSubCategoryId());

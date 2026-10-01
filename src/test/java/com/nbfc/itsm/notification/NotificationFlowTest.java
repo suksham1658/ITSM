@@ -149,6 +149,7 @@ class NotificationFlowTest {
     private TicketForm form(String typeCode, String categoryCode) {
         Category c = categoryRepository.findByCode(categoryCode).orElseThrow(IllegalStateException::new);
         TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
         f.setTicketTypeId(ticketTypeRepository.findByCode(typeCode).orElseThrow(IllegalStateException::new).getTicketTypeId());
         f.setCategoryId(c.getCategoryId());
         f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(c).get(0).getSubCategoryId());

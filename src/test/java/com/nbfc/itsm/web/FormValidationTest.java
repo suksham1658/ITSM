@@ -132,6 +132,7 @@ class FormValidationTest {
                         .param("ticketTypeId", String.valueOf(
                                 ticketTypeRepository.findByCode("INCIDENT").orElseThrow(IllegalStateException::new).getTicketTypeId()))
                         .param("categoryId", String.valueOf(hw.getCategoryId()))
+                        .param("serialMode", "ENTER").param("serialNumber", "SN-TEST-001")
                         .param("subCategoryId", String.valueOf(
                                 subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(hw).get(0).getSubCategoryId()))
                         .param("subject", "  Laptop fan very loud  ")
