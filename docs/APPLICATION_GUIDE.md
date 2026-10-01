@@ -639,6 +639,7 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
 | V11 | Implementors per category, several implementors per step, REJECT at the service desk; also `U11__desk_multi_assign.sql` |
+| V14 | `employee.phone_number`, `employee.office_location` (from AD) and `ticket_assignment_log` (who assigned / reassigned to whom, comment); also `U14__implementor_view.sql` |
 | V13 | `ticket.serial_number` (Hardware serial number on Raise Request); also `U13__ticket_serial_number.sql` |
 | V12 | Performance indexes (current steps by status/type, newest-first tickets, implementor offers, SLA state); also `U12__performance_indexes.sql` |
 | `afterMigrate.sql` | Callback: `SET NOCOUNT OFF` after migrating |
@@ -790,3 +791,16 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
   **Not Available** (stored as "Not available"). Stored in `ticket.serial_number` (V13/U13) and shown on the ticket
   page. Confidentiality is no longer asked; new tickets get "Normal", so the "Highly Confidential" workflow rule
   (priority 22) no longer matches new tickets.
+
+## Appendix: Implementor view (2026-10-01)
+
+* **Requester details** card on the ticket page for everyone working on the ticket (not shown to the requester):
+  name, employee ID, department, designation, location / business address, phone, e-mail — read only. Phone comes
+  from AD `telephoneNumber` (else `mobile`), location from `physicalDeliveryOfficeName` (else `streetAddress`, `l`);
+  stored on `employee` at every sign-in and on Admin → Users → Re-sync from LDAP.
+* **Implementor actions** on the implementation step: **Reassign, Hold, Resolve** only (Accept / Start are no longer
+  offered; `TicketService.IMPLEMENTOR_ACTIONS`). On Hold: Reassign or Resolve. Resolve works straight from Assigned.
+  Hold and Reassign count as the first response for the SLA; Reassign also restarts a paused SLA clock.
+* **Reassign** needs a hand-over person and a comment (≥ 10 characters). Every service-desk assignment and every
+  reassignment is stored in `ticket_assignment_log` and shown in the ticket's Workflow list under its step:
+  "Assigned by <desk> to <implementor>" / "Reassigned by <A> to <B>", with time and comment.

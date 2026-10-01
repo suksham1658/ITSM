@@ -330,11 +330,16 @@
         window.showToast("error", "Tick at least one implementor to assign the ticket to.");
         return;
       }
-      if (code === "APPROVE" || code === "REJECT" || code === "SEND_BACK") {
+      if (code === "REASSIGN" && document.getElementById("assigneeId") && !document.getElementById("assigneeId").value) {
+        ev.preventDefault();
+        window.showToast("error", "Choose the implementor to reassign the ticket to.");
+        return;
+      }
+      if (code === "APPROVE" || code === "REJECT" || code === "SEND_BACK" || code === "REASSIGN") {
         var t = (rem.value || "").replace(/^\s+|\s+$/g, "");
         if (t.length < 10) {
           ev.preventDefault();
-          window.showToast("error", "Remarks are mandatory (at least 10 characters) for Approve, Reject and Send Back.");
+          window.showToast("error", "Remarks are mandatory (at least 10 characters) for Approve, Reject, Send Back and Reassign.");
         }
       }
     });

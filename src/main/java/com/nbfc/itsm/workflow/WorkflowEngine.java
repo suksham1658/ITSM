@@ -55,6 +55,7 @@ public class WorkflowEngine {
     private final SlaService slaService;
     private final AuditRecorder auditRecorder;
     private final NotificationService notifications;
+    private final com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLog;
 
     public WorkflowEngine(WorkflowMatcherService matcherService,
                           WorkflowStageRepository stageRepository,
@@ -68,7 +69,8 @@ public class WorkflowEngine {
                           SystemSettingRepository settingRepository,
                           SlaService slaService,
                           AuditRecorder auditRecorder,
-                          NotificationService notifications) {
+                          NotificationService notifications,
+                          com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLog) {
         this.matcherService = matcherService;
         this.stageRepository = stageRepository;
         this.transitionRepository = transitionRepository;
@@ -82,6 +84,7 @@ public class WorkflowEngine {
         this.slaService = slaService;
         this.auditRecorder = auditRecorder;
         this.notifications = notifications;
+        this.assignmentLog = assignmentLog;
     }
 
     @Transactional
@@ -207,6 +210,14 @@ public class WorkflowEngine {
                 if (chosen.size() != 1) {
                     throw new ItsmException("ASSIGNEE_ONE", "Choose one implementor to hand the work over to.");
                 }
+                // The workflow shows who handed it to whom and why, so a comment is required.
+                requireRemarks(remarks);
+                Employee from = current.getResolvedEmployee() != null ? current.getResolvedEmployee() : actor;
+                logAssignment(ticket, current, action, from, chosen.get(0), actor, remarks);
+                if ("On Hold".equals(ticket.getStatusCode())) {
+                    slaService.pause(ticket, false);
+                }
+                slaService.markFirstResponse(ticket);
                 ticket.setAssignedImplementor(chosen.get(0));
                 current.setResolvedEmployee(chosen.get(0));
                 current.getAssigneeIds().clear();
@@ -217,6 +228,9 @@ public class WorkflowEngine {
             } else {
                 // Service desk step is done. One implementor: they own the next step. Several: all of them see
                 // it and the first to accept / start owns it.
+                for (Employee e : chosen) {
+                    logAssignment(ticket, current, action, null, e, actor, remarks);
+                }
                 complete(current, actor, action, remarks);
                 WorkflowInstanceStage next = nextPending(stages, current);
                 if (next != null && ("IMPLEMENTOR".equals(next.getActorStrategy())
@@ -249,6 +263,7 @@ public class WorkflowEngine {
             current.setRemarks(trim(remarks));
             current.setActedAtUtc(TimeUtc.now());
             ticket.setStatusCode("On Hold");
+            slaService.markFirstResponse(ticket);
             slaService.pause(ticket, true);
         } else if ("RESOLVE".equals(action)) {
             complete(current, actor, action, remarks);
@@ -442,6 +457,21 @@ public class WorkflowEngine {
             throw new ItsmException("REMARKS_REQUIRED",
                     "Remarks are mandatory (at least " + min + " characters after trimming).");
         }
+    }
+
+    /** Records a hand-over for the ticket's workflow history (service desk ASSIGN or implementor REASSIGN). */
+    private void logAssignment(Ticket ticket, WorkflowInstanceStage stage, String action, Employee from, Employee to,
+                               Employee by, String remarks) {
+        com.nbfc.itsm.domain.TicketAssignmentLog row = new com.nbfc.itsm.domain.TicketAssignmentLog();
+        row.setTicket(ticket);
+        row.setStageId(stage.getWorkflowInstanceStageId());
+        row.setActionCode(action);
+        row.setFromEmployee(from);
+        row.setToEmployee(to);
+        row.setByEmployee(by);
+        row.setRemarks(trim(remarks));
+        row.setCreatedAtUtc(TimeUtc.now());
+        assignmentLog.save(row);
     }
 
     /** System Configuration switch; off (default) = a resolved ticket closes without asking the requester. */

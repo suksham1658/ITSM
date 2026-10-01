@@ -217,7 +217,7 @@ public class TicketController {
                 chosen.add(assigneeId);
             }
             ticketService.applyActionFor(user, id, actionCode, remarks, chosen);
-            ra.addFlashAttribute("message", "Action " + actionCode + " recorded.");
+            ra.addFlashAttribute("message", new UiText().actionLabel(actionCode) + " recorded.");
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());
         }

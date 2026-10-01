@@ -38,6 +38,14 @@ public class Employee extends BaseAuditableEntity {
     @Column(name = "designation", length = 128)
     private String designation;
 
+    /** From AD telephoneNumber (or mobile). Shown read-only to the people working on this person's tickets. */
+    @Column(name = "phone_number", length = 64)
+    private String phoneNumber;
+
+    /** From AD physicalDeliveryOfficeName, else street address and city. */
+    @Column(name = "office_location", length = 256)
+    private String officeLocation;
+
     @Column(name = "email", length = 256)
     private String email;
 
@@ -112,6 +120,22 @@ public class Employee extends BaseAuditableEntity {
 
     public String getDesignation() {
         return designation;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getOfficeLocation() {
+        return officeLocation;
+    }
+
+    public void setOfficeLocation(String officeLocation) {
+        this.officeLocation = officeLocation;
     }
 
     public void setDesignation(String designation) {
