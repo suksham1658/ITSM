@@ -399,7 +399,7 @@ UI: header bell (unread count + latest 8, `UiModelAdvice.notifUnread/notifLatest
 * **SMTP:** `spring.mail.host/port` = `MAIL_HOST` / `MAIL_PORT`, default `10.65.8.64:25`, no login, no TLS
   (`MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`).
 * **Settings:** `itsm.mail.enabled` (`MAIL_ENABLED`, default true; off in test/h2), `itsm.mail.from`
-  (`MAIL_FROM`, default `no-reply@authum.com`), `itsm.mail.from-name` (`MAIL_FROM_NAME`, default `Authum – ITSM`),
+  (`MAIL_FROM`, default `no-reply@authum.com`), `itsm.mail.from-name` (`MAIL_FROM_NAME`, default `IT Service Desk`),
   `itsm.mail.portal-url` (`ITSM_PORTAL_URL`, e.g. `http://<server-ip>:8090/itsm-portal`; adds an "Open the ticket"
   link; blank = no link).
 
