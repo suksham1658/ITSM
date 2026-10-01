@@ -12,7 +12,7 @@
     <div class="page-header">
       <div>
         <a th:replace="fragments/back :: back(href=@{/reports}, label='Back to Reports')"></a>
-        <div class="breadcrumb">Authum IT Nexa / <a th:href="@{/reports}">Reports</a> / <span th:text="${report.title}">Report</span></div>
+        <div class="breadcrumb">IT Nexa / <a th:href="@{/reports}">Reports</a> / <span th:text="${report.title}">Report</span></div>
         <h1 th:text="${report.title}">Report</h1>
         <p class="page-sub" th:text="${report.description}">Description</p>
       </div>

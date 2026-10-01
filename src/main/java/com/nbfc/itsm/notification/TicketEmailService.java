@@ -145,7 +145,7 @@ public class TicketEmailService {
         if (kind == TicketEmailEvent.Kind.CREATED) {
             WorkflowInstanceStage current = currentStep(t);
             now = current == null ? null : nowWith(current);
-            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in the Authum IT Nexa")
+            b.append("<p>Your ").append(esc(typeName(t))).append(" has been created in the IT Nexa")
                     .append(now == null ? " and is now being processed." : " and is now with <b>" + esc(now) + "</b>.")
                     .append("</p>");
         } else {
@@ -204,7 +204,7 @@ public class TicketEmailService {
         if ("CONFIRMATION".equals(type)) {
             return "It has been resolved; please check and confirm it, or send it back.";
         }
-        return "Please open it in the Authum IT Nexa.";
+        return "Please open it in the IT Nexa.";
     }
 
     private static String queueName(WorkflowInstanceStage step) {
@@ -269,9 +269,9 @@ public class TicketEmailService {
         String url = properties.getMail().getPortalUrl();
         if (StringUtils.hasText(url)) {
             String link = url.replaceAll("/+$", "") + "/tickets/" + t.getTicketId();
-            b.append("<p><a href=\"").append(esc(link)).append("\">Open the ticket in the Authum IT Nexa</a></p>");
+            b.append("<p><a href=\"").append(esc(link)).append("\">Open the ticket in the IT Nexa</a></p>");
         }
-        b.append("<p style=\"color:#6b7280;font-size:12px;\">This is an automatic message from the Authum IT Nexa. "
+        b.append("<p style=\"color:#6b7280;font-size:12px;\">This is an automatic message from the IT Nexa. "
                 + "Please do not reply to this e-mail.</p></div>");
         return b.toString();
     }

@@ -142,12 +142,15 @@ class PageShellTest {
     void brandingLoginAndDashboard() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Authum <span>IT Nexa</span>")))
+                .andExpect(content().string(containsString("/images/authum-logo")))
+                .andExpect(content().string(containsString("<div class=\"login-product\">IT Nexa</div>")))
+                .andExpect(content().string(containsString("Next Starts Here")))
+                .andExpect(content().string(not(containsString("Authum IT Nexa"))))
                 .andExpect(content().string(not(containsString("One portal for every IT request"))))
                 .andExpect(content().string(not(containsString("ITSM Portal"))));
         mockMvc.perform(get("/").with(authentication(token(user))))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<strong>Authum IT Nexa</strong>")))
+                .andExpect(content().string(containsString("<strong>IT Nexa</strong>")))
                 .andExpect(content().string(not(containsString("page-header-actions"))))
                 .andExpect(content().string(not(containsString("ITSM Portal"))));
     }

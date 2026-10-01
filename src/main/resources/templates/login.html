@@ -5,15 +5,15 @@
 <div id="loginScreen">
   <div class="login-brand">
     <div class="login-brand-center">
-      <div class="brand-mark">AN</div>
-      <div class="login-brand-name">Authum <span>IT Nexa</span></div>
-      <div class="login-brand-rule"></div>
+      <div class="login-logo-plate"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/></div>
+      <div class="login-product">IT Nexa</div>
+      <div class="login-tagline">Next Starts Here</div>
     </div>
     <div class="login-foot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
   </div>
   <div class="login-panel-wrap">
     <div class="login-panel">
-      <div class="login-panel-brand"><div class="brand-mark">AN</div><b>Authum IT Nexa</b></div>
+      <div class="login-panel-brand"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/><b>IT Nexa</b></div>
       <h2>Sign in</h2>
       <p class="login-sub">Use your Windows (domain) login.</p>
       <div class="login-error show" th:if="${loginError}"><i class="fa-solid fa-triangle-exclamation"></i><span>Sign-in failed. Check your credentials or contact IT Service Desk.</span></div>

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: Authum IT Nexa
+    name: IT Nexa
   config:
     # Passwords are NOT kept in the code. Each machine (your PC, the server) has its own file
     # D:\itsm-config\itsm-secrets.yml (template: config-template/itsm-secrets.yml); set ITSM_CONFIG_DIR to use
@@ -53,7 +53,7 @@ spring:
         strategy:
           content:
             enabled: true
-            paths: /css/**,/js/**
+            paths: /css/**,/js/**,/images/**
   flyway:
     # Off by default: production (10.65.7.245:1865, ITSM_PROD) is SQL Server 2012, which Flyway 9
     # Community refuses ("Flyway Teams Edition or SQL Server upgrade required"). The DBA installs the

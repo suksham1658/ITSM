@@ -1,7 +1,7 @@
 <aside id="sidebar" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:fragment="sidebar(nav)">
     <div class="sidebar-brand">
-        <div class="brand-mark">AN</div>
-        <div class="brand-txt"><strong>Authum IT Nexa</strong><small>IT SERVICE DESK</small></div>
+        <div class="sidebar-logo-plate"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/></div>
+        <div class="brand-txt"><strong>IT Nexa</strong><small>Next Starts Here</small></div>
         <button type="button" class="sidebar-mobile-close" data-action="close-mobile-sidebar" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="sidebar-role-tag" th:if="${currentUser != null}">
