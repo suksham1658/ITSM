@@ -3,7 +3,7 @@
 
     <a class="tn-link" th:classappend="${nav == 'dashboard'} ? ' active'" th:href="@{/}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
 
-    <div class="tn-group" th:classappend="${@ui.navIn(nav, 'raise,myTickets,teamRequests,deptRequests,securityRequests,changeRequests')} ? ' active'">
+    <div class="tn-group" th:classappend="${nav != null and #strings.contains(',raise,myTickets,teamRequests,deptRequests,securityRequests,changeRequests,', ',' + nav + ',')} ? ' active'">
         <button type="button" class="tn-link" aria-haspopup="true"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa-solid fa-chevron-down tn-caret"></i></button>
         <div class="tn-menu" role="menu">
             <a role="menuitem" sec:authorize="hasAuthority('TICKET_CREATE')" th:classappend="${nav == 'raise'} ? ' active'" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i> Raise Request</a>
@@ -18,7 +18,7 @@
     <a class="tn-link" sec:authorize="hasAuthority('TICKET_APPROVE_ASSIGNED_STAGE')" th:classappend="${nav == 'approvals'} ? ' active'" th:href="@{/approvals}"><i class="fa-solid fa-check-double"></i> Approvals</a>
 
     <div class="tn-group" sec:authorize="hasAnyAuthority('TICKET_VIEW_QUEUE_ALL','TICKET_ASSIGN','TICKET_FULFIL','SLA_MONITOR','AD_ACCOUNT_UNLOCK')"
-         th:classappend="${@ui.navIn(nav, 'ticketQueue,assignment,myQueue,workQueue,slaMonitoring,escalations,adUnlock')} ? ' active'">
+         th:classappend="${nav != null and #strings.contains(',ticketQueue,assignment,myQueue,workQueue,slaMonitoring,escalations,adUnlock,', ',' + nav + ',')} ? ' active'">
         <button type="button" class="tn-link" aria-haspopup="true"><i class="fa-solid fa-layer-group"></i> Queues <i class="fa-solid fa-chevron-down tn-caret"></i></button>
         <div class="tn-menu" role="menu">
             <a role="menuitem" sec:authorize="hasAuthority('TICKET_VIEW_QUEUE_ALL')" th:classappend="${nav == 'ticketQueue'} ? ' active'" th:href="@{/queue/desk}"><i class="fa-solid fa-layer-group"></i> Ticket Queue</a>
@@ -41,7 +41,7 @@
     </div>
 
     <div class="tn-group" sec:authorize="hasAnyAuthority('ADMIN_USER_MANAGE','ADMIN_MASTERDATA_PROPOSE','ADMIN_MASTERDATA_APPROVE','AUDIT_VIEW','ASSET_MANAGE')"
-         th:classappend="${@ui.navIn(nav, 'adminUsers,adminRoles,adminCategories,adminSLA,adminWorkflow,adminChangeQueue,adminConfig,auditTrail,assets')} ? ' active'">
+         th:classappend="${nav != null and #strings.contains(',adminUsers,adminRoles,adminCategories,adminSLA,adminWorkflow,adminChangeQueue,adminConfig,auditTrail,assets,', ',' + nav + ',')} ? ' active'">
         <button type="button" class="tn-link" aria-haspopup="true"><i class="fa-solid fa-user-shield"></i> Admin
             <span class="tn-badge" sec:authorize="hasAuthority('ADMIN_MASTERDATA_APPROVE')" th:if="${pendingConfigCount != null and pendingConfigCount > 0}" th:text="${pendingConfigCount}">0</span>
             <i class="fa-solid fa-chevron-down tn-caret"></i></button>
