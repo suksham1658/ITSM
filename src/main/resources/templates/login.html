@@ -6,8 +6,11 @@
   <div class="login-brand">
     <div class="login-brand-center">
       <div class="login-logo-plate"><img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/></div>
-      <div class="login-product">IT Nexa</div>
-      <div class="login-tagline">Next Starts Here</div>
+      <!-- "Next Starts Here" sits on the next line, starting under the "x" of Nexa. -->
+      <div class="login-product">
+        <span class="visually-hidden">IT Nexa. Next Starts Here.</span>
+        <span aria-hidden="true">IT Ne<span class="login-x">x<span class="login-tagline">Next Starts Here</span></span>a</span>
+      </div>
     </div>
     <div class="login-foot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
   </div>

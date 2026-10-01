@@ -1225,3 +1225,12 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .confirm-actions form{margin:0;}
 .confirm-no{display:flex;flex-direction:column;gap:8px;flex:1 1 320px;}
 .confirm-no textarea{min-height:60px;}
+
+/* Login brand: "IT Nexa" in the red of the logo's A (#E21E26); tagline starts under the "x". */
+.login-product{color:#E21E26;position:relative;padding-bottom:30px;}
+.login-x{position:relative;display:inline-block;}
+.login-product .login-tagline{position:absolute;left:0;top:100%;margin-top:4px;white-space:nowrap;
+  font-family:var(--font-body);font-size:15px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+  color:var(--sky-800);line-height:1.2;}
+.login-panel-brand b{color:#E21E26;}
+.visually-hidden{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}

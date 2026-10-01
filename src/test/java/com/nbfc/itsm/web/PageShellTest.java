@@ -143,7 +143,7 @@ class PageShellTest {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/images/authum-logo")))
-                .andExpect(content().string(containsString("<div class=\"login-product\">IT Nexa</div>")))
+                .andExpect(content().string(containsString("IT Ne<span class=\"login-x\">x<span class=\"login-tagline\">Next Starts Here</span></span>a")))
                 .andExpect(content().string(containsString("Next Starts Here")))
                 .andExpect(content().string(not(containsString("Authum IT Nexa"))))
                 .andExpect(content().string(not(containsString("One portal for every IT request"))))
