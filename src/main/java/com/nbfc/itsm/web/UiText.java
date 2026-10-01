@@ -30,6 +30,7 @@ public class UiText {
             case "In Progress":
                 return "badge-flow-strong";
             case "Pending Approval":
+                return "badge-waiting";
             case "Approved":
             case "Assigned":
                 return "badge-flow";
@@ -53,9 +54,9 @@ public class UiText {
         }
         switch (status) {
             case "Current":
-                return "badge-flow-strong";
+                return "badge-waiting";
             case "Completed":
-                return "badge-closed";
+                return "badge-done";
             case "Rejected":
                 return "badge-rejected";
             case "Skipped":
@@ -63,6 +64,20 @@ public class UiText {
             default:
                 return "badge-draft";
         }
+    }
+
+    /**
+     * Workflow step status as shown to users: the step the ticket is waiting at reads "Pending" (orange),
+     * steps still to come read "Upcoming", finished ones "Completed" (green).
+     */
+    public String stageStatusText(String status) {
+        if ("Current".equals(status)) {
+            return "Pending";
+        }
+        if ("Pending".equals(status)) {
+            return "Upcoming";
+        }
+        return status == null ? "" : status;
     }
 
     /** Badge class for configuration change requests and workflow definitions/rules. */

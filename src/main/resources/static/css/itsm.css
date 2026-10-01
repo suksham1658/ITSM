@@ -1112,3 +1112,65 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
   .filter-bar select.form-control,.filter-bar input.form-control:not([type=search]){width:auto;min-width:170px;}
 }
 .sidebar-logout-btn:hover{color:var(--danger);}
+
+/* ============================================================
+   Ticket workflow colours: pending (current step) = orange, completed = green,
+   upcoming = grey. Ticket header box on the brand sky blue.
+============================================================ */
+:root{
+  --wf-orange:#F57C00;      /* dot */
+  --wf-orange-ink:#B34700;  /* text: readable on white and on the sky blue */
+  --wf-orange-bg:#FFF1E0;
+  --wf-green:#1E9E52;
+  --wf-green-ink:#12602F;
+  --wf-green-bg:#E3F6EA;
+}
+.badge-waiting{background:var(--wf-orange-bg);color:var(--wf-orange-ink);border:1px solid #F8C28A;}
+.badge-done{background:var(--wf-green-bg);color:var(--wf-green-ink);border:1px solid #A9DEBE;}
+
+/* header box */
+.ticket-hero{background:linear-gradient(135deg,#A6DCF1 0%,var(--sky) 55%,#74C2E2 100%);color:var(--sky-ink);
+  box-shadow:0 6px 18px rgba(11,47,69,.10);}
+.ticket-hero-id{color:rgba(11,47,69,.7);}
+.ticket-hero-title{color:var(--sky-ink);}
+.ticket-hero .badge-outline{background:rgba(255,255,255,.85);}
+.ticket-hero-sla .sla-label{color:rgba(11,47,69,.7);}
+.ticket-hero-sla.ok .sla-count{color:var(--wf-green-ink);}
+.ticket-hero-sla.near .sla-count{color:var(--wf-orange-ink);}
+.ticket-hero-sla.breach .sla-count{color:#A61B1B;}
+
+/* progress line in the header: radio-style dots */
+.status-progress{align-items:flex-start;}
+.sp-step{align-items:flex-start;}
+.sp-dot{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid rgba(11,47,69,.35);flex-shrink:0;margin-top:1px;box-shadow:none;}
+.sp-text{margin-left:7px;}
+.sp-label{margin-left:0;color:rgba(11,47,69,.62);font-size:11px;}
+.sp-who{font-size:10.5px;font-weight:700;color:var(--wf-orange-ink);margin-top:2px;white-space:nowrap;}
+.sp-step.done .sp-dot{background:radial-gradient(circle,var(--wf-green) 0 4px,#fff 4.5px);border-color:var(--wf-green);width:14px;height:14px;}
+.sp-step.done .sp-label{color:var(--wf-green-ink);font-weight:700;}
+.sp-step.current .sp-dot{background:radial-gradient(circle,var(--wf-orange) 0 4px,#fff 4.5px);border-color:var(--wf-orange);width:16px;height:16px;
+  box-shadow:0 0 0 4px rgba(245,124,0,.25);}
+.sp-step.current .sp-label{color:var(--wf-orange-ink);font-weight:800;}
+.sp-step.rejected .sp-dot{background:radial-gradient(circle,#D32F2F 0 4px,#fff 4.5px);border-color:#D32F2F;}
+.sp-step.rejected .sp-label{color:#A61B1B;font-weight:700;}
+.sp-bar{height:2px;background:rgba(11,47,69,.22);margin:7px 8px 0;}
+.sp-bar.done{background:var(--wf-green);}
+
+/* Workflow list on the ticket page */
+.wf-rail{list-style:none;padding-left:0;}
+.wf-rail li{position:relative;padding-left:26px;margin-bottom:12px;}
+.wf-rail .wf-dot{position:absolute;left:0;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--slate-300);}
+.wf-rail li:not(:last-child)::after{content:"";position:absolute;left:7px;top:20px;bottom:-12px;width:2px;background:var(--slate-200);}
+.wf-rail .wf-label{margin-right:6px;}
+.wf-rail li.wf-completed .wf-dot{border-color:var(--wf-green);background:radial-gradient(circle,var(--wf-green) 0 4px,#fff 4.5px);}
+.wf-rail li.wf-completed .wf-label,.wf-rail li.wf-completed .wf-who{color:var(--wf-green-ink);}
+.wf-rail li.wf-completed::after{background:var(--wf-green);}
+.wf-rail li.wf-current .wf-dot{border-color:var(--wf-orange);background:radial-gradient(circle,var(--wf-orange) 0 4px,#fff 4.5px);box-shadow:0 0 0 3px rgba(245,124,0,.22);}
+.wf-rail li.wf-current .wf-label,.wf-rail li.wf-current .wf-who{color:var(--wf-orange-ink);font-weight:700;}
+.wf-rail li.wf-rejected .wf-dot{border-color:#D32F2F;background:radial-gradient(circle,#D32F2F 0 4px,#fff 4.5px);}
+.wf-rail li.wf-rejected .wf-label{color:#A61B1B;}
+.wf-rail li.wf-skipped .wf-dot{border-style:dashed;}
+.wf-rail li.wf-skipped .wf-label{color:var(--slate-400);}
+/* "Now with": the person / group holding the ticket in orange. */
+.now-with{background:var(--wf-orange-bg);border-color:#F8C28A;color:#5A3A1A;}
+.now-with > span{color:var(--wf-orange-ink);font-weight:700;}
