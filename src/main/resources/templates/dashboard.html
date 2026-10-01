@@ -37,9 +37,26 @@
     <div class="grid grid-2" style="margin-bottom:18px;">
       <div class="card">
         <div class="card-head"><div><h3>Ticket status</h3><div class="ch-sub">Draft shows as New. Empty when there are no tickets in scope.</div></div></div>
-        <div class="chart-box">
-          <canvas id="chartStatus" height="230" data-chart="chartStatusJson"></canvas>
-          <script type="application/json" id="chartStatusJson" th:text="${statusChartJson}">{}</script>
+        <div class="chart-box chart-split">
+          <div class="chart-split-graph">
+            <canvas id="chartStatus" height="230" data-chart="chartStatusJson" data-legend="off"></canvas>
+            <script type="application/json" id="chartStatusJson" th:text="${statusChartJson}">{}</script>
+          </div>
+          <ul class="status-legend" th:if="${!dash.statusChart.empty}"
+              th:with="series=${dash.statusChart.series[0]},
+                       colors=${#strings.arraySplit(series.color ?: '', ',')}">
+            <li th:each="label, it : ${dash.statusChart.labels}">
+              <span class="legend-dot" th:style="${it.index < colors.length} ? ${'background:' + #strings.trim(colors[it.index])} : ''"></span>
+              <span class="sl-label" th:text="${label}">Pending Approval</span>
+              <span class="sl-sep">·</span>
+              <b class="sl-count" th:text="${series.data[it.index]}">4</b>
+            </li>
+            <li class="sl-total">
+              <span class="sl-label">Total</span>
+              <span class="sl-sep">=</span>
+              <b class="sl-count" th:text="${#aggregates.sum(series.data)}">10</b>
+            </li>
+          </ul>
         </div>
       </div>
       <div class="card">
