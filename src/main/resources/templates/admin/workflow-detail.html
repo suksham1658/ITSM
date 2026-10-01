@@ -12,7 +12,7 @@
     <div class="page-header">
       <div>
         <a th:replace="fragments/back :: back(href=@{/admin/workflow}, label='Back to Workflow Config')"></a>
-        <div class="breadcrumb">ITSM Portal / Admin / <a th:href="@{/admin/workflow}">Workflow</a> / <span th:text="${definition.code}">code</span></div>
+        <div class="breadcrumb">Authum IT Nexa / Admin / <a th:href="@{/admin/workflow}">Workflow</a> / <span th:text="${definition.code}">code</span></div>
         <h1 th:text="${definition.name}">Workflow</h1>
         <p class="page-sub">
           <span class="mono" th:text="${definition.code} + ' v' + ${definition.versionNo}">SR v1</span>

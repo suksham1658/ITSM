@@ -133,8 +133,34 @@ class PageShellTest {
                 .andExpect(content().string(containsString("data-action=\"toggle-user-panel\"")))
                 .andExpect(content().string(containsString("data-action=\"toggle-notif-panel\"")))
                 .andExpect(content().string(containsString("action=\"/logout\"")))
-                .andExpect(content().string(containsString("/js/itsm.js")))
-                .andExpect(content().string(not(containsString("onclick="))));
+                .andExpect(content().string(containsString("/js/itsm-")))
+                .andExpect(content().string(not(containsString("onclick="))))
+                .andExpect(content().string(not(containsString("id=\"topNav\""))));
+    }
+
+    @Test
+    void brandingLoginAndDashboard() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Authum <span>IT Nexa</span>")))
+                .andExpect(content().string(not(containsString("One portal for every IT request"))))
+                .andExpect(content().string(not(containsString("ITSM Portal"))));
+        mockMvc.perform(get("/").with(authentication(token(user))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<strong>Authum IT Nexa</strong>")))
+                .andExpect(content().string(not(containsString("page-header-actions"))))
+                .andExpect(content().string(not(containsString("ITSM Portal"))));
+    }
+
+    @Test
+    void cssAndJsAreFingerprintedAndCachedByBrowsers() throws Exception {
+        String page = mockMvc.perform(get("/login")).andReturn().getResponse().getContentAsString();
+        Matcher m = Pattern.compile("href=\"(/css/itsm-[0-9a-f]+\\.css)\"").matcher(page);
+        assertTrue(m.find(), "stylesheet link carries a content hash");
+        mockMvc.perform(get(m.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", containsString("max-age=31536000")));
     }
 
     @Test
