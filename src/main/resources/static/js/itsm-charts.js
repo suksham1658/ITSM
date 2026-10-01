@@ -187,6 +187,9 @@
   }
 
   function legend(canvas, payload) {
+    if (canvas.getAttribute("data-legend") === "off") {
+      return; // the page shows its own list next to the chart
+    }
     var box = canvas.parentNode;
     if (box.querySelector(".chart-legend-row")) {
       return;

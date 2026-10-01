@@ -1174,3 +1174,16 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 /* "Now with": the person / group holding the ticket in orange. */
 .now-with{background:var(--wf-orange-bg);border-color:#F8C28A;color:#5A3A1A;}
 .now-with > span{color:var(--wf-orange-ink);font-weight:700;}
+
+/* Dashboard "Ticket status": ring chart on the left, counts and total on the right. */
+.chart-split{display:flex;align-items:center;gap:24px;}
+.chart-split-graph{flex:1 1 55%;min-width:0;}
+.status-legend{flex:0 0 auto;min-width:190px;list-style:none;margin:0;padding:0 8px 0 0;}
+.status-legend li{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;color:var(--slate-700);border-bottom:1px dashed var(--slate-200);}
+.status-legend .legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.status-legend .sl-sep{color:var(--slate-400);}
+.status-legend .sl-count{margin-left:auto;font-family:var(--font-display);color:var(--sky-ink);}
+.status-legend .sl-label + .sl-sep + .sl-count{margin-left:0;}
+.status-legend .sl-total{border-bottom:0;border-top:2px solid var(--sky-200);margin-top:4px;padding-top:9px;font-weight:700;color:var(--sky-ink);}
+.status-legend .sl-total .sl-label{padding-left:19px;}
+@media (max-width:700px){.chart-split{flex-direction:column;align-items:stretch;}.status-legend{min-width:0;padding:0 4px 12px;}}
