@@ -127,7 +127,7 @@ itsm:
     # E-mail to the requester when a request / incident is submitted and when it is closed.
     enabled: ${MAIL_ENABLED:true}
     from: ${MAIL_FROM:no-reply@authum.com}
-    from-name: ${MAIL_FROM_NAME:Authum – ITSM}
+    from-name: ${MAIL_FROM_NAME:IT Service Desk}
     # Link in the mail, e.g. http://<server-ip>:8090/itsm-portal (blank = no link)
     portal-url: ${ITSM_PORTAL_URL:}
   security:

@@ -159,7 +159,7 @@ public class ItsmProperties {
     public static class Mail {
         private boolean enabled = false;
         private String from = "";
-        private String fromName = "Authum – ITSM";
+        private String fromName = "IT Service Desk";
         /** Portal address for the "Open ticket" link, e.g. http://10.65.x.x:8090/itsm-portal (blank: no link). */
         private String portalUrl = "";
 

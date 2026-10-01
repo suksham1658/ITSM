@@ -121,7 +121,7 @@ public class SystemSettingsService implements ApplicationRunner {
         number("smtp", "mail.port", "SMTP port", "25 for the internal relay (no login, no TLS).", 1, 65535,
                 this::mailPort, v -> withMailSender(s -> s.setPort(v)));
         text("smtp", "mail.from", "Sender address", "From address of ticket e-mails.", mail::getFrom, mail::setFrom, "email");
-        text("smtp", "mail.from-name", "Sender name", "Shown as the sender, e.g. Authum – ITSM.", mail::getFromName, mail::setFromName, null);
+        text("smtp", "mail.from-name", "Sender name", "Shown as the sender, e.g. IT Service Desk.", mail::getFromName, mail::setFromName, null);
         text("smtp", "mail.portal-url", "Portal address for links", "Adds \"Open the ticket\" links, e.g. http://10.65.x.x:8090/itsm-portal. Blank = no link.",
                 mail::getPortalUrl, mail::setPortalUrl, "url-optional");
 
