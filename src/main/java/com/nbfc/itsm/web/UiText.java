@@ -80,6 +80,70 @@ public class UiText {
         return status == null ? "" : status;
     }
 
+    /** SLA state in words: On track / At risk / Breached / Paused / Met / Breached (resolved late). */
+    public String slaText(com.nbfc.itsm.domain.TicketSla s) {
+        if (s == null) {
+            return "";
+        }
+        if (s.getResolvedUtc() != null) {
+            return "BREACHED".equals(s.getStateCode()) ? "Breached (resolved late)" : "Met";
+        }
+        if (s.isPaused()) {
+            return "Paused (on hold)";
+        }
+        switch (s.getStateCode() == null ? "" : s.getStateCode()) {
+            case "NEAR":
+                return "At risk";
+            case "BREACHED":
+                return "Breached";
+            default:
+                return "On track";
+        }
+    }
+
+    public String slaClass(com.nbfc.itsm.domain.TicketSla s) {
+        if (s == null) {
+            return "badge-draft";
+        }
+        if (s.getResolvedUtc() == null && s.isPaused()) {
+            return "badge-onhold";
+        }
+        switch (s.getStateCode() == null ? "" : s.getStateCode()) {
+            case "NEAR":
+                return "badge-sla-near";
+            case "BREACHED":
+                return "badge-sla-breach";
+            default:
+                return "badge-sla-ok";
+        }
+    }
+
+    /** First response: Pending / Overdue (none yet, late) / On time / Late. */
+    public String responseText(com.nbfc.itsm.domain.TicketSla s) {
+        if (s == null) {
+            return "";
+        }
+        if (s.getFirstResponseUtc() == null) {
+            return s.isResponseBreached() ? "Overdue" : "Pending";
+        }
+        return s.isResponseBreached() ? "Late" : "On time";
+    }
+
+    /** ISO weekday (1 = Monday) as "Monday". */
+    public String dayName(int iso) {
+        return com.nbfc.itsm.admin.SlaAdminService.dayName(iso);
+    }
+
+    /** Minutes as "2 h 30 min" / "45 min". */
+    public String minutesText(int minutes) {
+        if (minutes < 60) {
+            return minutes + " min";
+        }
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return h + " h" + (m == 0 ? "" : " " + m + " min");
+    }
+
     /** Workflow action as shown in the Take action list, e.g. SEND_BACK -&gt; "Send back". */
     public String actionLabel(String code) {
         if (code == null) {

@@ -229,6 +229,19 @@ public class TicketController {
         return "redirect:/tickets/" + id;
     }
 
+    @PostMapping("/tickets/{id}/priority")
+    public String changePriority(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
+                                 @RequestParam(value = "priority", required = false) String priority,
+                                 @RequestParam(value = "remarks", required = false) String remarks, RedirectAttributes ra) {
+        try {
+            ticketService.changePriority(user, id, priority, remarks);
+            ra.addFlashAttribute("message", "Priority changed to " + priority + ". SLA due times recalculated.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/tickets/" + id;
+    }
+
     @PostMapping("/tickets/{id}/confirm-closed")
     public String confirmClosed(@AuthenticationPrincipal ItsmUserPrincipal user, @PathVariable("id") Long id,
                                 RedirectAttributes ra) {

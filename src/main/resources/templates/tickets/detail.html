@@ -26,7 +26,7 @@
         <div class="ticket-hero-sla" th:if="${detail.sla != null}"
              th:classappend="${detail.sla.stateCode == 'BREACHED'} ? ' breach' : (${detail.sla.stateCode == 'NEAR'} ? ' near' : ' ok')">
           <div class="sla-label">SLA</div>
-          <div class="sla-count" th:text="${detail.sla.stateCode}">WITHIN</div>
+          <div class="sla-count" th:text="${@ui.slaText(detail.sla)}">On track</div>
         </div>
       </div>
       <div class="status-progress" th:if="${detail.stages != null}">
@@ -233,10 +233,32 @@
 
       <div>
         <div class="card card-pad sla-box" th:if="${detail.sla != null}" style="margin-bottom:16px;">
-          <h3 style="font-size:14px;margin-bottom:8px;">SLA clock</h3>
-          <div class="sla-row"><span class="sr-label">State</span><span class="sr-val" th:text="${detail.sla.stateCode}">WITHIN</span></div>
+          <h3 style="font-size:14px;margin-bottom:8px;">SLA clock
+            <span class="text-muted" style="font-size:11.5px;font-weight:500;" th:if="${detail.sla.slaPolicy != null}"
+                  th:text="'· ' + ${detail.sla.slaPolicy.priorityCode} + (${detail.sla.slaPolicy.allHours} ? ' · 24x7' : ' · business hours')">· Medium</span></h3>
+          <div class="sla-row"><span class="sr-label">State</span>
+            <span class="sr-val"><span class="badge" th:classappend="${@ui.slaClass(detail.sla)}" th:text="${@ui.slaText(detail.sla)}">On track</span></span></div>
+          <div class="sla-row"><span class="sr-label">First response</span>
+            <span class="sr-val" th:text="${@ui.responseText(detail.sla)} + (${detail.sla.firstResponseUtc != null} ? ' · ' + ${@ui.dateTime(detail.sla.firstResponseUtc)} : '')">On time</span></div>
           <div class="sla-row"><span class="sr-label">Response due (IST)</span><span class="sr-val" th:text="${@ui.dateTime(detail.sla.responseDueUtc)}">t</span></div>
           <div class="sla-row"><span class="sr-label">Resolve due (IST)</span><span class="sr-val" th:text="${@ui.dateTime(detail.sla.resolveDueUtc)}">t</span></div>
+          <div class="sla-row" th:if="${detail.sla.resolvedUtc != null}"><span class="sr-label">Resolved (IST)</span><span class="sr-val" th:text="${@ui.dateTime(detail.sla.resolvedUtc)}">t</span></div>
+          <div class="sla-row" th:if="${detail.sla.pausedMinutes > 0 or detail.sla.pausedAtUtc != null}"><span class="sr-label">Time on hold (not counted)</span>
+            <span class="sr-val" th:text="${@ui.minutesText(detail.sla.pausedMinutes)} + (${detail.sla.pausedAtUtc != null} ? ' + on hold now' : '')">0 min</span></div>
+        </div>
+        <div class="card card-pad" style="margin-bottom:16px;" th:if="${detail.canChangePriority}" id="change-priority">
+          <h3 style="font-size:14px;margin-bottom:6px;"><i class="fa-solid fa-gauge-high"></i> Change priority</h3>
+          <p class="phase-note" style="margin-top:0;">The SLA due times are recalculated with the new priority's targets.</p>
+          <form th:action="@{/tickets/{id}/priority(id=${detail.ticket.ticketId})}" method="post">
+            <select class="form-control" name="priority" required="required" aria-label="New priority">
+              <option th:each="o : ${limits.priorities}" th:value="${o}" th:text="${o}"
+                      th:selected="${detail.ticket.priorityCode == o}">Medium</option>
+            </select>
+            <textarea class="form-control" name="remarks" required="required" rows="2" style="margin-top:8px;"
+                      th:attr="minlength=${limits.remarksMin},maxlength=${limits.remarksMax}"
+                      placeholder="Reason (required), e.g. whole branch affected"></textarea>
+            <button type="submit" class="btn btn-accent btn-sm" style="margin-top:8px;"><i class="fa-regular fa-floppy-disk"></i> Change priority</button>
+          </form>
         </div>
         <div class="card card-pad">
           <h3 style="font-size:14px;margin-bottom:12px;">Workflow</h3>

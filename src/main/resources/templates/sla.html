@@ -18,14 +18,16 @@
     <div class="card" th:if="${clocks != null and !clocks.empty}">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Ticket</th><th>State</th><th>Response due</th><th>Resolve due</th><th>Paused</th></tr></thead>
+          <thead><tr><th>Ticket</th><th>Priority</th><th>SLA</th><th>First response</th><th>Response due</th><th>Resolve due</th><th>Time on hold</th></tr></thead>
           <tbody>
           <tr th:each="s : ${clocks}">
             <td class="cell-id"><a class="cell-link" th:href="@{/tickets/{id}(id=${s.ticket.ticketId})}" th:text="${s.ticket.publicNumber}">n</a></td>
-            <td th:text="${s.stateCode}">WITHIN</td>
-            <td th:text="${@ui.dateTime(s.responseDueUtc)}">t</td>
-            <td th:text="${@ui.dateTime(s.resolveDueUtc)}">t</td>
-            <td th:text="${s.paused}">false</td>
+            <td th:text="${s.slaPolicy != null} ? ${s.slaPolicy.priorityCode} : ''">Medium</td>
+            <td><span class="badge" th:classappend="${@ui.slaClass(s)}" th:text="${@ui.slaText(s)}">On track</span></td>
+            <td th:text="${@ui.responseText(s)}">On time</td>
+            <td class="mono cell-date" th:text="${@ui.dateTime(s.responseDueUtc)}">t</td>
+            <td class="mono cell-date" th:text="${@ui.dateTime(s.resolveDueUtc)}">t</td>
+            <td th:text="${s.pausedMinutes > 0 or s.pausedAtUtc != null} ? ${@ui.minutesText(s.pausedMinutes)} + (${s.pausedAtUtc != null} ? ' + on hold now' : '') : '—'">—</td>
           </tr>
           </tbody>
         </table>

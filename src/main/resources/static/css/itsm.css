@@ -1295,3 +1295,8 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .sidebar-brand .sb-slogan .sl-line:last-child{background:linear-gradient(90deg,rgba(11,47,69,.45),rgba(11,47,69,0));}
 .sidebar-brand .sidebar-logo-plate{transition:transform .2s ease, box-shadow .2s ease;}
 .sidebar-brand .sidebar-logo-plate:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(11,47,69,.16);}
+
+/* Admin > SLA Config */
+.sla-num{max-width:130px;}
+.sla-time{max-width:130px;}
+tr.sla-past td{color:var(--slate-400);}

@@ -11,7 +11,7 @@ public class TicketEmailEvent {
      * CREATED / CLOSED / AUTO_CLOSED (closed for lack of confirmation, with a re-open link): to the requester. WAITING: the ticket is now in the queue of
      * {@link #getRecipientIds()} (the people who must act on step {@link #getStageId()}).
      */
-    public enum Kind { CREATED, CLOSED, WAITING, AUTO_CLOSED }
+    public enum Kind { CREATED, CLOSED, WAITING, AUTO_CLOSED, SLA_NEAR, SLA_BREACHED }
 
     private final Long ticketId;
     private final Kind kind;

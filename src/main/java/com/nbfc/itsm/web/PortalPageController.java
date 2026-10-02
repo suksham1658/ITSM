@@ -132,10 +132,13 @@ public class PortalPageController {
     @PreAuthorize("hasAuthority('SLA_MONITOR')")
     @Transactional(readOnly = true)
     public String escalations(Model model) {
-        List<TicketSla> clocks = ticketSlaRepository.findByStateCodeIn(Arrays.asList("NEAR", "BREACHED"));
-        for (TicketSla sla : clocks) {
-            if (sla.getTicket() != null) {
+        // Open tickets at risk or overdue (states are kept current by the SLA monitor every 5 minutes).
+        List<TicketSla> clocks = new java.util.ArrayList<TicketSla>();
+        for (TicketSla sla : ticketSlaRepository.findByStateCodeIn(Arrays.asList("NEAR", "BREACHED"))) {
+            if (sla.getResolvedUtc() == null && sla.getTicket() != null
+                    && !Arrays.asList("Closed", "Rejected", "Draft").contains(sla.getTicket().getStatusCode())) {
                 sla.getTicket().getPublicNumber();
+                clocks.add(sla);
             }
         }
         model.addAttribute("nav", "escalations");

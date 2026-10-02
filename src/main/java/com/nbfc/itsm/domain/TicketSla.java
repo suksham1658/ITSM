@@ -49,6 +49,64 @@ public class TicketSla {
     @Column(name = "state_code", nullable = false, length = 16)
     private String stateCode;
 
+    /** When the clock was paused (On Hold); null when running. */
+    @Column(name = "paused_at_utc")
+    private java.time.Instant pausedAtUtc;
+
+    /** Business minutes spent on hold so far; added to the due times. */
+    @Column(name = "paused_minutes", nullable = false)
+    private int pausedMinutes;
+
+    /** The first response came after the response due time. */
+    @Column(name = "response_breached", nullable = false)
+    private boolean responseBreached;
+
+    @Column(name = "near_alerted_utc")
+    private java.time.Instant nearAlertedUtc;
+
+    @Column(name = "breach_alerted_utc")
+    private java.time.Instant breachAlertedUtc;
+
+    public java.time.Instant getPausedAtUtc() {
+        return pausedAtUtc;
+    }
+
+    public void setPausedAtUtc(java.time.Instant pausedAtUtc) {
+        this.pausedAtUtc = pausedAtUtc;
+    }
+
+    public int getPausedMinutes() {
+        return pausedMinutes;
+    }
+
+    public void setPausedMinutes(int pausedMinutes) {
+        this.pausedMinutes = pausedMinutes;
+    }
+
+    public boolean isResponseBreached() {
+        return responseBreached;
+    }
+
+    public void setResponseBreached(boolean responseBreached) {
+        this.responseBreached = responseBreached;
+    }
+
+    public java.time.Instant getNearAlertedUtc() {
+        return nearAlertedUtc;
+    }
+
+    public void setNearAlertedUtc(java.time.Instant nearAlertedUtc) {
+        this.nearAlertedUtc = nearAlertedUtc;
+    }
+
+    public java.time.Instant getBreachAlertedUtc() {
+        return breachAlertedUtc;
+    }
+
+    public void setBreachAlertedUtc(java.time.Instant breachAlertedUtc) {
+        this.breachAlertedUtc = breachAlertedUtc;
+    }
+
     public Long getTicketSlaId() {
         return ticketSlaId;
     }

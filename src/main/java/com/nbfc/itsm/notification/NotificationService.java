@@ -189,6 +189,30 @@ public class NotificationService {
         }
     }
 
+    /**
+     * SLA escalation (NEAR = at risk, BREACHED = overdue): in-app notice and e-mail to the people who must act
+     * now (and, on a breach, the IT Service Desk). Never to the requester.
+     */
+    @Transactional
+    public void slaAlert(Ticket t, boolean breached, List<Employee> recipients, java.time.Instant due) {
+        String when = due == null ? "" : " (due " + java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+                .withZone(java.time.ZoneId.of("Asia/Kolkata")).format(due) + " IST)";
+        List<Long> mailTo = new ArrayList<Long>();
+        for (Employee e : recipients) {
+            if (e == null || same(e, t.getRequester()) || mailTo.contains(e.getEmployeeId())) {
+                continue;
+            }
+            mailTo.add(e.getEmployeeId());
+            send(null, e, t, (breached ? "SLA breached: " : "SLA at risk: ") + t.getPublicNumber(),
+                    "\"" + t.getSubject() + "\" " + (breached ? "is past its resolution time" : "is close to its resolution time")
+                            + when + ". Please act on it now.");
+        }
+        if (!mailTo.isEmpty()) {
+            events.publishEvent(new TicketEmailEvent(t.getTicketId(),
+                    breached ? TicketEmailEvent.Kind.SLA_BREACHED : TicketEmailEvent.Kind.SLA_NEAR, null, mailTo));
+        }
+    }
+
     /** New comment: tell the requester and the assigned implementor (internal notes: implementor only). */
     @Transactional
     public void commented(Ticket t, Employee author, boolean internal) {
@@ -213,7 +237,7 @@ public class NotificationService {
     // ------------------------------------------------------------------ helpers
 
     /** People who can act on {@code step}: named person, else group members, else role holders. */
-    List<Employee> actorsOf(Ticket t, WorkflowInstanceStage step) {
+    public List<Employee> actorsOf(Ticket t, WorkflowInstanceStage step) {
         Map<Long, Employee> out = new LinkedHashMap<Long, Employee>();
         if (step.getResolvedEmployee() != null) {
             Employee owner = step.getResolvedEmployee();
