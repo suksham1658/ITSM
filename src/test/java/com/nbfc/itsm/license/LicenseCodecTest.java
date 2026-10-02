@@ -73,7 +73,7 @@ class LicenseCodecTest {
 
     @Test
     void embeddedPublicKeyLoads() {
-        PublicKey key = LicenseCodec.publicKeyFromResource("license/public.key");
+        PublicKey key = LicenseCodec.embeddedPublicKey();
         assertEquals("RSA", key.getAlgorithm());
     }
 }

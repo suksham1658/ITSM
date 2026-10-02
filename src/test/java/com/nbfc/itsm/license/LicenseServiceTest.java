@@ -41,7 +41,7 @@ class LicenseServiceTest {
         settings = mock(SystemSettingRepository.class);
         lenient().when(settings.findById(anyString())).thenReturn(Optional.empty());
         lenient().when(settings.save(any(SystemSetting.class))).thenAnswer(i -> i.getArgument(0));
-        service = new LicenseService("D:/itsm-config", "license/public.key", settings, new ObjectMapper());
+        service = new LicenseService("D:/itsm-config", settings, new ObjectMapper());
         service.setConfigDirForTest(configDir);
         service.setPublicKeyForTest(vendor.getPublic());
     }

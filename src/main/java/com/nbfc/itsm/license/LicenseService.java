@@ -37,7 +37,6 @@ public class LicenseService {
 
     private final SystemSettingRepository settingRepository;
     private final LicenseCodec codec;
-    private final String publicKeyResource;
     private Path configDir;
     private PublicKey publicKey;
 
@@ -45,17 +44,16 @@ public class LicenseService {
     private volatile long cachedAt;
 
     public LicenseService(@Value("${ITSM_CONFIG_DIR:D:/itsm-config}") String configDir,
-                          @Value("${itsm.license.public-key-resource:license/public.key}") String publicKeyResource,
                           SystemSettingRepository settingRepository, ObjectMapper objectMapper) {
         this.configDir = Paths.get(configDir);
-        this.publicKeyResource = publicKeyResource;
         this.settingRepository = settingRepository;
         this.codec = new LicenseCodec(objectMapper);
     }
 
     @PostConstruct
     void init() {
-        this.publicKey = LicenseCodec.publicKeyFromResource(publicKeyResource);
+        // The key is compiled into the WAR (LicenseKeys), not loaded from a swappable file.
+        this.publicKey = LicenseCodec.embeddedPublicKey();
     }
 
     /** The current license state, recomputed at most once every {@link #CACHE_TTL}. */
