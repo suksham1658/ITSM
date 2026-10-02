@@ -881,3 +881,13 @@ Needs server / infrastructure action (cannot be fixed in the WAR):
   implementor; *breached*: also the IT Service Desk — in app and by e-mail, never the requester.
 * **Screens**: ticket page (state, first response, due times, resolved time, time on hold), SLA Monitoring (all
   clocks), Escalations (open at-risk / breached only), dashboard tiles (open tickets only).
+
+## Appendix: Licensing (2026-10-02)
+
+One-year **offline signed license**. The file (`<ITSM_CONFIG_DIR>/itsm-license.lic`) is signed with the vendor's
+private key and verified by the public key embedded at `resources/license/public.key` (`com.nbfc.itsm.license`).
+Silent during the valid term; after expiry the System Administrator sees a grace banner (default 7 days, everyone
+still works); past grace, only the System Administrator can sign in (others → `/license-unavailable`) until a
+renewal is installed on **Admin → License**. Clock-tamper guard via `system_setting`. Toggle `itsm.license.enforce`
+(default true; false in test/h2). Vendor tools: `license.tools.LicenseKeygen` / `LicenseGenerator`. Full workflow:
+`docs/LICENSING.md`. Tests: `LicenseCodecTest`, `LicenseServiceTest`; runtime-verified (valid/grace/expired/missing).

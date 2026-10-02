@@ -1300,3 +1300,9 @@ table.data-table td{border-bottom-color:#DCEFF8;color:#1F2A36;}
 .sla-num{max-width:130px;}
 .sla-time{max-width:130px;}
 tr.sla-past td{color:var(--slate-400);}
+
+/* License grace/expiry banner (System Administrator only). */
+.license-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;background:var(--warning-light);
+  color:var(--warning);font-size:13px;font-weight:600;border-bottom:1px solid #f3dca0;}
+.license-banner i{font-size:13px;}
+.license-banner a{margin-left:auto;color:var(--warning);text-decoration:underline;white-space:nowrap;}

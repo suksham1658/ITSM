@@ -1,4 +1,9 @@
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+<div class="license-banner" th:if="${licenseNotice != null}" role="alert">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span th:text="${licenseNotice}">License notice</span>
+    <a th:href="@{/admin/license}">Manage license</a>
+</div>
 <header id="topHeader">
     <button type="button" class="header-burger" data-action="toggle-sidebar" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
     <div class="header-spacer"></div>

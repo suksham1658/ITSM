@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head('Temporarily unavailable')"></head>
+<body>
+<div id="loginScreen">
+  <div class="login-panel-wrap" style="flex:1;">
+    <div class="login-panel" style="text-align:center;max-width:460px;">
+      <div class="login-panel-brand" style="justify-content:center;display:flex;">
+        <img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/>
+        <b><span class="wm-it">IT</span> <span class="wm-nexa">Nexa</span></b>
+      </div>
+      <h2>Temporarily unavailable</h2>
+      <p class="login-sub">The portal is paused for licensing. Please contact your System Administrator — once the
+        license is renewed, access is restored for everyone right away.</p>
+      <a class="btn btn-primary btn-block" th:href="@{/login}">Back to sign in</a>
+      <p class="login-note">If you are the System Administrator, sign in to install a renewed license.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
