@@ -16,6 +16,8 @@ public class LoginController {
                         Model model) {
         if ("denied".equals(error)) {
             model.addAttribute("loginDenied", Boolean.TRUE);
+        } else if ("locked".equals(error)) {
+            model.addAttribute("loginLocked", Boolean.TRUE);
         } else if (error != null) {
             model.addAttribute("loginError", Boolean.TRUE);
         }

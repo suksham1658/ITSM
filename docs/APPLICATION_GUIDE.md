@@ -822,3 +822,39 @@ JOIN dbo.employee e ON e.employee_id = n.recipient_id WHERE e.employee_no = '<EM
   **"Closed automatically — is your issue resolved?"**: *Yes — keep it closed* (stays closed, no more re-open) or
   *No, not resolved — re-open and send back* (reason required → back to the implementor). After the window the link
   says it has expired. Only the requester can re-open or confirm.
+
+## Appendix: Security review and hardening (2026-10-02)
+
+Already in place (checked): CSRF tokens on every form, Content-Security-Policy (no inline script), X-Frame-Options
+DENY, X-Content-Type-Options nosniff, session fixation protection, POST-only logout, absolute session timeout,
+roles re-read on every request (deactivated users are signed out), URL- and method-level role checks, ticket /
+attachment / notification access checked per user, Thymeleaf escaping everywhere (no `th:utext`), parameterised
+queries only (JPA criteria / `?` placeholders), LDAP filter escaping, empty passwords refused before AD (no
+anonymous bind), attachments: blocked executables, allowed-type list, path-traversal check, served as downloads.
+
+Fixed in this release:
+* **Login throttling** (`LoginAttemptService`): 5 wrong passwords for one username or 20 from one address within
+  15 minutes → 15-minute block, refused **without contacting AD** (stops password guessing and AD lockout abuse);
+  login page says "Too many failed sign-ins".
+* **No personal data in the server log**: removed debug prints that dumped every AD attribute (and name / e-mail /
+  UPN) to the Tomcat console at each sign-in; typed usernames are cleaned of line breaks before logging (no forged
+  log lines) and bounded in the audit trail.
+* **Client IP cannot be faked**: `forward-headers-strategy` now `none` by default (`FORWARD_HEADERS_STRATEGY` =
+  `framework` only behind a trusted reverse proxy); audit IPs and the login limit use the real address.
+* **No version disclosure**: `/actuator/info` no longer shows Java / Spring Boot versions.
+* **CSV export formula injection**: cells starting with `= + - @` (not plain numbers) get a leading apostrophe.
+* **Fake PDFs refused**: a `.pdf` must start with `%PDF-`.
+* **Session cookie on the server Tomcat**: cookie-only session tracking (no `;jsessionid=` in links), HttpOnly,
+  Secure when `SESSION_COOKIE_SECURE=true`. Extra `Permissions-Policy` header.
+
+Needs server / infrastructure action (cannot be fixed in the WAR):
+1. **HTTPS** on Tomcat (passwords currently cross the network in clear text), then `SESSION_COOKIE_SECURE=true`.
+2. **LDAPS** (`ldaps://AUTHPDC.Authum.local:636`, DC certificate in the Java truststore): simple bind on 389 sends
+   AD passwords unencrypted.
+3. **Database login**: the portal connects as `sa`. Create a dedicated login (e.g. `itsm_app`: db_datareader,
+   db_datawriter, db_ddladmin on ITSM_PROD only) and put it in `itsm-secrets.yml`.
+4. **Database TLS**: replace `trustServerCertificate=true` with a trusted SQL Server certificate.
+5. **Update Tomcat 9.0.69** to the latest 9.0.x (several published CVEs since) and **Java 8u241** to the latest 8u.
+6. Remove `ITSM_BOOTSTRAP_ADMINS` from `setenv.bat`; rotate the passwords that are still in old git history.
+7. Optional: `<CookieProcessor sameSiteCookies="lax"/>` in Tomcat `conf/context.xml`; hide the Tomcat version
+   (`server=" "` on the connector, custom error pages).

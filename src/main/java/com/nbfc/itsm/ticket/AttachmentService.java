@@ -64,6 +64,10 @@ public class AttachmentService {
             throw new ItsmException("ATTACHMENT_TOO_LARGE", "PDF files must not exceed 5 MB (this one is "
                     + megabytes(file.getSize()) + ").");
         }
+        if ("pdf".equals(ext) && !startsWith(file, "%PDF-")) {
+            // A renamed file (e.g. a script or web page called .pdf) is refused.
+            throw new ItsmException("ATTACHMENT_TYPE", "This file is not a real PDF document.");
+        }
         if (file.getSize() > max) {
             throw new ItsmException("ATTACHMENT_TOO_LARGE", "File exceeds the allowed size of " + megabytes(max) + ".");
         }
@@ -81,6 +85,24 @@ public class AttachmentService {
                 throw new ItsmException("ATTACHMENT_MIME", "Content type is not allowed.");
             }
         }
+    }
+
+    private static boolean startsWith(MultipartFile file, String magic) {
+        byte[] want = magic.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] head = new byte[want.length];
+        try (java.io.InputStream in = file.getInputStream()) {
+            int n = 0;
+            while (n < head.length) {
+                int r = in.read(head, n, head.length - n);
+                if (r < 0) {
+                    return false;
+                }
+                n += r;
+            }
+        } catch (IOException ex) {
+            return false;
+        }
+        return java.util.Arrays.equals(head, want);
     }
 
     private static String megabytes(long bytes) {

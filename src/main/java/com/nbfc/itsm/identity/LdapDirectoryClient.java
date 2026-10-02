@@ -538,30 +538,8 @@ public class LdapDirectoryClient {
         }
         LdapPerson person = new LdapPerson();
         person.setDn(userDn);
-        if (results != null && results.hasMore()) 
-        { 
-        	   
+        if (results != null && results.hasMore()) {
             SearchResult sr = results.next();
-            
-         // DEBUG: print attributes received from Active Directory
-            System.out.println("========== LDAP ATTRIBUTES ==========");
-
-            Attributes attrs = sr.getAttributes();
-
-            NamingEnumeration<? extends Attribute> allAttributes =
-                    attrs.getAll();
-
-            while (allAttributes.hasMore()) {
-
-                Attribute attribute = allAttributes.next();
-
-                System.out.println(
-                        attribute.getID() + " = " + attribute.get()
-                );
-            }
-
-            System.out.println("=====================================");
-            
             person.setDn(sr.getNameInNamespace());
             mapAttributes(person, sr.getAttributes(), ldap);
             results.close();

@@ -65,6 +65,9 @@ public class SecurityConfig {
                     .frameOptions().deny()
                     .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)
                     .and()
+                    // The portal never needs camera, microphone, location, payments or USB.
+                    .permissionsPolicy(p -> p.policy("camera=(), microphone=(), geolocation=(), payment=(), usb=()"))
+                    .and()
                     .httpStrictTransportSecurity().disable()
                 .and()
                 .authorizeRequests()

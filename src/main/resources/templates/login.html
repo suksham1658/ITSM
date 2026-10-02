@@ -18,6 +18,7 @@
       <h2>Sign in</h2>
       <p class="login-sub">Use your Windows (domain) login.</p>
       <div class="login-error show" th:if="${loginError}"><i class="fa-solid fa-triangle-exclamation"></i><span>Sign-in failed. Check your credentials or contact IT Service Desk.</span></div>
+      <div class="login-error show" th:if="${loginLocked}"><i class="fa-solid fa-lock"></i><span>Too many failed sign-ins. For your security, please wait 15 minutes and try again, or contact IT Service Desk.</span></div>
       <div class="login-error show" th:if="${loginDenied}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your directory account is valid, but this portal profile is missing or disabled. Contact IT Admin.</span></div>
       <div class="login-error show" th:if="${sessionEnded}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your session ended (for example after the portal was restarted). Please sign in again and repeat your last action.</span></div>
       <div class="login-error show" th:if="${sessionExpired}"><i class="fa-solid fa-triangle-exclamation"></i><span>Your session reached the maximum lifetime. Sign in again.</span></div>
