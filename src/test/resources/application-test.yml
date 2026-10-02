@@ -20,6 +20,8 @@ spring:
       mode: never
 
 itsm:
+  license:
+    enforce: false
   jobs:
     enabled: false
   mail:

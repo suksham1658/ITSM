@@ -31,19 +31,25 @@ public class SecurityConfig {
     private final ItsmProperties properties;
     private final AuditRecorder auditRecorder;
     private final PortalUserService portalUserService;
+    private final com.nbfc.itsm.license.LicenseService licenseService;
+
+    @org.springframework.beans.factory.annotation.Value("${itsm.license.enforce:true}")
+    private boolean licenseEnforce;
 
     public SecurityConfig(FailClosedLdapAuthenticationProvider ldapAuthenticationProvider,
                           FailClosedFallbackAuthenticationProvider fallbackAuthenticationProvider,
                           ObjectProvider<H2PreviewAuthenticationProvider> h2PreviewAuthenticationProvider,
                           ItsmProperties properties,
                           AuditRecorder auditRecorder,
-                          PortalUserService portalUserService) {
+                          PortalUserService portalUserService,
+                          com.nbfc.itsm.license.LicenseService licenseService) {
         this.ldapAuthenticationProvider = ldapAuthenticationProvider;
         this.fallbackAuthenticationProvider = fallbackAuthenticationProvider;
         this.h2PreviewAuthenticationProvider = h2PreviewAuthenticationProvider;
         this.properties = properties;
         this.auditRecorder = auditRecorder;
         this.portalUserService = portalUserService;
+        this.licenseService = licenseService;
     }
 
     @Bean
@@ -72,7 +78,8 @@ public class SecurityConfig {
                 .and()
                 .authorizeRequests()
                     .antMatchers("/login", "/css/**", "/js/**", "/images/**", "/webfonts/**",
-                            "/error", "/actuator/health", "/actuator/info").permitAll()
+                            "/error", "/license-unavailable", "/actuator/health", "/actuator/info").permitAll()
+                    .antMatchers("/admin/license", "/admin/license/**").hasAuthority("ROLE_SYSTEM_ADMINISTRATOR")
                     .antMatchers("/tickets/raise").hasAuthority("TICKET_CREATE")
                     .antMatchers("/tickets/team").hasAuthority("TICKET_VIEW_TEAM")
                     .antMatchers("/tickets/department").hasAuthority("TICKET_VIEW_DEPARTMENT")
@@ -122,7 +129,8 @@ public class SecurityConfig {
                 .and()
                 .addFilterBefore(new AbsoluteSessionTimeoutFilter(properties), UsernamePasswordAuthenticationFilter.class)
                 // Re-read roles/permissions each request so admin changes apply without a new login.
-                .addFilterBefore(new PrincipalRefreshFilter(portalUserService), ExceptionTranslationFilter.class);
+                .addFilterBefore(new PrincipalRefreshFilter(portalUserService), ExceptionTranslationFilter.class)
+                .addFilterAfter(new LicenseEnforcementFilter(licenseService, licenseEnforce), PrincipalRefreshFilter.class);
         return http.build();
     }
 }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">IT Nexa / Admin / <span>License</span></div>
+        <h1>License</h1>
+        <p class="page-sub">Licensing is silent while the term is valid. This page is for the System Administrator to
+          check status and install a renewal. No warning is shown to anyone before expiry.</p>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h3 style="font-size:14px;margin-bottom:12px;">Status</h3>
+      <div class="sla-row"><span class="sr-label">State</span>
+        <span class="sr-val">
+          <span class="badge" th:switch="${license.status.name()}"
+                th:classappend="${license.status.name() == 'VALID'} ? 'badge-resolved'
+                  : (${license.status.name() == 'GRACE'} ? 'badge-pending' : 'badge-rejected')">
+            <span th:case="'VALID'">Valid</span>
+            <span th:case="'GRACE'">Grace period</span>
+            <span th:case="'EXPIRED'">Expired</span>
+            <span th:case="'MISSING'">No license</span>
+            <span th:case="'INVALID'">Invalid</span>
+            <span th:case="'TAMPERED'">Clock problem</span>
+          </span>
+        </span></div>
+      <div class="sla-row"><span class="sr-label">Licensed to</span><span class="sr-val" th:text="${license.customer} ?: '—'">Customer</span></div>
+      <div class="sla-row"><span class="sr-label">Expires on (IST)</span><span class="sr-val" th:text="${license.expiresOn}">—</span></div>
+      <div class="sla-row" th:if="${license.status.name() == 'GRACE'}"><span class="sr-label">Grace remaining</span>
+        <span class="sr-val" th:text="${license.graceDaysRemaining} + ' of ' + ${license.graceDaysTotal} + ' days'">0 of 7 days</span></div>
+      <div class="alert-banner" th:classappend="${license.status.name() == 'VALID'} ? 'ok' : 'warn'"
+           style="margin-top:12px;" th:if="${license.sysAdminNotice() != null or license.status.name() == 'VALID'}"
+           th:text="${license.status.name() == 'VALID'} ? 'The license is valid. Nothing is shown to users.' : ${license.sysAdminNotice()}">notice</div>
+    </div>
+
+    <div class="card card-pad">
+      <h3 style="font-size:14px;margin-bottom:6px;">Install / renew license</h3>
+      <p class="phase-note" style="margin-top:0;">Upload the <code>.lic</code> file sent by your software vendor. It is
+        checked before it is saved, so an invalid file never replaces a working one. Applies immediately — no restart.</p>
+      <form th:action="@{/admin/license/upload}" method="post" enctype="multipart/form-data">
+        <input class="form-control" type="file" name="file" accept=".lic,text/plain" required="required" style="max-width:420px;"/>
+        <button type="submit" class="btn btn-accent btn-sm" style="margin-top:12px;"><i class="fa-regular fa-floppy-disk"></i> Install license</button>
+      </form>
+      <p class="phase-note" style="margin-top:12px;">The file can also be placed directly in the config folder
+        (set by <code>ITSM_CONFIG_DIR</code>, by default <code>D:\itsm-config\itsm-license.lic</code>) and will be
+        picked up within a few minutes or at the next restart.</p>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>
