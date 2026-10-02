@@ -1,8 +1,15 @@
 # ITSM Portal — Database tables
 
-Every table in `ItsmPortal` (schema `dbo`), what it stores, what each column means, which part of the
-application writes it, and queries to look things up. Definitions come from Flyway `V1__core_tables.sql`
-(later migrations: V7 rebuilds `workflow_rule`, V8 fixes `notification` text types).
+Every table in `ITSM_PROD` (schema `dbo`), what it stores, what each column means, which part of the
+application writes it, and queries to look things up. Column definitions come from `db/migration/V1__core_tables.sql`
+and later `V*`/`U*` scripts (e.g. V13 adds `ticket.serial_number`, V14 adds `ticket_assignment_log` +
+`category_implementor`, V15 adds the `ticket_sla` tracking columns).
+
+> This is the **column-level** reference. For a quick "where does X live" map and the entity→table list, see
+> [DATABASE.md](DATABASE.md). Note the schema is **not** managed by Flyway in production (SQL Server 2012): the DBA
+> installs it and `SchemaInstaller` applies `db/install/upgrades/U*.sql` — so there is **no** `flyway_schema_history`
+> table on the prod database, and the tables listed below as "not used yet" now include ones that are in use
+> (e.g. `category_implementor`, `ticket_assignment_log`, `workflow_instance_stage_assignee`).
 
 Conventions: `*_id` = primary key (`BIGINT IDENTITY`); `*_utc` = UTC time (`DATETIME2(3)`); `is_*` = 0/1;
 **?** = column may be NULL. Codes shown in *italics* are enforced by CHECK constraints.

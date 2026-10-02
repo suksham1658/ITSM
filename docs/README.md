@@ -11,6 +11,12 @@ Reference docs for the IT Nexa ITSM portal (Spring Boot 2.7 / Java 8 WAR on Tomc
 | [CONFIGURATION.md](CONFIGURATION.md) | Versions of everything, config files, env vars, `system_setting` keys, background jobs, deployment layout |
 | [LICENSING.md](LICENSING.md) | The 1-year offline signed license — how it behaves, vendor key workflow, renewal |
 
+### Deeper / legacy references
+| Doc | What's in it |
+|---|---|
+| [DATABASE_TABLES.md](DATABASE_TABLES.md) | **Column-by-column** description of every table + example queries (pairs with DATABASE.md's finder map) |
+| [APPLICATION_GUIDE.md](APPLICATION_GUIDE.md) | Original single-file guide (architecture, classes, endpoints, config, debugging). Broad but older — where it differs from the split docs above, trust the split docs for current `main` |
+
 All endpoint paths in these docs are **relative to the application context root**. In production that root is
 `http://<server>:8090/itsm-portal` (standalone Tomcat 9); for local/embedded runs it is `http://localhost:8092`
 (see [CONFIGURATION.md](CONFIGURATION.md)).

@@ -4,6 +4,12 @@ Developer and support reference: architecture, modules and their flows, every HT
 the main classes and methods, configuration (database, LDAP, security), the database schema,
 and how to debug problems.
 
+> **See also (newer, topic-split references):** [WORKFLOWS.md](WORKFLOWS.md) · [DATABASE.md](DATABASE.md) (quick
+> "find X → table" map) + [DATABASE_TABLES.md](DATABASE_TABLES.md) (column-level) · [ENDPOINTS.md](ENDPOINTS.md) ·
+> [SLA.md](SLA.md) · [CONFIGURATION.md](CONFIGURATION.md). Where this guide and those differ, the split docs reflect
+> current `main` (notably: **production is SQL Server 2012 with Flyway OFF** — the schema is installed by the DBA and
+> upgraded by `SchemaInstaller` running `db/install/upgrades/U*.sql`; Flyway is only for SQL Server 2016+).
+
 > Secrets: never copy passwords into this document. `application.yml` still contains fallback
 > credentials for the database and the LDAP bind account; in any shared environment set the
 > environment variables listed in [§4](#4-configuration) and remove those fallbacks.
@@ -17,7 +23,7 @@ and how to debug problems.
 | Type | Server-rendered web app (Spring MVC + Thymeleaf), one WAR: runs embedded (`java -jar`) or on external Tomcat 9 |
 | Java | 1.8 (source/target 1.8) |
 | Framework | Spring Boot 2.7.18 (Spring Security 5.7, Hibernate 5.6, `javax.*`) |
-| Database | Microsoft SQL Server 2016/2019 (compat level 130), schema managed by Flyway 9.22.3 |
+| Database | Microsoft SQL Server (prod: **2012**, `ITSM_PROD`). Schema installed by the DBA + `SchemaInstaller` (`db/install/upgrades/U*.sql`); **Flyway is OFF in prod** (only for SQL Server 2016+). See [CONFIGURATION.md](CONFIGURATION.md) §5 |
 | Identity | Corporate Active Directory via LDAP simple bind (JNDI) |
 | Build | Maven (`pom.xml`), no wrapper |
 | Base package | `com.nbfc.itsm` |
