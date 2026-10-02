@@ -2,8 +2,6 @@ package com.nbfc.itsm.license;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -99,23 +97,22 @@ public final class LicenseCodec {
         }
     }
 
-    public static PublicKey publicKeyFromResource(String path) {
-        try (InputStream in = LicenseCodec.class.getClassLoader().getResourceAsStream(path)) {
-            if (in == null) {
-                throw new IllegalStateException("Embedded public key not found at " + path);
-            }
-            byte[] bytes = new byte[in.available()];
-            int read = 0;
-            while (read < bytes.length) {
-                int n = in.read(bytes, read, bytes.length - read);
-                if (n < 0) {
-                    break;
+    /**
+     * The vendor public key, compiled into the application from {@link LicenseKeys#PUBLIC_KEY_BASE64}. Unlike a file
+     * in the WAR, this cannot be swapped by unzipping the archive — it lives in bytecode. Parsed once and reused.
+     */
+    public static PublicKey embeddedPublicKey() {
+        PublicKey key = EMBEDDED;
+        if (key == null) {
+            synchronized (LicenseCodec.class) {
+                if (EMBEDDED == null) {
+                    EMBEDDED = publicKeyFromBase64(LicenseKeys.PUBLIC_KEY_BASE64);
                 }
-                read += n;
+                key = EMBEDDED;
             }
-            return publicKeyFromBase64(new String(bytes, 0, read, StandardCharsets.US_ASCII));
-        } catch (Exception ex) {
-            throw new IllegalStateException("Could not load the embedded public key", ex);
         }
+        return key;
     }
+
+    private static volatile PublicKey EMBEDDED;
 }

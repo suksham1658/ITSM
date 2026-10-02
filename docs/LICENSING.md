@@ -1,8 +1,8 @@
 # IT Nexa — Licensing (vendor guide)
 
 IT Nexa ships with a **1-year, offline, signed license**. A license file is signed with **your private key**; the
-app verifies it with the **public key embedded in the WAR**. No internet or license server is needed on the
-customer's side.
+app verifies it with the **public key compiled into the WAR** (the `LicenseKeys` class — not a loose file, so it
+cannot be swapped by unzipping the archive). No internet or license server is needed on the customer's side.
 
 ## How it behaves (on the customer's server)
 
@@ -29,20 +29,22 @@ java -cp WEB-INF\classes com.nbfc.itsm.license.tools.LicenseKeygen private.key p
 
 - **Keep `private.key` secret forever** (password manager / offline USB). It signs every license. If it leaks,
   anyone can issue licenses; if you lose it, you cannot issue new ones.
-- `public.key` is not secret.
+- The public key is not secret. The keygen also **prints a ready-to-paste `PUBLIC_KEY_BASE64 = "..."` block.**
 
-## STEP 2 — embed your public key and build the real WAR (once)
+## STEP 2 — embed your public key in code and build the real WAR (once)
 
-Replace the shipped placeholder key with yours, then rebuild:
+Open `src/main/java/com/nbfc/itsm/license/LicenseKeys.java` and replace the value of `PUBLIC_KEY_BASE64` with the
+Base64 the keygen printed (one line, no spaces), then rebuild:
 
 ```
-copy public.key  src\main\resources\license\public.key
 mvn -o clean package -DskipTests
 ```
 
-Now only **you** (holder of `private.key`) can produce licenses this WAR accepts. Ship this WAR to customers.
-> The repository ships a demo `public.key` so the build and tests work; **you must replace it** before selling,
-> otherwise the demo key (whose private key no one holds) is in effect and no license can be generated.
+The public key now lives **inside the compiled `.class`**, not as a file in the WAR. A customer cannot re-key your
+app by unzipping the WAR and dropping in a different key file — there is no such file. Only **you** (holder of
+`private.key`) can produce licenses this WAR accepts. Ship this WAR to customers.
+> The repository's `LicenseKeys` ships with a key whose private key is not distributed; **set your own** before
+> selling so you — and only you — can issue licenses.
 
 ## STEP 3 — issue a license for each customer / renewal (1 minute)
 
@@ -69,8 +71,19 @@ Run STEP 3 again with a new `--months 12`, send the new file, customer uploads i
 
 ## What this stops, and what it doesn't
 - **Editing/forging the license file** → impossible without your private key (signature check).
+- **Swapping the public key by unzipping the WAR** → blocked: the key is compiled into `LicenseKeys`, not a file.
 - **Using one customer's license at another company** → blocked (the customer name is signed in).
 - **Winding the clock back** → detected (TAMPERED).
-- **A programmer rewriting the app's code on their own server** → cannot be made impossible for any on-premise
-  software, only impractical. Add obfuscation (e.g. ProGuard) for more resistance, and rely on the licence clause
-  in the contract. Truly tamper-proof requires SaaS/cloud or online activation.
+- **A programmer decompiling the WAR, changing the embedded key or deleting the check, and recompiling** → cannot
+  be made *impossible* for any on-premise software, only harder. The compiled-in key raises the bar from "edit a
+  text file" to "decompile, edit bytecode, recompile a Spring app." See the note below on obfuscation.
+
+### A note on obfuscation (ProGuard)
+Obfuscation is **not** added to this build, by deliberate choice. On a Spring Boot app the framework resolves beans,
+JSON fields (Jackson), entities (JPA) and template getters (Thymeleaf) **by name via reflection**, so aggressive
+renaming breaks the app in ways that surface only at runtime, and every dependency upgrade then needs new keep-rules.
+For a production system serving many users the stability risk outweighs the modest extra resistance — a determined
+developer can still patch the JDK `Signature.verify` call whether or not names are obfuscated. If you want genuinely
+stronger protection against an on-prem customer re-issuing their own licenses, the right tool is **online activation
+(phone-home)**: the app checks in with your server, so an offline copy cannot extend itself. That is a separate
+feature and can be added later. Until then, the backstop is the **licence clause in your sales contract.**
