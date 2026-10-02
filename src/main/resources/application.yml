@@ -94,7 +94,9 @@ server:
   error:
     whitelabel:
       enabled: false
-  forward-headers-strategy: framework
+  # "none": X-Forwarded-For from the browser is ignored, so nobody can fake their IP address in the audit trail
+  # or dodge the failed-login limit. Set FORWARD_HEADERS_STRATEGY=framework only behind a trusted reverse proxy.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
   servlet:
     session:
       timeout: ${SESSION_TIMEOUT:30m}
@@ -127,12 +129,10 @@ management:
     env:
       enabled: true
 
+# No product versions here: /actuator/info must not tell an attacker which Java / Spring versions to target.
 info:
   app:
-    name: ITSM Portal
-    phase: 9-gap-review
-    java: 8
-    spring-boot: 2.7.18
+    name: IT Nexa
 
 itsm:
   ldap:

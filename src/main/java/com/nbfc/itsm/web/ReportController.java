@@ -209,13 +209,18 @@ public class ReportController {
         }
     }
 
-    private static String csvLine(List<String> cells) {
+    static String csvLine(List<String> cells) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < cells.size(); i++) {
             if (i > 0) {
                 sb.append(',');
             }
             String v = cells.get(i) == null ? "" : cells.get(i);
+            // CSV / formula injection: a cell typed by a user (e.g. a subject "=HYPERLINK(...)") must not run as a
+            // formula when the export is opened in Excel, so such cells start with an apostrophe.
+            if (!v.isEmpty() && "=+-@\t\r".indexOf(v.charAt(0)) >= 0 && !v.matches("[-+]?\\d+(\\.\\d+)?%?")) {
+                v = "'" + v;
+            }
             if (v.indexOf('"') >= 0 || v.indexOf(',') >= 0 || v.indexOf('\n') >= 0) {
                 sb.append('"').append(v.replace("\"", "\"\"")).append('"');
             } else {

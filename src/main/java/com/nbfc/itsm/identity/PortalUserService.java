@@ -324,15 +324,6 @@ public class PortalUserService {
     
     private Employee createEmployeeFromLdap(LdapPerson person) {
 
-    	System.out.println("===== LDAP DATA =====");
-        System.out.println("Employee No     : " + person.getEmployeeNo());
-        System.out.println("SAM Account     : " + person.getSamAccountName());
-        System.out.println("Display Name    : " + person.getDisplayName());
-        System.out.println("Email           : " + person.getEmail());
-        System.out.println("Designation     : " + person.getDesignation());
-        System.out.println("UPN             : " + person.getUpn());
-        System.out.println("=====================");
-
         Employee employee = new Employee();
 
         employee.setEmployeeNo(person.getEmployeeNo());

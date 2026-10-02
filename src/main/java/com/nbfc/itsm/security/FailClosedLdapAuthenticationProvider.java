@@ -28,12 +28,23 @@ public class FailClosedLdapAuthenticationProvider implements AuthenticationProvi
     private final LdapDirectoryClient ldapDirectoryClient;
     private final PortalUserService portalUserService;
 
+    private final LoginAttemptService loginAttempts;
+
     public FailClosedLdapAuthenticationProvider(ItsmProperties properties,
                                                 LdapDirectoryClient ldapDirectoryClient,
                                                 PortalUserService portalUserService) {
+        this(properties, ldapDirectoryClient, portalUserService, new LoginAttemptService());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public FailClosedLdapAuthenticationProvider(ItsmProperties properties,
+                                                LdapDirectoryClient ldapDirectoryClient,
+                                                PortalUserService portalUserService,
+                                                LoginAttemptService loginAttempts) {
         this.properties = properties;
         this.ldapDirectoryClient = ldapDirectoryClient;
         this.portalUserService = portalUserService;
+        this.loginAttempts = loginAttempts;
     }
 
     @Override
@@ -50,30 +61,50 @@ public class FailClosedLdapAuthenticationProvider implements AuthenticationProvi
         if (!properties.getLdap().isConfigured()) {
             return null;
         }
+        String ip = authentication.getDetails() instanceof org.springframework.security.web.authentication.WebAuthenticationDetails
+                ? ((org.springframework.security.web.authentication.WebAuthenticationDetails) authentication.getDetails()).getRemoteAddress()
+                : null;
+        if (loginAttempts.isBlocked(username, ip)) {
+            // Refused without contacting AD, so guessing cannot lock the account in AD either.
+            log.warn("Login for user '{}' from {} refused: too many failed attempts", forLog(username), ip);
+            throw new org.springframework.security.authentication.LockedException("too-many-attempts");
+        }
         LdapPerson person;
         try {
             person = ldapDirectoryClient.authenticateAndLoad(username, password);
         } catch (NamingException ex) {
+            loginAttempts.failed(username, ip);
             // Full stack trace in the server log; the login page still only says "Sign-in failed".
             log.warn("LDAP authentication failed for user '{}' (url={}): {}",
-                    username, properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
+                    forLog(username), properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
             throw new BadCredentialsException("Invalid credentials");
         } catch (RuntimeException ex) {
+            loginAttempts.failed(username, ip);
             log.warn("LDAP authentication failed for user '{}' (url={}) with an unexpected error: {}",
-                    username, properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
+                    forLog(username), properties.getLdap().getUrl(), LdapDirectoryClient.diagnose(ex), ex);
             throw new BadCredentialsException("Invalid credentials");
         }
+        loginAttempts.succeeded(username);
         try {
             ItsmUserPrincipal principal = portalUserService.loadActivePrincipal(person);
             return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         } catch (DisabledException ex) {
-            log.warn("LDAP bind OK for user '{}' but portal access is disabled: {}", username, ex.getMessage());
+            log.warn("LDAP bind OK for user '{}' but portal access is disabled: {}", forLog(username), ex.getMessage());
             throw ex;
         } catch (RuntimeException ex) {
             log.error("LDAP bind OK for user '{}' but loading/creating the portal employee profile failed "
-                    + "(database step, not LDAP): {}", username, ex.toString(), ex);
+                    + "(database step, not LDAP): {}", forLog(username), ex.toString(), ex);
             throw new InternalAuthenticationServiceException("Portal profile could not be loaded", ex);
         }
+    }
+
+    /** Typed usernames go into the server log: no line breaks or control characters (no forged log lines). */
+    static String forLog(String s) {
+        if (s == null) {
+            return "";
+        }
+        String clean = s.replaceAll("[\\p{Cntrl}]", "?");
+        return clean.length() > 128 ? clean.substring(0, 128) + "…" : clean;
     }
 
     @Override

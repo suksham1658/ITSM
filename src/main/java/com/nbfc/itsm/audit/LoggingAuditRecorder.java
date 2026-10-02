@@ -36,7 +36,7 @@ public class LoggingAuditRecorder implements AuditRecorder {
         AuditLog row = new AuditLog();
         row.setModuleCode(module);
         row.setActionCode(action);
-        row.setNewValue(detail);
+        row.setNewValue(detail != null && detail.length() > 4000 ? detail.substring(0, 4000) + "…" : detail);
         row.setResultCode(result);
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof ItsmUserPrincipal) {

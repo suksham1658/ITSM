@@ -149,6 +149,16 @@ class RaiseFormAndCatalogTest {
     }
 
     @Test
+    void aRenamedFileCalledPdfIsRefused() throws Exception {
+        long before = ticketRepository.count();
+        mockMvc.perform(raise("NETWORK").file(new MockMultipartFile("attachment", "invoice.pdf", "application/pdf",
+                                "<html><script>alert(1)</script></html>".getBytes("UTF-8")))
+                        .with(csrf()).with(authentication(token(requester))))
+                .andExpect(flash().attribute("errorMessage", containsString("not a real PDF")));
+        assertEquals(before, ticketRepository.count());
+    }
+
+    @Test
     void noFileIsFine() throws Exception {
         mockMvc.perform(raise("NETWORK").file(new MockMultipartFile("attachment", "", "application/octet-stream", new byte[0]))
                         .with(csrf()).with(authentication(token(requester))))
