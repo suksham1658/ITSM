@@ -31,13 +31,16 @@ public class AdminCatalogController {
     private final com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors;
     private final com.nbfc.itsm.admin.CatalogAdminService catalogAdmin;
     private final com.nbfc.itsm.domain.TicketTypeRepository ticketTypeRepository;
+    private final com.nbfc.itsm.admin.SlaAdminService slaAdmin;
 
     public AdminCatalogController(CategoryRepository categoryRepository,
                                   SubCategoryRepository subCategoryRepository,
                                   SystemSettingsService systemSettings,
                                   com.nbfc.itsm.admin.CategoryImplementorService categoryImplementors,
                                   com.nbfc.itsm.admin.CatalogAdminService catalogAdmin,
-                                  com.nbfc.itsm.domain.TicketTypeRepository ticketTypeRepository) {
+                                  com.nbfc.itsm.domain.TicketTypeRepository ticketTypeRepository,
+                                  com.nbfc.itsm.admin.SlaAdminService slaAdmin) {
+        this.slaAdmin = slaAdmin;
         this.categoryImplementors = categoryImplementors;
         this.catalogAdmin = catalogAdmin;
         this.ticketTypeRepository = ticketTypeRepository;
@@ -185,10 +188,64 @@ public class AdminCatalogController {
     @PreAuthorize("hasAuthority('ADMIN_MASTERDATA_PROPOSE')")
     public String sla(Model model) {
         model.addAttribute("nav", "adminSLA");
-        model.addAttribute("pageTitle", "SLA configuration");
-        model.addAttribute("emptyMessage",
-                "To see live SLA clocks for tickets, open SLA Monitoring.");
-        return "admin/stub";
+        model.addAttribute("pageTitle", "SLA Config");
+        model.addAttribute("policies", slaAdmin.policies());
+        model.addAttribute("calendar", slaAdmin.calendar());
+        model.addAttribute("holidays", slaAdmin.holidays());
+        model.addAttribute("today", java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
+        return "admin/sla";
+    }
+
+    @PostMapping("/sla/policies/{id}")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String saveSlaPolicy(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                @RequestParam(value = "responseMinutes", required = false) Integer responseMinutes,
+                                @RequestParam(value = "resolutionMinutes", required = false) Integer resolutionMinutes,
+                                @RequestParam(value = "allHours", defaultValue = "false") boolean allHours,
+                                @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return slaRun(ra, "targets", () -> "SLA for " + slaAdmin.updatePolicy(id, responseMinutes, resolutionMinutes, allHours, actor)
+                .getPriorityCode() + " saved. It applies to tickets submitted from now on.");
+    }
+
+    @PostMapping("/sla/calendar")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String saveSlaCalendar(@RequestParam(value = "workingDays", required = false) List<Integer> workingDays,
+                                  @RequestParam(value = "start", required = false) List<String> start,
+                                  @RequestParam(value = "end", required = false) List<String> end,
+                                  @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return slaRun(ra, "hours", () -> {
+            slaAdmin.updateCalendar(workingDays, start, end, actor);
+            return "Working hours saved.";
+        });
+    }
+
+    @PostMapping("/sla/holidays")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String addSlaHoliday(@RequestParam(value = "date", required = false)
+                                @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                                        java.time.LocalDate date,
+                                @RequestParam(value = "name", required = false) String name,
+                                @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return slaRun(ra, "holidays", () -> "Holiday " + slaAdmin.addHoliday(date, name, actor).getHolidayDate() + " added.");
+    }
+
+    @PostMapping("/sla/holidays/{id}/delete")
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    public String deleteSlaHoliday(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                   @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        return slaRun(ra, "holidays", () -> {
+            slaAdmin.deleteHoliday(id, actor);
+            return "Holiday removed.";
+        });
+    }
+
+    private static String slaRun(RedirectAttributes ra, String anchor, java.util.function.Supplier<String> action) {
+        try {
+            ra.addFlashAttribute("message", action.get());
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/sla#" + anchor;
     }
 
     @GetMapping("/config")

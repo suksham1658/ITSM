@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface TicketSlaRepository extends JpaRepository<TicketSla, Long> {
     Optional<TicketSla> findByTicket(Ticket ticket);
     List<TicketSla> findByStateCodeIn(List<String> states);
+    List<TicketSla> findByResolvedUtcIsNull();
 }

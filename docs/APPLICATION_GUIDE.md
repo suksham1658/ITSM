@@ -639,6 +639,7 @@ Front end: `templates/` (Thymeleaf pages, `fragments/` = head, header, sidebar, 
 | V9 | Permission `AD_ACCOUNT_UNLOCK`, granted to IT_SERVICE_DESK and SYSTEM_ADMINISTRATOR |
 | V10 | `employee.delegate_id` (delegate / backup approver); also `db/install/upgrades/U10__employee_delegate.sql` |
 | V11 | Implementors per category, several implementors per step, REJECT at the service desk; also `U11__desk_multi_assign.sql` |
+| V15 | SLA tracking on `ticket_sla`: `paused_at_utc`, `paused_minutes`, `response_breached`, `near_alerted_utc`, `breach_alerted_utc`; also `U15__sla_tracking.sql` |
 | V14 | `employee.phone_number`, `employee.office_location` (from AD) and `ticket_assignment_log` (who assigned / reassigned to whom, comment); also `U14__implementor_view.sql` |
 | V13 | `ticket.serial_number` (Hardware serial number on Raise Request); also `U13__ticket_serial_number.sql` |
 | V12 | Performance indexes (current steps by status/type, newest-first tickets, implementor offers, SLA state); also `U12__performance_indexes.sql` |
@@ -858,3 +859,25 @@ Needs server / infrastructure action (cannot be fixed in the WAR):
 6. Remove `ITSM_BOOTSTRAP_ADMINS` from `setenv.bat`; rotate the passwords that are still in old git history.
 7. Optional: `<CookieProcessor sameSiteCookies="lax"/>` in Tomcat `conf/context.xml`; hide the Tomcat version
    (`server=" "` on the connector, custom error pages).
+
+## Appendix: SLA — complete flow (2026-10-02)
+
+* **Editable** (Admin → **SLA Config**, System Administrator, applied at once, audited): first-response and resolution
+  minutes per priority and the 24x7 switch; working days and hours (IST); holidays (add / delete). New targets apply to
+  tickets submitted from then on and to tickets whose priority is changed. System Configuration → Workflow:
+  **SLA: at-risk warning (%)** (default 20) and **SLA: alerts** (on).
+* **Clock** (`SlaService`): starts at submit; due = start + target (+ minutes on hold), in business time unless 24x7.
+  - First response (desk assigns / implementor holds or reassigns): late → *Late* (`response_breached`); none yet and
+    past due → *Overdue*.
+  - **Hold pauses for real**: on resume the business minutes on hold are added to both due times (shown as "Time on
+    hold (not counted)").
+  - **Resolve**: *Met* when on time, *Breached (resolved late)* when late.
+  - **Not resolved / re-open**: a fresh resolution window starts.
+  - **Change priority** (IT Service Desk / System Administrator, reason required, on the ticket page): due times
+    recalculated from the start with the new targets; a comment records it.
+  - NEAR (*At risk*) when ≤ the at-risk % of the business-time window is left; BREACHED when past the resolve due.
+* **Monitor** (`SlaMonitorService`, every 5 minutes): updates and saves every open clock (Escalations, dashboard tiles
+  and reports are always current) and alerts once per level — *at risk*: the people on the current step + the
+  implementor; *breached*: also the IT Service Desk — in app and by e-mail, never the requester.
+* **Screens**: ticket page (state, first response, due times, resolved time, time on hold), SLA Monitoring (all
+  clocks), Escalations (open at-risk / breached only), dashboard tiles (open tickets only).

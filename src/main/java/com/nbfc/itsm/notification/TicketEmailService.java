@@ -78,6 +78,8 @@ public class TicketEmailService {
         try {
             if (event.getKind() == TicketEmailEvent.Kind.WAITING) {
                 sendWaiting(event.getTicketId(), event.getStageId(), event.getRecipientIds());
+            } else if (event.getKind() == TicketEmailEvent.Kind.SLA_NEAR || event.getKind() == TicketEmailEvent.Kind.SLA_BREACHED) {
+                sendSlaAlert(event.getTicketId(), event.getKind() == TicketEmailEvent.Kind.SLA_BREACHED, event.getRecipientIds());
             } else {
                 send(event.getTicketId(), event.getKind());
             }
@@ -129,6 +131,37 @@ public class TicketEmailService {
                 log.info("Queue e-mail {} ({}) sent to {}", t.getPublicNumber(), step.getStageType(), e.getEmail());
             } catch (Exception ex) {
                 log.warn("Queue e-mail {} to {} could not be sent: {}", t.getPublicNumber(), e.getEmail(), ex.toString());
+            }
+        }
+        return sent;
+    }
+
+    /** SLA at risk / breached: one e-mail to each person who must act (never the requester). */
+    @Transactional(readOnly = true)
+    public int sendSlaAlert(Long ticketId, boolean breached, List<Long> recipientIds) {
+        Ticket t = ticketRepository.findById(ticketId).orElse(null);
+        if (t == null) {
+            return 0;
+        }
+        String subject = (breached ? "SLA BREACHED: " : "SLA at risk: ") + typeName(t) + " " + t.getPublicNumber()
+                + " " + t.getSubject();
+        int sent = 0;
+        for (Long id : recipientIds) {
+            Employee e = employeeRepository.findById(id).orElse(null);
+            if (e == null || !e.isPortalActive() || !StringUtils.hasText(e.getEmail())) {
+                continue;
+            }
+            StringBuilder b = open(e.getDisplayName());
+            b.append("<p>").append(esc(typeName(t))).append(" <b>").append(esc(t.getPublicNumber())).append("</b> ")
+                    .append(breached ? "has <b style=\"color:#b91c1c\">breached its SLA</b> (resolution time passed)."
+                            : "is <b style=\"color:#b45309\">close to its SLA resolution time</b>.")
+                    .append(" Please act on it now.</p>");
+            details(b, t, false, null, null);
+            try {
+                mail(e.getEmail(), subject, close(b, t));
+                sent++;
+            } catch (Exception ex) {
+                log.warn("SLA e-mail {} to {} could not be sent: {}", t.getPublicNumber(), e.getEmail(), ex.toString());
             }
         }
         return sent;

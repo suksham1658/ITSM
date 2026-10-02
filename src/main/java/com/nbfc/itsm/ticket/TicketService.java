@@ -309,6 +309,7 @@ public class TicketService {
         if (ticket.getRequester() != null && ticket.getRequester().getDepartment() != null) {
             ticket.getRequester().getDepartment().getName();
         }
+        detail.setCanChangePriority(canChangePriority(principal, ticket));
         List<TicketComment> comments = commentRepository.findByTicketOrderByCreatedAtUtcAsc(ticket);
         boolean showInternal = canSeeInternal(principal);
         detail.setShowInternalComments(showInternal);
@@ -647,6 +648,50 @@ public class TicketService {
             }
         }
         return false;
+    }
+
+    /** IT Service Desk (or System Administrator) may change the priority of an open ticket. */
+    public boolean canChangePriority(ItsmUserPrincipal principal, Ticket ticket) {
+        boolean open = ticket != null && !CLOSED.contains(ticket.getStatusCode()) && !"Draft".equals(ticket.getStatusCode());
+        return open && (has(principal, "TICKET_VIEW_QUEUE_ALL") || has(principal, "TICKET_ASSIGN")
+                || has(principal, "ROLE_SYSTEM_ADMINISTRATOR"));
+    }
+
+    /**
+     * Changes the priority (reason required), recalculates the SLA due times with the new priority's targets and
+     * records it as a comment on the ticket and in the audit trail.
+     */
+    @Transactional
+    public Ticket changePriority(ItsmUserPrincipal principal, Long ticketId, String priority, String reason) {
+        Ticket ticket = requireView(principal, ticketId);
+        if (!canChangePriority(principal, ticket)) {
+            throw new AccessDeniedException("Only the IT Service Desk or a System Administrator can change the priority of an open ticket.");
+        }
+        if (priority == null || !FieldLimits.PRIORITIES.contains(priority)) {
+            throw new ItsmException("VALIDATION", "Choose a valid priority.");
+        }
+        if (priority.equals(ticket.getPriorityCode())) {
+            throw new ItsmException("VALIDATION", "The ticket already has priority " + priority + ".");
+        }
+        String why = reason == null ? "" : reason.trim();
+        if (why.length() < workflowEngine.remarksMin()) {
+            throw new ItsmException("REMARKS_REQUIRED", "Give a reason (at least " + workflowEngine.remarksMin() + " characters).");
+        }
+        String old = ticket.getPriorityCode();
+        ticket.setPriorityCode(priority);
+        ticketRepository.save(ticket);
+        slaService.recalculate(ticket);
+        Employee actor = employeeRepository.findById(principal.getEmployeeId())
+                .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found."));
+        TicketComment note = new TicketComment();
+        note.setTicket(ticket);
+        note.setAuthor(actor);
+        note.setBody("Priority changed from " + old + " to " + priority + ". Reason: " + why);
+        note.setInternal(false);
+        note.setCreatedAtUtc(TimeUtc.now());
+        commentRepository.save(note);
+        auditRecorder.recordTicket("PRIORITY_CHANGE", ticket.getTicketId(), old, priority);
+        return ticket;
     }
 
     /** "Not resolved" after an automatic closure: back to the implementor with the requester's reason. */

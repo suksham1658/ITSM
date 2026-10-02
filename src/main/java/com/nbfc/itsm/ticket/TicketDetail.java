@@ -34,6 +34,16 @@ public class TicketDetail {
     private java.time.Instant reopenUntil;
     /** The viewer is the requester and the re-open period is still running. */
     private boolean canReopen;
+    /** IT Service Desk / System Administrator may change the priority (SLA recalculated). */
+    private boolean canChangePriority;
+
+    public boolean isCanChangePriority() {
+        return canChangePriority;
+    }
+
+    public void setCanChangePriority(boolean canChangePriority) {
+        this.canChangePriority = canChangePriority;
+    }
 
     public java.time.Instant getAutoCloseAt() {
         return autoCloseAt;

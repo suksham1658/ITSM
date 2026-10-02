@@ -284,6 +284,9 @@ public class ReportingService {
         cq.select(cb.count(sla.get("ticketSlaId")));
         List<Predicate> p = new ArrayList<Predicate>();
         p.add(cb.equal(sla.get("stateCode"), state));
+        // Dashboard tiles count open tickets only (a ticket resolved late keeps BREACHED for reports).
+        p.add(cb.isNull(sla.get("resolvedUtc")));
+        p.add(cb.not(ticket.get("statusCode").in("Closed", "Rejected", "Draft")));
         p.addAll(scopeAndFilters(cb, ticket, user, me, filter));
         cq.where(cb.and(p.toArray(new Predicate[0])));
         Long n = entityManager.createQuery(cq).getSingleResult();

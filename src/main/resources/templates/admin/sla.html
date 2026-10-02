@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">IT Nexa / Admin / <span>SLA Config</span></div>
+        <h1>SLA Config</h1>
+        <p class="page-sub">Response and resolution targets per priority, working hours and holidays.
+          Targets count <b>business time</b> (working hours, no weekends or holidays) unless set to 24x7.
+          <span sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Changes apply immediately to new tickets;
+          tickets already running keep their due times.</span>
+          At-risk warning % and alerts: <a th:href="@{/admin/config}">System Configuration → Workflow</a>.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================== targets -->
+    <div class="card" id="targets" style="margin-bottom:16px;">
+      <div class="card-head"><div><h3>Targets per priority</h3>
+        <div class="ch-sub">First response = the service desk assigns it (or the implementor puts it on hold / reassigns).
+          Resolution = the implementor clicks Resolve. Time on hold is not counted.</div></div></div>
+      <div class="table-wrap">
+        <table class="data-table no-stack">
+          <thead><tr><th>Priority</th><th>First response (minutes)</th><th>Resolution (minutes)</th><th>24x7</th>
+            <th sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"></th></tr></thead>
+          <tbody>
+          <tr th:each="p : ${policies}">
+            <td><span class="badge" th:classappend="${'badge-' + #strings.toLowerCase(p.priorityCode)}" th:text="${p.priorityCode}">Medium</span></td>
+            <th:block sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+              <td><input class="form-control sla-num" type="number" min="1" max="86400" required="required" name="responseMinutes"
+                         th:value="${p.responseMinutes}" th:attr="form='sla-p-' + ${p.slaPolicyId}"/>
+                <div class="field-hint" th:text="'= ' + ${@ui.minutesText(p.responseMinutes)}">= 2 h</div></td>
+              <td><input class="form-control sla-num" type="number" min="1" max="86400" required="required" name="resolutionMinutes"
+                         th:value="${p.resolutionMinutes}" th:attr="form='sla-p-' + ${p.slaPolicyId}"/>
+                <div class="field-hint" th:text="'= ' + ${@ui.minutesText(p.resolutionMinutes)}">= 24 h</div></td>
+              <td><input type="checkbox" name="allHours" value="true" th:checked="${p.allHours}" th:attr="form='sla-p-' + ${p.slaPolicyId}"
+                         aria-label="Count all hours (24x7)"/></td>
+              <td><form th:id="'sla-p-' + ${p.slaPolicyId}" th:action="@{/admin/sla/policies/{id}(id=${p.slaPolicyId})}" method="post">
+                  <button type="submit" class="btn btn-accent btn-xs"><i class="fa-regular fa-floppy-disk"></i> Save</button></form></td>
+            </th:block>
+            <th:block sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+              <td th:text="${@ui.minutesText(p.responseMinutes)}">2 h</td>
+              <td th:text="${@ui.minutesText(p.resolutionMinutes)}">24 h</td>
+              <td th:text="${p.allHours} ? 'Yes' : 'No'">No</td>
+            </th:block>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================================================== working hours -->
+    <div class="card" id="hours" style="margin-bottom:16px;">
+      <div class="card-head"><div><h3>Working hours (IST)</h3>
+        <div class="ch-sub">Only these hours count towards business-time targets.</div></div></div>
+      <form th:action="@{/admin/sla/calendar}" method="post" class="card-pad">
+        <div class="table-wrap">
+          <table class="data-table no-stack">
+            <thead><tr><th>Day</th><th>Working day</th><th>From</th><th>To</th></tr></thead>
+            <tbody>
+            <tr th:each="c : ${calendar}">
+              <td th:text="${@ui.dayName(c.weekdayIso)}">Monday</td>
+              <td><input type="checkbox" name="workingDays" th:value="${c.weekdayIso}" th:checked="${c.workingDay}"
+                         sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"/>
+                  <span sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" th:text="${c.workingDay} ? 'Yes' : 'No'">Yes</span></td>
+              <td><input class="form-control sla-time" type="time" name="start" th:value="${c.startTime}"
+                         th:disabled="${!#authorization.expression('hasAuthority(''ROLE_SYSTEM_ADMINISTRATOR'')')}"/></td>
+              <td><input class="form-control sla-time" type="time" name="end" th:value="${c.endTime}"
+                         th:disabled="${!#authorization.expression('hasAuthority(''ROLE_SYSTEM_ADMINISTRATOR'')')}"/></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <button type="submit" class="btn btn-accent btn-sm" style="margin-top:10px;" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+          <i class="fa-regular fa-floppy-disk"></i> Save working hours</button>
+      </form>
+    </div>
+
+    <!-- ===================================================== holidays -->
+    <div class="card" id="holidays">
+      <div class="card-head"><div><h3>Holidays</h3>
+        <div class="ch-sub">Whole days that never count towards business-time targets.</div></div></div>
+      <form class="catalog-add" th:action="@{/admin/sla/holidays}" method="post" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+        <input class="form-control" type="date" name="date" required="required" aria-label="Holiday date" style="max-width:180px;"/>
+        <input class="form-control" name="name" required="required" minlength="2" maxlength="100" placeholder="e.g. Diwali"/>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add holiday</button>
+      </form>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Day</th><th>Name</th><th sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')"></th></tr></thead>
+          <tbody>
+          <tr th:each="h : ${holidays}" th:classappend="${h.holidayDate.isBefore(today)} ? ' sla-past'">
+            <td class="mono" th:text="${#temporals.format(h.holidayDate, 'dd MMM yyyy')}">02 Oct 2026</td>
+            <td th:text="${@ui.dayName(h.holidayDate.dayOfWeek.value)}">Friday</td>
+            <td th:text="${h.name}">Gandhi Jayanti</td>
+            <td sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+              <form th:action="@{/admin/sla/holidays/{id}/delete(id=${h.holidayId})}" method="post"
+                    th:attr="data-confirm='Remove the holiday ' + ${h.name} + '?'">
+                <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-regular fa-trash-can"></i> Delete</button>
+              </form></td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(holidays)}"><td colspan="4" class="text-muted">No holidays entered.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

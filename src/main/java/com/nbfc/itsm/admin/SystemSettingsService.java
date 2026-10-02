@@ -139,6 +139,12 @@ public class SystemSettingsService implements ApplicationRunner {
         stored("workflow", "workflow.confirmation-hours", "Requester confirmation window (hours)",
                 "A resolved ticket waiting for the requester closes automatically after this many hours (48 = 2 days).",
                 1, 720, "48");
+        stored("workflow", "sla.near-percent", "SLA: at-risk warning (% of time left)",
+                "A ticket is \"at risk\" (NEAR) when this share of its business-time window is left (20 = last 20%).",
+                5, 90, "20");
+        storedBool("workflow", "sla.alerts", "SLA: alerts",
+                "On = at risk and breached tickets notify (in app and e-mail) the people who must act; breaches also the IT Service Desk.",
+                "true");
         stored("workflow", "workflow.reopen-hours", "Re-open link valid for (hours)",
                 "After an automatic closure the requester can re-open the ticket for this many hours (48 = 2 days).",
                 1, 720, "48");
