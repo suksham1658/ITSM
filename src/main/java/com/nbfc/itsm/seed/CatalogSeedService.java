@@ -70,7 +70,8 @@ public class CatalogSeedService {
             {"ADMIN_MASTERDATA_APPROVE", "Approve master-data changes"},
             {"ADMIN_SYSTEM", "System settings"},
             {"ASSET_MANAGE", "Manage assets"},
-            {"AD_ACCOUNT_UNLOCK", "Unlock locked Active Directory accounts"}
+            {"AD_ACCOUNT_UNLOCK", "Unlock locked Active Directory accounts"},
+            {"TICKET_RAISE_IMAC", "Raise IMAC requests"}
     };
 
     private final DepartmentRepository departmentRepository;

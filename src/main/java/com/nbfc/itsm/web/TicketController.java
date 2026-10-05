@@ -126,15 +126,20 @@ public class TicketController {
 
     @GetMapping("/tickets/raise")
     @PreAuthorize("hasAuthority('TICKET_CREATE')")
-    public String raise(Model model, HttpServletRequest request) {
+    public String raise(@AuthenticationPrincipal ItsmUserPrincipal user, Model model, HttpServletRequest request) {
         model.addAttribute("nav", "raise");
         model.addAttribute("pageTitle", "Raise Request");
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new TicketForm());
         }
-        populateLookups(model);
+        populateLookups(model, canRaiseImac(user));
         BackLinks.addTo(model, request, "/tickets", "Back to My Tickets", "itsm.back.raise");
         return "tickets/raise";
+    }
+
+    private static boolean canRaiseImac(ItsmUserPrincipal user) {
+        return user != null && user.getAuthorities().stream()
+                .anyMatch(a -> com.nbfc.itsm.ticket.TicketService.IMAC_PERMISSION.equals(a.getAuthority()));
     }
 
     @PostMapping("/tickets/raise")
@@ -183,6 +188,7 @@ public class TicketController {
         model.addAttribute("assigneePoolName", categoryList
                 ? "implementors for " + detail.getTicket().getCategory().getName()
                 : (pool == null ? null : pool.getName()));
+        model.addAttribute("imac", ticketService.imacDetailFor(id));
         return "tickets/detail";
     }
 
@@ -349,8 +355,12 @@ public class TicketController {
         return "tickets/list";
     }
 
-    private void populateLookups(Model model) {
-        List<TicketType> types = ticketTypeRepository.findByActiveTrueOrderBySortOrderAsc();
+    private void populateLookups(Model model, boolean imacAllowed) {
+        List<TicketType> types = new ArrayList<TicketType>(ticketTypeRepository.findByActiveTrueOrderBySortOrderAsc());
+        if (!imacAllowed) {
+            // Only users the System Administrator has granted TICKET_RAISE_IMAC see the IMAC type.
+            types.removeIf(t -> com.nbfc.itsm.ticket.TicketService.IMAC_TYPE.equalsIgnoreCase(t.getCode()));
+        }
         List<Category> categories = categoryRepository.findByActiveTrueOrderBySortOrderAsc();
         List<SubCategory> subs = subCategoryRepository.findByActiveTrueOrderBySortOrderAsc();
         for (SubCategory s : subs) {

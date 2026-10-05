@@ -57,6 +57,26 @@
           </div>
         </div>
 
+        <!-- IMAC request details (shown for IMAC tickets to the requester, handlers and the System Administrator). -->
+        <div class="card card-pad" style="margin-bottom:16px;" th:if="${imac != null}">
+          <h3 style="font-size:14px;margin-bottom:12px;"><i class="fa-solid fa-computer"></i> IMAC Details</h3>
+          <div class="info-list">
+            <div class="info-item"><div class="il-label">Username</div><div class="il-value" th:text="${imac.username} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">User SAP ID</div><div class="il-value" th:text="${imac.userSapId} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Asset</div><div class="il-value" th:text="${imac.asset} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Make</div><div class="il-value" th:text="${imac.make} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Model</div><div class="il-value" th:text="${imac.model} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Grade</div><div class="il-value" th:text="${imac.grade} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Department</div><div class="il-value" th:text="${imac.department} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Serial No</div><div class="il-value" th:text="${imac.serialNo} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">RAM</div><div class="il-value" th:text="${imac.ram} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Contact No</div><div class="il-value" th:text="${imac.contactNo} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Location</div><div class="il-value" th:text="${imac.location} ?: '—'">—</div></div>
+            <div class="info-item"><div class="il-label">Hostname</div><div class="il-value" th:text="${imac.hostname} ?: '—'">—</div></div>
+            <div class="info-item span-2"><div class="il-label">Office Address</div><div class="il-value" th:text="${imac.officeAddress} ?: '—'">—</div></div>
+          </div>
+        </div>
+
         <!-- Read-only requester details from Active Directory, for the people working on the ticket. -->
         <div class="card card-pad requester-card" style="margin-bottom:16px;" th:if="${detail.showRequesterDetails}"
              th:with="r=${detail.ticket.requester}">

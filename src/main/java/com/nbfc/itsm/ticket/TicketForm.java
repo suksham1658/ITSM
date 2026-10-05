@@ -138,4 +138,46 @@ public class TicketForm {
     public void setIntent(String intent) {
         this.intent = intent;
     }
+
+    // ---- IMAC request details (captured only when the ticket type is IMAC) ----
+    private String imacUsername;
+    private String imacSapId;
+    private String imacAsset;
+    private String imacMake;
+    private String imacModel;
+    private String imacGrade;
+    private String imacDepartment;
+    private String imacSerialNo;
+    private String imacRam;
+    private String imacContactNo;
+    private String imacOfficeAddress;
+    private String imacLocation;
+    private String imacHostname;
+
+    public String getImacUsername() { return imacUsername; }
+    public void setImacUsername(String v) { this.imacUsername = v; }
+    public String getImacSapId() { return imacSapId; }
+    public void setImacSapId(String v) { this.imacSapId = v; }
+    public String getImacAsset() { return imacAsset; }
+    public void setImacAsset(String v) { this.imacAsset = v; }
+    public String getImacMake() { return imacMake; }
+    public void setImacMake(String v) { this.imacMake = v; }
+    public String getImacModel() { return imacModel; }
+    public void setImacModel(String v) { this.imacModel = v; }
+    public String getImacGrade() { return imacGrade; }
+    public void setImacGrade(String v) { this.imacGrade = v; }
+    public String getImacDepartment() { return imacDepartment; }
+    public void setImacDepartment(String v) { this.imacDepartment = v; }
+    public String getImacSerialNo() { return imacSerialNo; }
+    public void setImacSerialNo(String v) { this.imacSerialNo = v; }
+    public String getImacRam() { return imacRam; }
+    public void setImacRam(String v) { this.imacRam = v; }
+    public String getImacContactNo() { return imacContactNo; }
+    public void setImacContactNo(String v) { this.imacContactNo = v; }
+    public String getImacOfficeAddress() { return imacOfficeAddress; }
+    public void setImacOfficeAddress(String v) { this.imacOfficeAddress = v; }
+    public String getImacLocation() { return imacLocation; }
+    public void setImacLocation(String v) { this.imacLocation = v; }
+    public String getImacHostname() { return imacHostname; }
+    public void setImacHostname(String v) { this.imacHostname = v; }
 }
