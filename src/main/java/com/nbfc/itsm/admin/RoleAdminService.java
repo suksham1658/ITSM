@@ -252,6 +252,101 @@ public class RoleAdminService {
         return ccr;
     }
 
+    // ------------------------------------------------------------------ immediate apply (System Administrator)
+
+    /** Create a role immediately (System Administrator = final authority, no second approver). */
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    @Transactional
+    public Role createNow(RoleForm form, ItsmUserPrincipal actor) {
+        String name = normalizeName(form.getName());
+        String code = codeFor(name);
+        assertNameAndCodeFree(name, code, null);
+        if (changeRequestRepository.existsByEntityNameAndEntityKeyAndStatusCode(ENTITY, code, PENDING)) {
+            throw new ItsmException("ROLE_PENDING", "A request to create role " + code + " is already awaiting approval; resolve it first.");
+        }
+        Set<String> perms = requirePermissions(form.getPermissionCodes());
+        Role role = new Role();
+        role.setCode(code);
+        role.setName(name);
+        role.setSystem(false);
+        role.setActive(true);
+        role.getPermissions().addAll(loadPermissions(perms));
+        role = roleRepository.save(role);
+        auditRecorder.record("ADMIN", "ROLE_CREATE",
+                truncate(code + " " + join(perms) + " (applied immediately by " + actor.getUsername() + ")"), "SUCCESS");
+        return role;
+    }
+
+    /** Update a role immediately (System Administrator). Bypasses maker-checker. */
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    @Transactional
+    public Role updateNow(Long roleId, RoleForm form, ItsmUserPrincipal actor) {
+        Role role = requireRole(roleId);
+        if (changeRequestRepository.existsByEntityNameAndEntityKeyAndStatusCode(ENTITY, String.valueOf(roleId), PENDING)) {
+            throw new ItsmException("ROLE_PENDING", "A change to this role is already awaiting approval; resolve it first.");
+        }
+        String name = normalizeName(form.getName());
+        if (!name.equalsIgnoreCase(role.getName())) {
+            assertNameAndCodeFree(name, null, role.getRoleId());
+        }
+        Set<String> perms = requirePermissions(form.getPermissionCodes());
+        Set<String> current = codes(role);
+        boolean renamed = !name.equals(role.getName());
+        boolean activeChanged = form.isActive() != role.isActive();
+        if (!renamed && !activeChanged && perms.equals(current)) {
+            throw new ItsmException("ROLE_NO_CHANGE", "Nothing changed. Edit the name, status or permissions first.");
+        }
+        assertSafeUpdate(role, form.isActive(), perms);
+        role.setName(name);
+        role.setActive(form.isActive());
+        role.getPermissions().clear();
+        role.getPermissions().addAll(loadPermissions(perms));
+        role = roleRepository.save(role);
+        auditRecorder.record("ADMIN", "ROLE_UPDATE",
+                truncate(role.getCode() + " " + join(perms) + " (applied immediately by " + actor.getUsername() + ")"), "SUCCESS");
+        return role;
+    }
+
+    // ------------------------------------------------------------------ add a new permission (System Administrator)
+
+    private static final java.util.regex.Pattern PERM_CODE = java.util.regex.Pattern.compile("[A-Z][A-Z0-9_]{2,63}");
+
+    /**
+     * Adds a brand-new permission to the catalogue (System Administrator). It becomes assignable to roles
+     * immediately and is granted to the System Administrator role so the invariant "sysadmin has every
+     * permission" holds. Enforcement of a new permission in code is a separate development step.
+     */
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    @Transactional
+    public Permission addPermission(String code, String description, ItsmUserPrincipal actor) {
+        String c = code == null ? "" : code.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+|_+$", "");
+        if (!PERM_CODE.matcher(c).matches()) {
+            throw new ItsmException("PERM_CODE",
+                    "Permission code must be 3–64 characters: letters, digits and underscore, starting with a letter.");
+        }
+        if (permissionRepository.findByCode(c).isPresent()) {
+            throw new ItsmException("PERM_EXISTS", "A permission with code " + c + " already exists.");
+        }
+        String desc = description == null ? "" : description.trim();
+        if (desc.isEmpty()) {
+            desc = c;
+        }
+        if (desc.length() > 256) {
+            desc = desc.substring(0, 256);
+        }
+        Permission draft = new Permission();
+        draft.setCode(c);
+        draft.setDescription(desc);
+        final Permission saved = permissionRepository.save(draft);
+        // Keep the System Administrator all-powerful: grant the new permission to that role at once.
+        roleRepository.findByCode("SYSTEM_ADMINISTRATOR").ifPresent(sys -> {
+            sys.getPermissions().add(saved);
+            roleRepository.save(sys);
+        });
+        auditRecorder.record("ADMIN", "PERMISSION_ADD", c + " — " + desc + " (by " + actor.getUsername() + ")", "SUCCESS");
+        return saved;
+    }
+
     // ------------------------------------------------------------------ delete (System Administrator)
 
     /**
