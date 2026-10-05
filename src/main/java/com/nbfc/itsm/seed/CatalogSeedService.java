@@ -241,6 +241,7 @@ public class CatalogSeedService {
         addType("PROBLEM", "Problem", 60);
         addType("HARDWARE_REQUEST", "Hardware Request", 70);
         addType("SOFTWARE_REQUEST", "Software Request", 80);
+        addType("IMAC", "IMAC", 90);
     }
 
     private void addType(String code, String name, int sort) {
@@ -261,7 +262,7 @@ public class CatalogSeedService {
                 {"HARDWARE", "Hardware", "10"}, {"SOFTWARE", "Software", "20"}, {"NETWORK", "Network", "30"},
                 {"EMAIL", "Email", "40"}, {"APPLICATION", "Application", "50"},
                 {"ACCESS_MGMT", "Access Management", "70"}, {"CYBER_SECURITY", "Cyber Security", "80"},
-                {"OTHER", "Other", "120"}
+                {"IMAC", "IMAC", "115"}, {"OTHER", "Other", "120"}
         };
         for (String[] r : rows) {
             Category c = categoryRepository.findByCode(r[0]).orElse(null);
@@ -290,6 +291,10 @@ public class CatalogSeedService {
         addSub(cats.get("ACCESS_MGMT"), "NEW_USER", "New User Access", 10);
         addSub(cats.get("ACCESS_MGMT"), "PRIVILEGED", "Privileged Access Request", 40);
         addSub(cats.get("CYBER_SECURITY"), "PHISHING", "Phishing Incident", 10);
+        addSub(cats.get("IMAC"), "INSTALL", "Install", 10);
+        addSub(cats.get("IMAC"), "MOVE", "Move", 20);
+        addSub(cats.get("IMAC"), "ADD", "Add", 30);
+        addSub(cats.get("IMAC"), "CHANGE", "Change", 40);
         addSub(cats.get("OTHER"), "GENERAL", "General Query", 10);
     }
 
@@ -426,6 +431,8 @@ public class CatalogSeedService {
                 "Manager chain to HOD, CISO, Implementor (same shape as default SR).");
         WorkflowDefinition priv = def("PRIVILEGED_ACCESS", "Privileged access", "Active",
                 "Chain to HOD, CISO, IT Security Team, Implementor.");
+        WorkflowDefinition imac = def("IMAC_FLOW", "IMAC — Install / Move / Add / Change", "Active",
+                "IMAC: manager approval, IT Service Desk, Implementor, requester confirmation, close.");
 
         if (stageRepository.findByWorkflowDefinitionOrderByStageOrderAsc(sr).isEmpty()) {
             WorkflowStage h = stage(sr, 10, "hierarchy", "Reporting hierarchy through HOD",
@@ -501,11 +508,28 @@ public class CatalogSeedService {
             trans(cl, "COMPLETE", false);
         }
 
+        if (stageRepository.findByWorkflowDefinitionOrderByStageOrderAsc(imac).isEmpty()) {
+            WorkflowStage h = stage(imac, 10, "hierarchy", "Reporting hierarchy through HOD",
+                    "APPROVAL", "DYNAMIC_HIERARCHY_TO_HOD", null, null, "PREVIOUS_STAGE");
+            WorkflowStage s = stage(imac, 20, "servicedesk", "IT Service Desk", "ASSIGNMENT", "SERVICE_DESK", null, sd, null);
+            WorkflowStage i = stage(imac, 30, "implementor", "Implementor", "FULFILMENT", "IMPLEMENTOR", null, impl, null);
+            WorkflowStage cf = stage(imac, 40, "confirmation", "Requester confirmation", "CONFIRMATION", "REQUESTER", null, null, null);
+            WorkflowStage cl = stage(imac, 50, "closed", "Closed", "CLOSURE", "SYSTEM", null, null, null);
+            approvalTransitions(h);
+            trans(s, "ASSIGN", false);
+            trans(s, "REJECT", true);
+            trans(s, "REASSIGN", false);
+            fulfilTransitions(i);
+            confirmTransitions(cf);
+            trans(cl, "COMPLETE", false);
+        }
+
         rule("Privileged access requests", 10, "{\"sub_category\":[\"Privileged Access Request\"]}", priv);
         rule("Cyber Security category", 20, "{\"category\":[\"Cyber Security\"]}", security);
         rule("Security Incident ticket type", 21, "{\"ticket_type\":[\"Security Incident\"]}", security);
         rule("Highly Confidential requests", 22, "{\"confidentiality\":[\"Highly Confidential\"]}", security);
         rule("Incident — Service Desk then Implementor", 30, "{\"ticket_type\":[\"Incident\"]}", inc);
+        rule("IMAC requests", 36, "{\"ticket_type\":[\"IMAC\"]}", imac);
         rule("Service Request default (CISO on template)", 40, "{\"ticket_type\":[\"Service Request\"]}", sr);
         rule("Catch-all fallback", 999, "{}", sr);
     }

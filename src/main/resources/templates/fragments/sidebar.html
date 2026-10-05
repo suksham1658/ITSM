@@ -48,7 +48,6 @@
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminConfig'} ? ' active'" th:href="@{/admin/config}"><i class="fa-solid fa-gears"></i><span>System Configuration</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('AUDIT_VIEW')" th:classappend="${nav == 'auditTrail'} ? ' active'" th:href="@{/audit}"><i class="fa-solid fa-clipboard-list"></i><span>Audit Trail</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" th:if="${licenseNotice != null}" th:classappend="${nav == 'adminLicense'} ? ' active'" th:href="@{/admin/license}"><i class="fa-solid fa-key"></i><span>License</span></a>
-        <a class="nav-item" sec:authorize="hasAuthority('ASSET_MANAGE')" th:classappend="${nav == 'assets'} ? ' active'" th:href="@{/assets}"><i class="fa-solid fa-laptop"></i><span>Asset Management</span></a>
 
         <div class="sidebar-section-label">Resources</div>
         <a class="nav-item" sec:authorize="hasAuthority('KB_READ')" th:classappend="${nav == 'kb'} ? ' active'" th:href="@{/kb}"><i class="fa-solid fa-book"></i><span>Knowledge Base</span></a>

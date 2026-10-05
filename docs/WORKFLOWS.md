@@ -41,6 +41,7 @@ first whose `condition_json` matches the ticket (type / category / sub-category 
 | 21 | Security Incident ticket type | ticket type = *Security Incident* | `SECURITY` |
 | 22 | Highly Confidential requests | confidentiality = *Highly Confidential* | `SECURITY` |
 | 30 | Incident | ticket type = *Incident* | `INCIDENT_SD_THEN_IMPL` |
+| 36 | IMAC requests | ticket type = *IMAC* | `IMAC_FLOW` |
 | 40 | Service Request default | ticket type = *Service Request* | `SR_CHAIN_TO_HOD_CISO_IMPL` |
 | 999 | Catch-all fallback | anything | `SR_CHAIN_TO_HOD_CISO_IMPL` |
 
@@ -84,6 +85,16 @@ first whose `condition_json` matches the ticket (type / category / sub-category 
 ```
 > Has **no rule** pointing at it, so it is never selected. To use it, an admin activates a rule for it in
 > Admin → Workflow. (This is why "Incident — direct to Implementor" shows as not in use.)
+
+### `IMAC_FLOW` — IMAC (Install / Move / Add / Change)
+```
+10 Reporting hierarchy through HOD   APPROVAL     DYNAMIC_HIERARCHY_TO_HOD
+20 IT Service Desk                   ASSIGNMENT   SERVICE_DESK (IT Service Desk)
+30 Implementor                       FULFILMENT   IMPLEMENTOR (IT Implementors)
+40 Requester confirmation            CONFIRMATION REQUESTER
+50 Closed                            CLOSURE      SYSTEM
+```
+> Raised as ticket type **IMAC** with a sub-category of Install / Move / Add / Change.
 
 ### `SECURITY` — Security / highly confidential
 Same shape as the default SR: hierarchy → CISO → Implementor → confirmation → closed.
