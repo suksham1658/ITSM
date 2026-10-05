@@ -40,28 +40,28 @@
       <div th:if="${assets.totalElements == 0}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
         <h3>No assets found</h3><p>Add an asset, or change the filters.</p></div>
 
-      <div class="table-wrap audit-scroll" th:if="${assets.totalElements > 0}">
-        <table class="data-table" style="min-width:1080px;">
+      <div class="audit-scroll" th:if="${assets.totalElements > 0}">
+        <table class="data-table stack">
           <thead><tr><th>Tag</th><th>Type</th><th>Serial</th><th>Status</th><th>Assigned to</th><th>Department</th>
             <th>Location</th><th>Warranty end</th><th>Updated</th><th style="text-align:right;">Actions</th></tr></thead>
           <tbody>
           <tr th:each="a : ${assets.content}">
-            <td class="mono"><a class="cell-link" th:href="@{/assets/{id}/edit(id=${a.assetId})}" th:text="${a.assetTag}">TAG</a></td>
-            <td th:text="${a.assetType}">Laptop</td>
-            <td class="mono" th:text="${a.serialNumber} ?: '—'">SN</td>
-            <td><span class="badge"
+            <td data-label="Tag" class="mono"><a class="cell-link" th:href="@{/assets/{id}/edit(id=${a.assetId})}" th:text="${a.assetTag}">TAG</a></td>
+            <td data-label="Type" th:text="${a.assetType}">Laptop</td>
+            <td data-label="Serial" class="mono" th:text="${a.serialNumber} ?: '—'">SN</td>
+            <td data-label="Status"><span class="badge"
                       th:classappend="${a.statusCode == 'ASSIGNED'} ? ' badge-approved' : (${a.statusCode == 'RETIRED'} ? ' badge-rejected' : ' badge-outline')"
                       th:text="${statuses.get(a.statusCode)} ?: ${a.statusCode}">Status</span></td>
-            <td th:text="${a.assignedTo != null} ? ${a.assignedTo.displayName} : '—'">person</td>
-            <td th:text="${a.department != null} ? ${a.department.name} : '—'">dept</td>
-            <td th:text="${a.location} ?: '—'">loc</td>
-            <td class="cell-date" th:text="${a.warrantyEnd} ?: '—'">warranty</td>
-            <td class="cell-date" th:text="${@ui.dateTime(a.updatedAtUtc)}">updated</td>
-            <td style="text-align:right;white-space:nowrap;">
-              <a class="btn btn-outline btn-sm" th:href="@{/assets/{id}/edit(id=${a.assetId})}" title="Edit"><i class="fa-solid fa-pen"></i></a>
+            <td data-label="Assigned to" th:text="${a.assignedTo != null} ? ${a.assignedTo.displayName} : '—'">person</td>
+            <td data-label="Department" th:text="${a.department != null} ? ${a.department.name} : '—'">dept</td>
+            <td data-label="Location" th:text="${a.location} ?: '—'">loc</td>
+            <td data-label="Warranty end" class="cell-date" th:text="${a.warrantyEnd} ?: '—'">warranty</td>
+            <td data-label="Updated" class="cell-date" th:text="${@ui.dateTime(a.updatedAtUtc)}">updated</td>
+            <td class="no-label" style="text-align:right;white-space:nowrap;">
+              <a class="btn btn-outline btn-sm" th:href="@{/assets/{id}/edit(id=${a.assetId})}" title="Edit"><i class="fa-solid fa-pen"></i> Edit</a>
               <form method="post" th:action="@{/assets/{id}/delete(id=${a.assetId})}" style="display:inline;"
                     data-confirm="Delete this asset? This cannot be undone.">
-                <button type="submit" class="btn btn-outline btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                <button type="submit" class="btn btn-outline btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i> Delete</button>
               </form>
             </td>
           </tr>

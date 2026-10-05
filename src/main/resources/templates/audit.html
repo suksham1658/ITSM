@@ -56,28 +56,28 @@
       <div th:if="${#lists.isEmpty(result.rows)}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
         <h3>No matching events</h3><p>Change or reset the filters.</p></div>
 
-      <p class="phase-note" th:if="${!#lists.isEmpty(result.rows)}" style="margin:4px 2px 8px;">
+      <p class="phase-note scroll-hint" th:if="${!#lists.isEmpty(result.rows)}" style="margin:4px 2px 8px;">
         <i class="fa-solid fa-arrows-left-right"></i> Scroll sideways to see every column.</p>
-      <div class="table-wrap audit-scroll" th:if="${!#lists.isEmpty(result.rows)}">
-        <table class="data-table" style="min-width:1180px;">
+      <div class="audit-scroll" th:if="${!#lists.isEmpty(result.rows)}">
+        <table class="data-table stack">
           <thead><tr><th>Time (IST)</th><th>User</th><th>Emp ID</th><th>Role</th><th>Module</th><th>Action</th><th>Ticket</th>
             <th>Details</th><th>IP address</th><th>Browser</th><th>Result</th></tr></thead>
           <tbody>
           <tr th:each="r : ${result.rows}">
-            <td class="cell-date" th:text="${@ui.dateTime(r.log.occurredAtUtc)}">time</td>
-            <td th:text="${r.userName} ?: '—'">user</td>
-            <td class="mono" th:text="${r.log.employeeNo} ?: '—'">no</td>
-            <td th:text="${r.log.roleCode} ?: '—'">role</td>
-            <td th:text="${r.log.moduleCode}">TICKET</td>
-            <td><span class="badge badge-outline" th:text="${r.log.actionCode}">ACTION</span></td>
-            <td><a class="cell-link" th:if="${r.ticketNumber != null}" th:href="@{/tickets/{id}(id=${r.log.ticketId})}"
+            <td data-label="Time (IST)" class="cell-date" th:text="${@ui.dateTime(r.log.occurredAtUtc)}">time</td>
+            <td data-label="User" th:text="${r.userName} ?: '—'">user</td>
+            <td data-label="Emp ID" class="mono" th:text="${r.log.employeeNo} ?: '—'">no</td>
+            <td data-label="Role" th:text="${r.log.roleCode} ?: '—'">role</td>
+            <td data-label="Module" th:text="${r.log.moduleCode}">TICKET</td>
+            <td data-label="Action"><span class="badge badge-outline" th:text="${r.log.actionCode}">ACTION</span></td>
+            <td data-label="Ticket"><a class="cell-link" th:if="${r.ticketNumber != null}" th:href="@{/tickets/{id}(id=${r.log.ticketId})}"
                    th:text="${r.ticketNumber}">ITSM</a><span th:if="${r.ticketNumber == null}">—</span></td>
-            <td style="max-width:320px;font-size:12px;word-break:break-word;">
+            <td data-label="Details" style="max-width:320px;font-size:12px;word-break:break-word;">
               <span th:if="${r.log.oldValue != null}" class="text-muted" th:text="${r.log.oldValue} + ' → '">old</span>
               <span th:text="${r.log.newValue} ?: '—'">new</span></td>
-            <td class="mono" style="font-size:11px;" th:text="${r.log.ipAddress} ?: '—'">ip</td>
-            <td style="font-size:11px;max-width:160px;word-break:break-word;" class="text-muted" th:text="${r.log.userAgent} ?: '—'">ua</td>
-            <td><span class="badge" th:classappend="${r.log.resultCode == 'SUCCESS'} ? ' badge-approved' : ' badge-rejected'"
+            <td data-label="IP address" class="mono" style="font-size:11px;" th:text="${r.log.ipAddress} ?: '—'">ip</td>
+            <td data-label="Browser" style="font-size:11px;max-width:160px;word-break:break-word;" class="text-muted" th:text="${r.log.userAgent} ?: '—'">ua</td>
+            <td data-label="Result"><span class="badge" th:classappend="${r.log.resultCode == 'SUCCESS'} ? ' badge-approved' : ' badge-rejected'"
                       th:text="${r.log.resultCode}">SUCCESS</span></td>
           </tr>
           </tbody>
