@@ -498,19 +498,18 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
    TABLES
 ============================================================ */
 .table-wrap{overflow-x:auto;}
-.audit-scroll{border:1px solid var(--slate-200);border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+/* A wide table you can drag sideways. The horizontal scrollbar is prominent and appears
+   whenever the table is wider than the screen — at every screen size (no card stacking). */
+.audit-scroll{border:1px solid var(--slate-200);border-radius:10px;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:auto;scrollbar-color:var(--slate-400) var(--slate-100);}
 .audit-scroll table.data-table{min-width:1180px;}
-.audit-scroll::-webkit-scrollbar{height:12px;}
+.audit-scroll::-webkit-scrollbar{height:15px;}
 .audit-scroll::-webkit-scrollbar-track{background:var(--slate-100);border-radius:0 0 10px 10px;}
-.audit-scroll::-webkit-scrollbar-thumb{background:var(--slate-400);border-radius:6px;border:2px solid var(--slate-100);}
+.audit-scroll::-webkit-scrollbar-thumb{background:var(--slate-400);border-radius:8px;border:3px solid var(--slate-100);}
 .audit-scroll::-webkit-scrollbar-thumb:hover{background:var(--slate-500);}
-/* Firefox: show a thin always-present horizontal scrollbar. */
-.audit-scroll{scrollbar-width:thin;scrollbar-color:var(--slate-400) var(--slate-100);}
 /* Two-column form that collapses to one column on small screens. */
 .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media (max-width:640px){.form-grid-2{grid-template-columns:1fr;}}
-/* The "scroll sideways" hint only makes sense where the table scrolls (desktop/tablet). */
-@media (max-width:1024px){.scroll-hint{display:none;}}
 table.data-table{width:100%;border-collapse:collapse;font-size:12.8px;}
 table.data-table th{
   text-align:left;padding:11px 16px;background:var(--slate-100);color:var(--slate-500);
