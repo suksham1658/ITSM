@@ -1,0 +1,89 @@
+# IT Nexa — Licensing (vendor guide)
+
+IT Nexa ships with a **1-year, offline, signed license**. A license file is signed with **your private key**; the
+app verifies it with the **public key compiled into the WAR** (the `LicenseKeys` class — not a loose file, so it
+cannot be swapped by unzipping the archive). No internet or license server is needed on the customer's side.
+
+## How it behaves (on the customer's server)
+
+| Period | Shown | Who can use the portal |
+|---|---|---|
+| Valid term (1 year) | **Nothing** to anyone | Everyone, normally |
+| After expiry — 7-day grace | Banner **only to the System Administrator**: "running on grace period, N of 7 days remaining" | Everyone still works normally |
+| After the 7 days (or missing / invalid / tampered) | System Administrator sees a renew notice | **Only the System Administrator can sign in**; everyone else is sent to a "temporarily unavailable" page until renewed |
+
+Enforcement is controlled by `itsm.license.enforce` (default **true**; set to `false` only for test/demo).
+Grace length comes from the license file (`graceDays`, default 7). A **clock-tamper guard** records the last time
+seen in `system_setting`; winding the server clock back is detected and suspends the license.
+
+---
+
+## STEP 1 — create your key pair (once, ever)
+
+From the folder with the WAR, extract its classes and run the keygen (keygen needs no libraries):
+
+```bat
+jar -xf itsm-portal.war WEB-INF\classes WEB-INF\lib
+java -cp WEB-INF\classes com.nbfc.itsm.license.tools.LicenseKeygen private.key public.key
+```
+
+- **Keep `private.key` secret forever** (password manager / offline USB). It signs every license. If it leaks,
+  anyone can issue licenses; if you lose it, you cannot issue new ones.
+- The public key is not secret. The keygen also **prints a ready-to-paste `PUBLIC_KEY_BASE64 = "..."` block.**
+
+## STEP 2 — embed your public key in code and build the real WAR (once)
+
+Open `src/main/java/com/nbfc/itsm/license/LicenseKeys.java` and replace the value of `PUBLIC_KEY_BASE64` with the
+Base64 the keygen printed (one line, no spaces), then rebuild:
+
+```
+mvn -o clean package -DskipTests
+```
+
+The public key now lives **inside the compiled `.class`**, not as a file in the WAR. A customer cannot re-key your
+app by unzipping the WAR and dropping in a different key file — there is no such file. Only **you** (holder of
+`private.key`) can produce licenses this WAR accepts. Ship this WAR to customers.
+> The repository's `LicenseKeys` ships with a key whose private key is not distributed; **set your own** before
+> selling so you — and only you — can issue licenses.
+
+## STEP 3 — issue a license for each customer / renewal (1 minute)
+
+```bat
+java -cp "WEB-INF\classes;WEB-INF\lib\*" com.nbfc.itsm.license.tools.LicenseGenerator ^
+     --key private.key --customer "Authum Ltd" --months 12 --grace 7 --out authum.lic
+```
+
+Send `authum.lic` to the customer (email is fine — it can't be altered without breaking the signature).
+
+## STEP 4 — the customer installs it
+
+Either:
+- **Admin → License** in the portal (System Administrator) → upload the `.lic` file, or
+- drop the file at `D:\itsm-config\itsm-license.lic` (the folder set by `ITSM_CONFIG_DIR`).
+
+Applied immediately on upload; a dropped file is picked up within ~10 minutes or at the next restart.
+
+## Renewal (after 1 year)
+
+Run STEP 3 again with a new `--months 12`, send the new file, customer uploads it. No redeploy, no code change.
+
+---
+
+## What this stops, and what it doesn't
+- **Editing/forging the license file** → impossible without your private key (signature check).
+- **Swapping the public key by unzipping the WAR** → blocked: the key is compiled into `LicenseKeys`, not a file.
+- **Using one customer's license at another company** → blocked (the customer name is signed in).
+- **Winding the clock back** → detected (TAMPERED).
+- **A programmer decompiling the WAR, changing the embedded key or deleting the check, and recompiling** → cannot
+  be made *impossible* for any on-premise software, only harder. The compiled-in key raises the bar from "edit a
+  text file" to "decompile, edit bytecode, recompile a Spring app." See the note below on obfuscation.
+
+### A note on obfuscation (ProGuard)
+Obfuscation is **not** added to this build, by deliberate choice. On a Spring Boot app the framework resolves beans,
+JSON fields (Jackson), entities (JPA) and template getters (Thymeleaf) **by name via reflection**, so aggressive
+renaming breaks the app in ways that surface only at runtime, and every dependency upgrade then needs new keep-rules.
+For a production system serving many users the stability risk outweighs the modest extra resistance — a determined
+developer can still patch the JDK `Signature.verify` call whether or not names are obfuscated. If you want genuinely
+stronger protection against an on-prem customer re-issuing their own licenses, the right tool is **online activation
+(phone-home)**: the app checks in with your server, so an offline copy cannot extend itself. That is a separate
+feature and can be added later. Until then, the backstop is the **licence clause in your sales contract.**
