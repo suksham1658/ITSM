@@ -112,6 +112,23 @@ class RequestRoutingTest {
     }
 
     @Test
+    void imacRoutesToImacFlowApprovalThenServiceDesk() {
+        Ticket t = ticketService.save(as(requester), imacRequest());
+        WorkflowInstance inst = instanceRepository.findByTicketId(t.getTicketId()).orElseThrow(IllegalStateException::new);
+        assertEquals("IMAC_FLOW", inst.getWorkflowDefinition().getCode(), "IMAC ticket uses the IMAC workflow");
+        assertEquals("Pending Approval", t.getStatusCode());
+        assertEquals(teamLead.getEmployeeId(), current(t).getResolvedEmployee().getEmployeeId());
+
+        ticketService.applyAction(as(teamLead), t.getTicketId(), "APPROVE", "Approved the IMAC request for the move", null);
+        ticketService.applyAction(as(hod), t.getTicketId(), "APPROVE", "HOD approves this IMAC request, ok", null);
+
+        // Next is IT Service Desk (assignment), not a CISO stage.
+        WorkflowInstanceStage next = current(t);
+        assertEquals("ASSIGNMENT", next.getStageType());
+        assertEquals("SERVICE_DESK", next.getActorStrategy());
+    }
+
+    @Test
     void requesterWithoutManagerGetsAClearMessage() {
         Employee orphan = employee("E-RT-ORP", "rt.orphan", "Routing Orphan", null, "EMPLOYEE");
         ItsmException ex = assertThrows(ItsmException.class, () -> ticketService.save(as(orphan), serviceRequest()));
@@ -211,6 +228,20 @@ class RequestRoutingTest {
         f.setSubCategoryId(sub.getSubCategoryId());
         f.setSubject("VPN access for remote work");
         f.setDescription("Need VPN access to work from the branch office.");
+        f.setIntent("submit");
+        return f;
+    }
+
+    private TicketForm imacRequest() {
+        Category imac = categoryRepository.findByCode("IMAC").orElseThrow(IllegalStateException::new);
+        SubCategory sub = subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(imac).get(0);
+        TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
+        f.setTicketTypeId(ticketTypeRepository.findByCode("IMAC").orElseThrow(IllegalStateException::new).getTicketTypeId());
+        f.setCategoryId(imac.getCategoryId());
+        f.setSubCategoryId(sub.getSubCategoryId());
+        f.setSubject("Move workstation to the new floor");
+        f.setDescription("Please move my desktop and monitor to the 3rd floor seat.");
         f.setIntent("submit");
         return f;
     }

@@ -94,7 +94,6 @@ public class SecurityConfig {
                     .antMatchers("/kb").hasAuthority("KB_READ")
                     .antMatchers("/audit", "/audit/**").hasAuthority("AUDIT_VIEW")
                     .antMatchers("/ad-accounts", "/ad-accounts/**").hasAuthority("AD_ACCOUNT_UNLOCK")
-                    .antMatchers("/assets", "/assets/**").hasAuthority("ASSET_MANAGE")
                     .antMatchers("/admin/change-requests/**").hasAuthority("ADMIN_MASTERDATA_APPROVE")
                     .antMatchers("/admin/categories", "/admin/sla", "/admin/workflow", "/admin/workflow/**", "/admin/config")
                         .hasAuthority("ADMIN_MASTERDATA_PROPOSE")
