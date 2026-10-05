@@ -13,49 +13,78 @@
       <div>
         <div class="breadcrumb">IT Nexa / <span>Audit Trail</span></div>
         <h1>Audit Trail</h1>
-        <p class="page-sub" th:text="${result.total} + ' events match · newest first · times in IST'">events</p>
+        <p class="page-sub">Every action across the portal, newest first — times in IST.</p>
+      </div>
+      <div class="page-header-actions">
+        <button form="auditFilter" type="submit" th:formaction="@{/audit/export.xls}" formmethod="get"
+                class="btn btn-outline"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
       </div>
     </div>
-    <div class="security-banner" style="margin-bottom:16px;"><i class="fa-solid fa-lock"></i><div><b>Immutable log.</b>
-        Audit entries are write-once: they cannot be edited or deleted from the portal, and the database rejects any
-        UPDATE or DELETE on the audit table.</div></div>
 
     <div class="card">
-      <form class="filter-bar" method="get" th:action="@{/audit}" style="flex-wrap:wrap;">
-        <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
-          <input type="search" name="user" th:value="${f.user}" maxlength="100" placeholder="User name or employee no" aria-label="User"/></div>
-        <input class="form-control" type="search" name="ticket" th:value="${f.ticket}" maxlength="40" placeholder="Ticket no"
-               aria-label="Ticket number" style="width:150px;"/>
-        <select class="form-control" name="module" aria-label="Module" style="width:auto;">
-          <option value="">All modules</option>
-          <option th:each="m : ${modules}" th:value="${m}" th:text="${m}" th:selected="${m == f.module}">TICKET</option>
-        </select>
-        <select class="form-control" name="action" aria-label="Action" style="width:auto;">
-          <option value="">All actions</option>
-          <option th:each="a : ${actions}" th:value="${a}" th:text="${a}" th:selected="${a == f.action}">LOGIN</option>
-        </select>
-        <select class="form-control" name="result" aria-label="Result" style="width:auto;">
-          <option value="">All results</option>
-          <option value="SUCCESS" th:selected="${f.result == 'SUCCESS'}">Success</option>
-          <option value="FAILURE" th:selected="${f.result == 'FAILURE'}">Failure</option>
-          <option value="FAILED" th:selected="${f.result == 'FAILED'}">Failed</option>
-        </select>
-        <input class="form-control" type="search" name="text" th:value="${f.text}" maxlength="100" placeholder="Text in details"
-               aria-label="Text in details" style="width:170px;"/>
-        <label class="phase-note" style="margin:0;display:flex;align-items:center;gap:4px;">From
-          <input class="form-control" type="date" name="from" th:value="${f.from}" style="width:150px;"/></label>
-        <label class="phase-note" style="margin:0;display:flex;align-items:center;gap:4px;">To
-          <input class="form-control" type="date" name="to" th:value="${f.to}" style="width:150px;"/></label>
-        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
-        <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
-        <button type="submit" class="btn btn-outline btn-sm" th:formaction="@{/audit/export.xls}" formmethod="get">
-          <i class="fa-solid fa-file-excel"></i> Export Excel</button>
+      <form id="auditFilter" class="audit-filters" method="get" th:action="@{/audit}">
+        <div class="af-field af-grow">
+          <label for="af-user">User</label>
+          <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
+            <input id="af-user" type="search" name="user" th:value="${f.user}" maxlength="100"
+                   placeholder="Name or employee no"/></div>
+        </div>
+        <div class="af-field">
+          <label for="af-ticket">Ticket</label>
+          <input id="af-ticket" class="form-control" type="search" name="ticket" th:value="${f.ticket}" maxlength="40" placeholder="e.g. ITSM-2026-…"/>
+        </div>
+        <div class="af-field">
+          <label for="af-module">Module</label>
+          <select id="af-module" class="form-control" name="module">
+            <option value="">All modules</option>
+            <option th:each="m : ${modules}" th:value="${m}" th:text="${m}" th:selected="${m == f.module}">TICKET</option>
+          </select>
+        </div>
+        <div class="af-field">
+          <label for="af-action">Action</label>
+          <select id="af-action" class="form-control" name="action">
+            <option value="">All actions</option>
+            <option th:each="a : ${actions}" th:value="${a}" th:text="${a}" th:selected="${a == f.action}">LOGIN</option>
+          </select>
+        </div>
+        <div class="af-field">
+          <label for="af-result">Result</label>
+          <select id="af-result" class="form-control" name="result">
+            <option value="">All results</option>
+            <option value="SUCCESS" th:selected="${f.result == 'SUCCESS'}">Success</option>
+            <option value="FAILURE" th:selected="${f.result == 'FAILURE'}">Failure</option>
+            <option value="FAILED" th:selected="${f.result == 'FAILED'}">Failed</option>
+          </select>
+        </div>
+        <div class="af-field af-grow">
+          <label for="af-text">Details contain</label>
+          <input id="af-text" class="form-control" type="search" name="text" th:value="${f.text}" maxlength="100" placeholder="Text in old / new value"/>
+        </div>
+        <div class="af-field">
+          <label for="af-from">From</label>
+          <input id="af-from" class="form-control" type="date" name="from" th:value="${f.from}"/>
+        </div>
+        <div class="af-field">
+          <label for="af-to">To</label>
+          <input id="af-to" class="form-control" type="date" name="to" th:value="${f.to}"/>
+        </div>
+        <div class="af-actions">
+          <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+          <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Apply filters</button>
+        </div>
       </form>
+    </div>
+
+    <div class="card">
+      <div class="audit-meta">
+        <span class="audit-immutable"><i class="fa-solid fa-lock"></i> Immutable log — entries can't be edited or deleted.</span>
+        <span class="audit-count"><b th:text="${result.total}">0</b> event<span th:text="${result.total == 1} ? '' : 's'">s</span> match</span>
+      </div>
 
       <div th:if="${#lists.isEmpty(result.rows)}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
-        <h3>No matching events</h3><p>Change or reset the filters.</p></div>
+        <h3>No matching events</h3><p>Try widening the date range or clearing a filter.</p></div>
 
-      <p class="phase-note scroll-hint" th:if="${!#lists.isEmpty(result.rows)}" style="margin:4px 2px 8px;">
+      <p class="phase-note scroll-hint" th:if="${!#lists.isEmpty(result.rows)}" style="margin:2px 2px 10px;">
         <i class="fa-solid fa-arrows-left-right"></i> Drag the bar below sideways to see every column.</p>
       <div class="audit-scroll" th:if="${!#lists.isEmpty(result.rows)}">
         <table class="data-table">
