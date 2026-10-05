@@ -529,11 +529,25 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
 .audit-count{font-size:12.5px;color:var(--slate-500);}
 .audit-count b{color:var(--slate-700);font-weight:700;}
 
-.audit-scroll .data-table thead th{position:sticky;top:0;z-index:1;}
 .audit-scroll .data-table tbody tr{border-bottom:1px solid var(--slate-100);}
 .audit-scroll .data-table tbody tr:nth-child(even){background:#F8FAFB;}
 .audit-scroll .data-table tbody tr:hover{background:var(--accent-light);}
-.audit-scroll .data-table td{vertical-align:top;}
+.audit-scroll .data-table td{vertical-align:top;white-space:nowrap;}
+.audit-scroll .data-table td.wrap-cell{white-space:normal;}
+
+/* Floating, draggable horizontal scrollbar pinned near the bottom of the screen
+   (synced to the table by itsm.js). Avoids having to scroll down to reach the native bar. */
+.audit-scroll.has-floating-scroll{scrollbar-width:none;}
+.audit-scroll.has-floating-scroll::-webkit-scrollbar{height:0;width:0;}
+.hscroll-proxy{position:sticky;bottom:14px;z-index:20;display:none;overflow-x:auto;overflow-y:hidden;
+  height:16px;margin-top:10px;border-radius:9px;background:var(--bg-card);
+  border:1px solid var(--slate-200);box-shadow:0 4px 16px rgba(8,23,38,.16);
+  scrollbar-width:auto;scrollbar-color:var(--accent) var(--slate-100);}
+.hscroll-proxy>div{height:1px;}
+.hscroll-proxy::-webkit-scrollbar{height:16px;}
+.hscroll-proxy::-webkit-scrollbar-track{background:var(--slate-100);border-radius:9px;}
+.hscroll-proxy::-webkit-scrollbar-thumb{background:var(--accent);border-radius:9px;border:3px solid var(--bg-card);}
+.hscroll-proxy::-webkit-scrollbar-thumb:hover{background:var(--accent-dark);}
 table.data-table{width:100%;border-collapse:collapse;font-size:12.8px;}
 table.data-table th{
   text-align:left;padding:11px 16px;background:var(--slate-100);color:var(--slate-500);

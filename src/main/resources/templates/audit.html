@@ -85,9 +85,9 @@
         <h3>No matching events</h3><p>Try widening the date range or clearing a filter.</p></div>
 
       <p class="phase-note scroll-hint" th:if="${!#lists.isEmpty(result.rows)}" style="margin:2px 2px 10px;">
-        <i class="fa-solid fa-arrows-left-right"></i> Drag the bar below sideways to see every column.</p>
-      <div class="audit-scroll" th:if="${!#lists.isEmpty(result.rows)}">
-        <table class="data-table">
+        <i class="fa-solid fa-arrows-left-right"></i> Use the floating bar near the bottom of the screen to slide across the columns.</p>
+      <div class="audit-scroll" data-hscroll th:if="${!#lists.isEmpty(result.rows)}">
+        <table class="data-table no-stack">
           <thead><tr><th>Time (IST)</th><th>User</th><th>Emp ID</th><th>Role</th><th>Module</th><th>Action</th><th>Ticket</th>
             <th>Details</th><th>IP address</th><th>Browser</th><th>Result</th></tr></thead>
           <tbody>
@@ -100,11 +100,11 @@
             <td data-label="Action"><span class="badge badge-outline" th:text="${r.log.actionCode}">ACTION</span></td>
             <td data-label="Ticket"><a class="cell-link" th:if="${r.ticketNumber != null}" th:href="@{/tickets/{id}(id=${r.log.ticketId})}"
                    th:text="${r.ticketNumber}">ITSM</a><span th:if="${r.ticketNumber == null}">—</span></td>
-            <td data-label="Details" style="max-width:320px;font-size:12px;word-break:break-word;">
+            <td data-label="Details" class="wrap-cell" style="max-width:340px;font-size:12px;word-break:break-word;">
               <span th:if="${r.log.oldValue != null}" class="text-muted" th:text="${r.log.oldValue} + ' → '">old</span>
               <span th:text="${r.log.newValue} ?: '—'">new</span></td>
             <td data-label="IP address" class="mono" style="font-size:11px;" th:text="${r.log.ipAddress} ?: '—'">ip</td>
-            <td data-label="Browser" style="font-size:11px;max-width:160px;word-break:break-word;" class="text-muted" th:text="${r.log.userAgent} ?: '—'">ua</td>
+            <td data-label="Browser" class="wrap-cell text-muted" style="font-size:11px;max-width:180px;word-break:break-word;" th:text="${r.log.userAgent} ?: '—'">ua</td>
             <td data-label="Result"><span class="badge" th:classappend="${r.log.resultCode == 'SUCCESS'} ? ' badge-approved' : ' badge-rejected'"
                       th:text="${r.log.resultCode}">SUCCESS</span></td>
           </tr>
