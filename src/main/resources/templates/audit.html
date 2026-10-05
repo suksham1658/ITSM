@@ -48,9 +48,8 @@
           <input class="form-control" type="date" name="to" th:value="${f.to}" style="width:150px;"/></label>
         <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
         <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
-        <a class="btn btn-outline btn-sm"
-           th:href="@{/audit/export.xls(user=${f.user},ticket=${f.ticket},module=${f.module},action=${f.action},result=${f.result},text=${f.text},from=${f.from},to=${f.to})}">
-          <i class="fa-solid fa-file-excel"></i> Export Excel</a>
+        <button type="submit" class="btn btn-outline btn-sm" th:formaction="@{/audit/export.xls}" formmethod="get">
+          <i class="fa-solid fa-file-excel"></i> Export Excel</button>
       </form>
 
       <div th:if="${#lists.isEmpty(result.rows)}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
