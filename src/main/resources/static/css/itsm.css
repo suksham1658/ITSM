@@ -548,6 +548,18 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
 .hscroll-proxy::-webkit-scrollbar-track{background:var(--slate-100);border-radius:9px;}
 .hscroll-proxy::-webkit-scrollbar-thumb{background:var(--accent);border-radius:9px;border:3px solid var(--bg-card);}
 .hscroll-proxy::-webkit-scrollbar-thumb:hover{background:var(--accent-dark);}
+
+/* ---------- Global loading overlay (shown while a form is adding / submitting / applying) ---------- */
+#itsm-loader{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;
+  background:rgba(11,31,51,.34);}
+#itsm-loader.show{display:flex;}
+#itsm-loader .box{display:flex;align-items:center;gap:14px;background:var(--bg-card);color:var(--slate-700);
+  font-weight:600;font-size:14px;padding:20px 26px;border-radius:14px;box-shadow:0 14px 38px rgba(8,23,38,.30);}
+#itsm-loader .spin{width:26px;height:26px;flex:none;border:3px solid var(--slate-200);border-top-color:var(--accent);
+  border-radius:50%;animation:itsm-spin .7s linear infinite;}
+@keyframes itsm-spin{to{transform:rotate(360deg);}}
+/* The button that was clicked is dimmed + disabled to prevent a double submit. */
+.btn.is-busy{pointer-events:none;opacity:.6;}
 table.data-table{width:100%;border-collapse:collapse;font-size:12.8px;}
 table.data-table th{
   text-align:left;padding:11px 16px;background:var(--slate-100);color:var(--slate-500);

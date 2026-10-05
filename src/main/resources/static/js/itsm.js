@@ -454,4 +454,55 @@
       window.addEventListener("resize", refreshSize);
     })(hScrollers[hsi]);
   }
+
+  // ---- Global loading overlay on form submit (adding / submitting / applying) ----
+  // Shows a spinner while the browser navigates after a real submit, and disables the
+  // clicked button to prevent a double submit. Skips file downloads and opt-outs
+  // (data-no-loader), which don't navigate and so wouldn't clear the overlay.
+  (function () {
+    var loader = document.createElement("div");
+    loader.id = "itsm-loader";
+    loader.setAttribute("role", "status");
+    loader.setAttribute("aria-hidden", "true");
+    loader.innerHTML = '<div class="box"><span class="spin"></span><span>Please wait…</span></div>';
+    if (document.body) { document.body.appendChild(loader); }
+    var timer = null;
+    function showLoader() {
+      loader.classList.add("show");
+      loader.setAttribute("aria-hidden", "false");
+      clearTimeout(timer);
+      timer = setTimeout(hideLoader, 20000); // safety net if navigation never happens
+    }
+    function hideLoader() {
+      loader.classList.remove("show");
+      loader.setAttribute("aria-hidden", "true");
+      clearTimeout(timer);
+    }
+    var clicked = null;
+    document.addEventListener("click", function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) { return; }
+      var b = t.closest("button[type='submit'], input[type='submit'], button:not([type])");
+      if (b) { clicked = b; }
+    }, true);
+    document.addEventListener("submit", function (ev) {
+      if (ev.defaultPrevented) { return; } // cancelled by validation / confirm
+      var form = ev.target;
+      var submitter = ev.submitter || clicked;
+      if ((form && form.hasAttribute && form.hasAttribute("data-no-loader")) ||
+          (submitter && submitter.hasAttribute && submitter.hasAttribute("data-no-loader"))) {
+        return;
+      }
+      showLoader();
+      if (submitter) {
+        // Disable AFTER dispatch so the button's name/value is still sent with the form.
+        setTimeout(function () {
+          submitter.classList.add("is-busy");
+          try { submitter.disabled = true; } catch (e) {}
+        }, 0);
+      }
+    }, false);
+    // Clear the overlay when a page loads or is restored from the back/forward cache.
+    window.addEventListener("pageshow", hideLoader);
+  })();
 })();
