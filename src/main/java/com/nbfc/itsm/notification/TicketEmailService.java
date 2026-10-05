@@ -54,11 +54,13 @@ public class TicketEmailService {
     private final WorkflowInstanceRepository instanceRepository;
     private final ItsmProperties properties;
     private final com.nbfc.itsm.domain.SystemSettingRepository settingRepository;
+    private final com.nbfc.itsm.domain.ImacDetailRepository imacDetailRepository;
 
     public TicketEmailService(JavaMailSender mailSender, TicketRepository ticketRepository,
                               EmployeeRepository employeeRepository, WorkflowInstanceStageRepository stageRepository,
                               WorkflowInstanceRepository instanceRepository, ItsmProperties properties,
-                              com.nbfc.itsm.domain.SystemSettingRepository settingRepository) {
+                              com.nbfc.itsm.domain.SystemSettingRepository settingRepository,
+                              com.nbfc.itsm.domain.ImacDetailRepository imacDetailRepository) {
         this.settingRepository = settingRepository;
         this.mailSender = mailSender;
         this.ticketRepository = ticketRepository;
@@ -66,6 +68,11 @@ public class TicketEmailService {
         this.stageRepository = stageRepository;
         this.instanceRepository = instanceRepository;
         this.properties = properties;
+        this.imacDetailRepository = imacDetailRepository;
+    }
+
+    private com.nbfc.itsm.domain.ImacDetail imacOf(Ticket t) {
+        return imacDetailRepository.findByTicketId(t.getTicketId()).orElse(null);
     }
 
     @Async(AsyncConfig.MAIL_EXECUTOR)
@@ -156,7 +163,7 @@ public class TicketEmailService {
                     .append(breached ? "has <b style=\"color:#b91c1c\">breached its SLA</b> (resolution time passed)."
                             : "is <b style=\"color:#b45309\">close to its SLA resolution time</b>.")
                     .append(" Please act on it now.</p>");
-            details(b, t, false, null, null);
+            details(b, t, false, null, null, imacOf(t));
             try {
                 mail(e.getEmail(), subject, close(b, t));
                 sent++;
@@ -204,7 +211,7 @@ public class TicketEmailService {
         } else {
             b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>.</p>");
         }
-        details(b, t, false, null, now);
+        details(b, t, false, null, now, imacOf(t));
         return close(b, t);
     }
 
@@ -257,7 +264,7 @@ public class TicketEmailService {
         StringBuilder b = open(to.getDisplayName());
         b.append("<p>").append(esc(typeName(t))).append(" <b>").append(esc(t.getPublicNumber()))
                 .append("</b> is now in your queue. ").append(esc(whatToDo(step))).append("</p>");
-        details(b, t, true, queueName(step), null);
+        details(b, t, true, queueName(step), null, imacOf(t));
         return close(b, t);
     }
 
@@ -313,7 +320,8 @@ public class TicketEmailService {
         return b;
     }
 
-    private static void details(StringBuilder b, Ticket t, boolean withRequester, String queue, String nowWith) {
+    private static void details(StringBuilder b, Ticket t, boolean withRequester, String queue, String nowWith,
+                               com.nbfc.itsm.domain.ImacDetail imac) {
         b.append("<table cellpadding=\"6\" style=\"border-collapse:collapse;border:1px solid #e5e7eb;\">");
         row(b, "Ticket number", t.getPublicNumber());
         row(b, "Subject", t.getSubject());
@@ -336,7 +344,28 @@ public class TicketEmailService {
         if (t.getCreatedAtUtc() != null) {
             row(b, "Created (IST)", IST.format(t.getCreatedAtUtc()));
         }
+        if (imac != null) {
+            rowIf(b, "IMAC · Username", imac.getUsername());
+            rowIf(b, "IMAC · User SAP ID", imac.getUserSapId());
+            rowIf(b, "IMAC · Asset", imac.getAsset());
+            rowIf(b, "IMAC · Make", imac.getMake());
+            rowIf(b, "IMAC · Model", imac.getModel());
+            rowIf(b, "IMAC · Grade", imac.getGrade());
+            rowIf(b, "IMAC · Department", imac.getDepartment());
+            rowIf(b, "IMAC · Serial No", imac.getSerialNo());
+            rowIf(b, "IMAC · RAM", imac.getRam());
+            rowIf(b, "IMAC · Contact No", imac.getContactNo());
+            rowIf(b, "IMAC · Location", imac.getLocation());
+            rowIf(b, "IMAC · Hostname", imac.getHostname());
+            rowIf(b, "IMAC · Office Address", imac.getOfficeAddress());
+        }
         b.append("</table>");
+    }
+
+    private static void rowIf(StringBuilder b, String label, String value) {
+        if (StringUtils.hasText(value)) {
+            row(b, label, value);
+        }
     }
 
     private String close(StringBuilder b, Ticket t) {

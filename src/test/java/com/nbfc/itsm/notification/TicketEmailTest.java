@@ -189,6 +189,17 @@ class TicketEmailTest {
     }
 
     @Test
+    void imacMailsIncludeTheImacDetails() {
+        // IMAC requester: has TICKET_RAISE_IMAC (via System Administrator) and is an HOD so the flow needs no manager chain.
+        Employee imacReq = employee("E-EM-IMAC", "Imac Requester", "imac.req@authum.com", null, null,
+                "EMPLOYEE", "SYSTEM_ADMINISTRATOR", "HOD");
+        Ticket t = ticketService.save(as(imacReq), imacForm());
+        String created = ticketEmailService.body(t, TicketEmailEvent.Kind.CREATED);
+        assertTrue(created.contains("IMAC") && created.contains("Username"), created);
+        assertTrue(created.contains("Niverutti") && created.contains("HOST-9") && created.contains("16 GB"), created);
+    }
+
+    @Test
     void requesterWithoutEmailIsSkipped() throws Exception {
         requester.setEmail(null);
         employeeRepository.save(requester);
@@ -228,6 +239,22 @@ class TicketEmailTest {
         f.setSubject("Laptop not starting");
         f.setDescription("The laptop does not power on since this morning.");
         f.setPriorityCode("High");
+        f.setIntent("submit");
+        return f;
+    }
+
+    private TicketForm imacForm() {
+        Category imac = categoryRepository.findByCode("IMAC").orElseThrow(IllegalStateException::new);
+        TicketForm f = new TicketForm();
+        f.setSerialMode("NA");
+        f.setTicketTypeId(ticketTypeRepository.findByCode("IMAC").orElseThrow(IllegalStateException::new).getTicketTypeId());
+        f.setCategoryId(imac.getCategoryId());
+        f.setSubCategoryId(subCategoryRepository.findByCategoryAndActiveTrueOrderBySortOrderAsc(imac).get(0).getSubCategoryId());
+        f.setSubject("Move workstation to the new floor");
+        f.setDescription("Please move the workstation and monitor to the 3rd floor.");
+        f.setImacUsername("Niverutti");
+        f.setImacHostname("HOST-9");
+        f.setImacRam("16 GB");
         f.setIntent("submit");
         return f;
     }
