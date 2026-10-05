@@ -160,12 +160,6 @@ public class PortalPageController {
                 "No knowledge articles have been published yet.");
     }
 
-    @GetMapping("/assets")
-    public String assets(Model model) {
-        return listPage(model, "assets", "Asset Management", "assets",
-                "No assets have been added.");
-    }
-
     private String queue(Model model, String nav, String title, String stageType, String empty) {
         model.addAttribute("nav", nav);
         model.addAttribute("pageTitle", title);

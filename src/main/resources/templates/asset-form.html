@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">IT Nexa / <a th:href="@{/assets}">Asset Management</a> /
+          <span th:text="${editing} ? 'Edit' : 'Add'">Add</span></div>
+        <h1 th:text="${editing} ? 'Edit asset' : 'Add asset'">Add asset</h1>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:760px;">
+      <form method="post" th:object="${form}"
+            th:action="${editing} ? @{/assets/{id}(id=*{assetId})} : @{/assets}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+          <div class="form-group">
+            <label>Asset tag <span class="req">*</span></label>
+            <input class="form-control" type="text" th:field="*{assetTag}" maxlength="32" placeholder="e.g. NB-00123"/>
+            <small style="color:var(--danger);font-size:12px;display:block;margin-top:4px;" th:if="${#fields.hasErrors('assetTag')}" th:errors="*{assetTag}">err</small>
+          </div>
+
+          <div class="form-group">
+            <label>Type <span class="req">*</span></label>
+            <input class="form-control" type="text" th:field="*{assetType}" maxlength="64"
+                   placeholder="Laptop, Desktop, Server, Phone…" list="assetTypes"/>
+            <small style="color:var(--danger);font-size:12px;display:block;margin-top:4px;" th:if="${#fields.hasErrors('assetType')}" th:errors="*{assetType}">err</small>
+          </div>
+
+          <div class="form-group">
+            <label>Serial number</label>
+            <input class="form-control" type="text" th:field="*{serialNumber}" maxlength="64"/>
+          </div>
+
+          <div class="form-group">
+            <label>Status <span class="req">*</span></label>
+            <select class="form-control" th:field="*{statusCode}">
+              <option th:each="s : ${statuses}" th:value="${s.key}" th:text="${s.value}">In stock</option>
+            </select>
+            <small style="color:var(--danger);font-size:12px;display:block;margin-top:4px;" th:if="${#fields.hasErrors('statusCode')}" th:errors="*{statusCode}">err</small>
+          </div>
+
+          <div class="form-group">
+            <label>Assigned to</label>
+            <select class="form-control" th:field="*{employeeId}">
+              <option value="">— Unassigned —</option>
+              <option th:each="e : ${employees}" th:value="${e.employeeId}"
+                      th:text="${e.displayName} + ' (' + ${e.employeeNo} + ')'">Person</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Department</label>
+            <select class="form-control" th:field="*{departmentId}">
+              <option value="">— None —</option>
+              <option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.name}">Dept</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Location</label>
+            <input class="form-control" type="text" th:field="*{location}" maxlength="128"/>
+          </div>
+
+          <div class="form-group">
+            <label>IP address</label>
+            <input class="form-control" type="text" th:field="*{ipAddress}" maxlength="45"/>
+          </div>
+
+          <div class="form-group">
+            <label>Operating system</label>
+            <input class="form-control" type="text" th:field="*{operatingSystem}" maxlength="64"/>
+          </div>
+
+          <div class="form-group">
+            <label>Purchase date</label>
+            <input class="form-control" type="date" th:field="*{purchaseDate}"/>
+          </div>
+
+          <div class="form-group">
+            <label>Warranty end</label>
+            <input class="form-control" type="date" th:field="*{warrantyEnd}"/>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:20px;display:flex;gap:10px;">
+          <button type="submit" class="btn btn-accent"><i class="fa-solid fa-check"></i>
+            <span th:text="${editing} ? 'Save changes' : 'Add asset'">Save</span></button>
+          <a class="btn btn-outline" th:href="@{/assets}">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <datalist id="assetTypes">
+      <option th:each="t : ${types}" th:value="${t}"></option>
+    </datalist>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

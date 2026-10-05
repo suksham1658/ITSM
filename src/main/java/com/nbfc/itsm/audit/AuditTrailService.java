@@ -33,6 +33,8 @@ import java.util.Set;
 public class AuditTrailService {
 
     public static final int PAGE_SIZE = 50;
+    /** Upper bound on rows written to an Excel export (keeps memory/response sane). */
+    public static final int EXPORT_CAP = 10000;
     private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
 
     private final AuditLogRepository auditLogRepository;
@@ -52,9 +54,23 @@ public class AuditTrailService {
         Specification<AuditLog> spec = spec(f);
         Page<AuditLog> rows = auditLogRepository.findAll(spec,
                 PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by(Sort.Direction.DESC, "occurredAtUtc", "auditLogId")));
+        return new Result(rowsFor(rows.getContent()), rows.getNumber(), rows.getTotalPages(), rows.getTotalElements());
+    }
+
+    /** All rows matching the same filters (capped), newest first — used by the Excel export. */
+    @PreAuthorize("hasAuthority('AUDIT_VIEW')")
+    @Transactional(readOnly = true)
+    public List<Row> export(Filter f) {
+        Page<AuditLog> rows = auditLogRepository.findAll(spec(f),
+                PageRequest.of(0, EXPORT_CAP, Sort.by(Sort.Direction.DESC, "occurredAtUtc", "auditLogId")));
+        return rowsFor(rows.getContent());
+    }
+
+    /** Resolves each log's person name and ticket number in two bulk lookups (no N+1). */
+    private List<Row> rowsFor(List<AuditLog> content) {
         Set<Long> employeeIds = new HashSet<Long>();
         Set<Long> ticketIds = new HashSet<Long>();
-        for (AuditLog a : rows.getContent()) {
+        for (AuditLog a : content) {
             if (a.getEmployeeId() != null) {
                 employeeIds.add(a.getEmployeeId());
             }
@@ -71,11 +87,11 @@ public class AuditTrailService {
             numbers.put(t.getTicketId(), t.getPublicNumber());
         }
         List<Row> out = new ArrayList<Row>();
-        for (AuditLog a : rows.getContent()) {
+        for (AuditLog a : content) {
             out.add(new Row(a, a.getEmployeeId() == null ? null : names.get(a.getEmployeeId()),
                     a.getTicketId() == null ? null : numbers.get(a.getTicketId())));
         }
-        return new Result(out, rows.getNumber(), rows.getTotalPages(), rows.getTotalElements());
+        return out;
     }
 
     @PreAuthorize("hasAuthority('AUDIT_VIEW')")

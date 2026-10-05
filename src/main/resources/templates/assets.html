@@ -11,12 +11,72 @@
 <div th:replace="fragments/alerts :: flash"></div>
     <div class="page-header">
       <div>
-        <div class="breadcrumb">IT Nexa / <span th:text="${pageTitle}">Page</span></div>
-        <h1 th:text="${pageTitle}">Page</h1>
+        <div class="breadcrumb">IT Nexa / <span>Asset Management</span></div>
+        <h1>Asset Management</h1>
+        <p class="page-sub" th:text="${assets.totalElements} + ' assets'">assets</p>
+      </div>
+      <div class="page-header-actions">
+        <a class="btn btn-accent" th:href="@{/assets/new}"><i class="fa-solid fa-plus"></i> Add asset</a>
       </div>
     </div>
-    <div th:replace="fragments/alerts :: empty(title=${pageTitle}, body=${emptyMessage})"></div>
 
+    <div class="card">
+      <form class="filter-bar" method="get" th:action="@{/assets}" style="flex-wrap:wrap;">
+        <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
+          <input type="search" name="text" th:value="${f.text}" maxlength="100"
+                 placeholder="Tag, serial, type, location, IP, OS" aria-label="Search"/></div>
+        <select class="form-control" name="type" aria-label="Type" style="width:auto;">
+          <option value="">All types</option>
+          <option th:each="t : ${types}" th:value="${t}" th:text="${t}" th:selected="${t == f.type}">Laptop</option>
+        </select>
+        <select class="form-control" name="status" aria-label="Status" style="width:auto;">
+          <option value="">All statuses</option>
+          <option th:each="s : ${statuses}" th:value="${s.key}" th:text="${s.value}" th:selected="${s.key == f.status}">In stock</option>
+        </select>
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+        <a class="btn btn-outline btn-sm" th:href="@{/assets}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+      </form>
+
+      <div th:if="${assets.totalElements == 0}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
+        <h3>No assets found</h3><p>Add an asset, or change the filters.</p></div>
+
+      <div class="table-wrap audit-scroll" th:if="${assets.totalElements > 0}">
+        <table class="data-table" style="min-width:1080px;">
+          <thead><tr><th>Tag</th><th>Type</th><th>Serial</th><th>Status</th><th>Assigned to</th><th>Department</th>
+            <th>Location</th><th>Warranty end</th><th>Updated</th><th style="text-align:right;">Actions</th></tr></thead>
+          <tbody>
+          <tr th:each="a : ${assets.content}">
+            <td class="mono"><a class="cell-link" th:href="@{/assets/{id}/edit(id=${a.assetId})}" th:text="${a.assetTag}">TAG</a></td>
+            <td th:text="${a.assetType}">Laptop</td>
+            <td class="mono" th:text="${a.serialNumber} ?: '—'">SN</td>
+            <td><span class="badge"
+                      th:classappend="${a.statusCode == 'ASSIGNED'} ? ' badge-approved' : (${a.statusCode == 'RETIRED'} ? ' badge-rejected' : ' badge-outline')"
+                      th:text="${statuses.get(a.statusCode)} ?: ${a.statusCode}">Status</span></td>
+            <td th:text="${a.assignedTo != null} ? ${a.assignedTo.displayName} : '—'">person</td>
+            <td th:text="${a.department != null} ? ${a.department.name} : '—'">dept</td>
+            <td th:text="${a.location} ?: '—'">loc</td>
+            <td class="cell-date" th:text="${a.warrantyEnd} ?: '—'">warranty</td>
+            <td class="cell-date" th:text="${@ui.dateTime(a.updatedAtUtc)}">updated</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <a class="btn btn-outline btn-sm" th:href="@{/assets/{id}/edit(id=${a.assetId})}" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              <form method="post" th:action="@{/assets/{id}/delete(id=${a.assetId})}" style="display:inline;"
+                    data-confirm="Delete this asset? This cannot be undone.">
+                <button type="submit" class="btn btn-outline btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager" th:if="${assets.totalPages > 1}">
+        <a class="btn btn-outline btn-sm" th:if="${assets.hasPrevious()}"
+           th:href="@{/assets(text=${f.text},type=${f.type},status=${f.status},page=${assets.number - 1})}">Previous</a>
+        <span class="page-sub" th:text="'Page ' + ${assets.number + 1} + ' of ' + ${assets.totalPages}">Page</span>
+        <a class="btn btn-outline btn-sm" th:if="${assets.hasNext()}"
+           th:href="@{/assets(text=${f.text},type=${f.type},status=${f.status},page=${assets.number + 1})}">Next</a>
+      </div>
+    </div>
 </main>
 </div>
 </div>

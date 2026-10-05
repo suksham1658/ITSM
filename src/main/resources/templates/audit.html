@@ -48,13 +48,18 @@
           <input class="form-control" type="date" name="to" th:value="${f.to}" style="width:150px;"/></label>
         <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
         <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+        <a class="btn btn-outline btn-sm"
+           th:href="@{/audit/export.xls(user=${f.user},ticket=${f.ticket},module=${f.module},action=${f.action},result=${f.result},text=${f.text},from=${f.from},to=${f.to})}">
+          <i class="fa-solid fa-file-excel"></i> Export Excel</a>
       </form>
 
       <div th:if="${#lists.isEmpty(result.rows)}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
         <h3>No matching events</h3><p>Change or reset the filters.</p></div>
 
-      <div class="table-wrap" th:if="${!#lists.isEmpty(result.rows)}">
-        <table class="data-table">
+      <p class="phase-note" th:if="${!#lists.isEmpty(result.rows)}" style="margin:4px 2px 8px;">
+        <i class="fa-solid fa-arrows-left-right"></i> Scroll sideways to see every column.</p>
+      <div class="table-wrap audit-scroll" th:if="${!#lists.isEmpty(result.rows)}">
+        <table class="data-table" style="min-width:1180px;">
           <thead><tr><th>Time (IST)</th><th>User</th><th>Emp ID</th><th>Role</th><th>Module</th><th>Action</th><th>Ticket</th>
             <th>Details</th><th>IP address</th><th>Browser</th><th>Result</th></tr></thead>
           <tbody>

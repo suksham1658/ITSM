@@ -31,7 +31,7 @@ requires an authenticated session (`anyRequest().authenticated()`).
 | GET | `/escalations` | escalations | `SLA_MONITOR` |
 | GET | `/risk` | risk view | `TICKET_VIEW_SECURITY` |
 | GET | `/kb` | knowledge base | `KB_READ` |
-| GET | `/assets` | assets | `ASSET_MANAGE` |
+| GET | `/assets` | asset management (see its own section below) | `ASSET_MANAGE` |
 
 ## Tickets — `TicketController` (authenticated)
 | Method | Path | Purpose | Authority |
@@ -81,10 +81,24 @@ requires an authenticated session (`anyRequest().authenticated()`).
 | GET | `/reports/{code}.csv` | CSV export (formula-injection guarded) |
 | GET | `/reports/{code}.xls` | Excel export |
 
+## Asset Management — `AssetController` (authority `ASSET_MANAGE`)
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/assets` | list/search assets (filters: text, type, status) + pagination |
+| GET | `/assets/new` | add-asset form |
+| POST | `/assets` | create an asset |
+| GET | `/assets/{id}/edit` | edit-asset form |
+| POST | `/assets/{id}` | update an asset |
+| POST | `/assets/{id}/delete` | delete (blocked + friendly message if linked to a ticket — retire instead) |
+
+Statuses: `IN_STOCK`, `ASSIGNED`, `IN_REPAIR`, `RETIRED`. Every create/update/delete is written to `audit_log`
+(module `ASSET`). Data lives in the `asset` table.
+
 ## Audit — `AuditController` (authority `AUDIT_VIEW`)
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/audit` | the audit log |
+| GET | `/audit` | the audit log (filterable; wide table scrolls horizontally) |
+| GET | `/audit/export.xls` | download the audit trail **matching the current filters** as Excel (.xls) |
 
 ---
 
