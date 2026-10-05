@@ -372,6 +372,20 @@ public class TicketService {
         if ("changes".equals(scope) && !has(principal, "TICKET_FULFIL") && !has(principal, "TICKET_VIEW_QUEUE_ALL")) {
             throw new AccessDeniedException("No change view.");
         }
+        // "handled": every ticket this person is/was an actor on (approved, assigned to, resolved, routed to).
+        final java.util.Set<Long> handledIds = new java.util.HashSet<Long>();
+        if ("handled".equals(scope) && me != null) {
+            for (WorkflowInstanceStage s : instanceStageRepository.findByResolvedEmployee(me)) {
+                if (s.getWorkflowInstance() != null) {
+                    handledIds.add(s.getWorkflowInstance().getTicketId());
+                }
+            }
+            for (com.nbfc.itsm.domain.TicketAssignmentLog lg : assignmentLogRepository.findByToEmployeeOrByEmployee(me, me)) {
+                if (lg.getTicket() != null) {
+                    handledIds.add(lg.getTicket().getTicketId());
+                }
+            }
+        }
         Specification<Ticket> spec = (root, query, cb) -> {
             query.distinct(true);
             List<Predicate> and = new ArrayList<Predicate>();
@@ -401,6 +415,15 @@ public class TicketService {
                         cb.equal(category.get("name"), "Cyber Security")));
             } else if ("changes".equals(scope)) {
                 and.add(cb.equal(type.get("name"), "Change Request"));
+            } else if ("handled".equals(scope)) {
+                List<Predicate> or = new ArrayList<Predicate>();
+                if (me != null) {
+                    or.add(cb.equal(root.get("assignedImplementor"), me));
+                }
+                if (!handledIds.isEmpty()) {
+                    or.add(root.get("ticketId").in(handledIds));
+                }
+                and.add(or.isEmpty() ? cb.disjunction() : cb.or(or.toArray(new Predicate[0])));
             }
             if (StringUtils.hasText(status)) {
                 and.add(cb.equal(root.get("statusCode"), status));

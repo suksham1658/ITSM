@@ -12,5 +12,8 @@ public interface WorkflowInstanceStageRepository extends JpaRepository<WorkflowI
 
     List<WorkflowInstanceStage> findByStatusCodeAndStageType(String statusCode, String stageType);
 
+    /** Every stage ever resolved to this person (approver who acted, implementor, hierarchy approver, …). */
+    List<WorkflowInstanceStage> findByResolvedEmployee(Employee employee);
+
     boolean existsByResolvedRole(Role role);
 }
