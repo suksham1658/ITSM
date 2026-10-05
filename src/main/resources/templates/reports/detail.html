@@ -17,46 +17,55 @@
         <p class="page-sub" th:text="${report.description}">Description</p>
       </div>
       <div class="page-header-actions no-print">
-        <a class="btn btn-outline btn-sm" th:href="@{/reports/{code}.xls(code=${report.code},from=${from},to=${to},typeId=${typeId},status=${status},departmentId=${departmentId},categoryId=${categoryId},priority=${priority})}"><i class="fa-regular fa-file-excel"></i> Export Excel</a>
+        <a class="btn btn-excel btn-sm" th:href="@{/reports/{code}.xls(code=${report.code},from=${from},to=${to},typeId=${typeId},status=${status},departmentId=${departmentId},categoryId=${categoryId},priority=${priority})}"><i class="fa-regular fa-file-excel"></i> Export Excel</a>
         <a class="btn btn-outline btn-sm" th:href="@{/reports/{code}.csv(code=${report.code},from=${from},to=${to},typeId=${typeId},status=${status},departmentId=${departmentId},categoryId=${categoryId},priority=${priority})}"><i class="fa-regular fa-file-lines"></i> Export CSV</a>
         <button type="button" class="btn btn-outline btn-sm" data-action="print"><i class="fa-solid fa-print"></i> Print</button>
       </div>
     </div>
-    <form class="filter-bar card card-pad no-print" method="get" th:action="@{/reports/{code}(code=${report.code})}">
-      <input class="form-control" type="date" name="from" th:value="${from}"/>
-      <input class="form-control" type="date" name="to" th:value="${to}"/>
-      <select class="form-control" name="typeId">
-        <option value="">All types</option>
-        <option th:each="t : ${types}" th:value="${t.ticketTypeId}" th:text="${t.name}" th:selected="${typeId != null and typeId == t.ticketTypeId}"></option>
-      </select>
-      <select class="form-control" name="status">
-        <option value="">All statuses</option>
-        <option th:selected="${status == 'Draft'}">Draft</option>
-        <option th:selected="${status == 'Pending Approval'}">Pending Approval</option>
-        <option th:selected="${status == 'Approved'}">Approved</option>
-        <option th:selected="${status == 'Assigned'}">Assigned</option>
-        <option th:selected="${status == 'In Progress'}">In Progress</option>
-        <option th:selected="${status == 'On Hold'}">On Hold</option>
-        <option th:selected="${status == 'Resolved'}">Resolved</option>
-        <option th:selected="${status == 'Closed'}">Closed</option>
-        <option th:selected="${status == 'Rejected'}">Rejected</option>
-      </select>
-      <select class="form-control" name="departmentId">
-        <option value="">All departments</option>
-        <option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.name}" th:selected="${departmentId != null and departmentId == d.departmentId}"></option>
-      </select>
-      <select class="form-control" name="categoryId">
-        <option value="">All categories</option>
-        <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}" th:selected="${categoryId != null and categoryId == c.categoryId}"></option>
-      </select>
-      <select class="form-control" name="priority">
-        <option value="">All priorities</option>
-        <option th:selected="${priority == 'Critical'}">Critical</option>
-        <option th:selected="${priority == 'High'}">High</option>
-        <option th:selected="${priority == 'Medium'}">Medium</option>
-        <option th:selected="${priority == 'Low'}">Low</option>
-      </select>
-      <button type="submit" class="btn btn-outline">Apply</button>
+    <form class="filter-panel card card-pad no-print" method="get" th:action="@{/reports/{code}(code=${report.code})}">
+      <div class="af-field"><label for="rp-from">From</label>
+        <input id="rp-from" class="form-control" type="date" name="from" th:value="${from}"/></div>
+      <div class="af-field"><label for="rp-to">To</label>
+        <input id="rp-to" class="form-control" type="date" name="to" th:value="${to}"/></div>
+      <div class="af-field"><label for="rp-type">Type</label>
+        <select id="rp-type" class="form-control" name="typeId">
+          <option value="">All types</option>
+          <option th:each="t : ${types}" th:value="${t.ticketTypeId}" th:text="${t.name}" th:selected="${typeId != null and typeId == t.ticketTypeId}"></option>
+        </select></div>
+      <div class="af-field"><label for="rp-status">Status</label>
+        <select id="rp-status" class="form-control" name="status">
+          <option value="">All statuses</option>
+          <option th:selected="${status == 'Draft'}">Draft</option>
+          <option th:selected="${status == 'Pending Approval'}">Pending Approval</option>
+          <option th:selected="${status == 'Approved'}">Approved</option>
+          <option th:selected="${status == 'Assigned'}">Assigned</option>
+          <option th:selected="${status == 'In Progress'}">In Progress</option>
+          <option th:selected="${status == 'On Hold'}">On Hold</option>
+          <option th:selected="${status == 'Resolved'}">Resolved</option>
+          <option th:selected="${status == 'Closed'}">Closed</option>
+          <option th:selected="${status == 'Rejected'}">Rejected</option>
+        </select></div>
+      <div class="af-field"><label for="rp-dept">Department</label>
+        <select id="rp-dept" class="form-control" name="departmentId">
+          <option value="">All departments</option>
+          <option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.name}" th:selected="${departmentId != null and departmentId == d.departmentId}"></option>
+        </select></div>
+      <div class="af-field"><label for="rp-cat">Category</label>
+        <select id="rp-cat" class="form-control" name="categoryId">
+          <option value="">All categories</option>
+          <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.name}" th:selected="${categoryId != null and categoryId == c.categoryId}"></option>
+        </select></div>
+      <div class="af-field"><label for="rp-prio">Priority</label>
+        <select id="rp-prio" class="form-control" name="priority">
+          <option value="">All priorities</option>
+          <option th:selected="${priority == 'Critical'}">Critical</option>
+          <option th:selected="${priority == 'High'}">High</option>
+          <option th:selected="${priority == 'Medium'}">Medium</option>
+          <option th:selected="${priority == 'Low'}">Low</option>
+        </select></div>
+      <div class="af-actions">
+        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+      </div>
     </form>
     <p class="page-sub" th:if="${report.note != null}" th:text="${report.note}">Note</p>
     <div class="card" style="margin-bottom:18px;" th:if="${report.chart != null}">

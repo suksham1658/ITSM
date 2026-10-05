@@ -21,20 +21,31 @@
     </div>
 
     <div class="card">
-      <form class="filter-bar" method="get" th:action="@{/assets}" style="flex-wrap:wrap;">
-        <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
-          <input type="search" name="text" th:value="${f.text}" maxlength="100"
-                 placeholder="Tag, serial, type, location, IP, OS" aria-label="Search"/></div>
-        <select class="form-control" name="type" aria-label="Type" style="width:auto;">
-          <option value="">All types</option>
-          <option th:each="t : ${types}" th:value="${t}" th:text="${t}" th:selected="${t == f.type}">Laptop</option>
-        </select>
-        <select class="form-control" name="status" aria-label="Status" style="width:auto;">
-          <option value="">All statuses</option>
-          <option th:each="s : ${statuses}" th:value="${s.key}" th:text="${s.value}" th:selected="${s.key == f.status}">In stock</option>
-        </select>
-        <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
-        <a class="btn btn-outline btn-sm" th:href="@{/assets}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+      <form class="filter-panel" method="get" th:action="@{/assets}">
+        <div class="af-field">
+          <label for="as-text">Search</label>
+          <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
+            <input id="as-text" type="search" name="text" th:value="${f.text}" maxlength="100"
+                   placeholder="Tag, serial, type, location…"/></div>
+        </div>
+        <div class="af-field">
+          <label for="as-type">Type</label>
+          <select id="as-type" class="form-control" name="type">
+            <option value="">All types</option>
+            <option th:each="t : ${types}" th:value="${t}" th:text="${t}" th:selected="${t == f.type}">Laptop</option>
+          </select>
+        </div>
+        <div class="af-field">
+          <label for="as-status">Status</label>
+          <select id="as-status" class="form-control" name="status">
+            <option value="">All statuses</option>
+            <option th:each="s : ${statuses}" th:value="${s.key}" th:text="${s.value}" th:selected="${s.key == f.status}">In stock</option>
+          </select>
+        </div>
+        <div class="af-actions">
+          <a class="btn btn-outline btn-sm" th:href="@{/assets}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+          <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+        </div>
       </form>
 
       <div th:if="${assets.totalElements == 0}" class="empty-state"><i class="fa-regular fa-folder-open"></i>
