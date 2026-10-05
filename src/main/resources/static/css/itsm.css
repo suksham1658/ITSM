@@ -1496,3 +1496,6 @@ tr.sla-past td{color:var(--slate-400);}
   -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
 #loginScreen .input-icon-wrap:hover .form-control{background:rgba(255,255,255,.50);border-color:var(--sky-600);}
 #loginScreen .input-icon-wrap .form-control:focus{background:rgba(255,255,255,.72);border-color:var(--sky-800);}
+
+/* ---------- Login v6: fully transparent panel fill (glass sheen/blur/border kept) ---------- */
+.login-stage .login-panel{background:rgba(255,255,255,0);}
