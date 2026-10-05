@@ -498,6 +498,11 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
    TABLES
 ============================================================ */
 .table-wrap{overflow-x:auto;}
+.audit-scroll{border:1px solid var(--slate-200);border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.audit-scroll::-webkit-scrollbar{height:11px;}
+.audit-scroll::-webkit-scrollbar-track{background:var(--slate-100);border-radius:0 0 10px 10px;}
+.audit-scroll::-webkit-scrollbar-thumb{background:var(--slate-300);border-radius:6px;border:2px solid var(--slate-100);}
+.audit-scroll::-webkit-scrollbar-thumb:hover{background:var(--slate-400);}
 table.data-table{width:100%;border-collapse:collapse;font-size:12.8px;}
 table.data-table th{
   text-align:left;padding:11px 16px;background:var(--slate-100);color:var(--slate-500);

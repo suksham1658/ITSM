@@ -15,4 +15,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             String displayName, String employeeNo, String sam);
 
     long countByPortalActive(boolean portalActive);
+
+    List<Employee> findByPortalActiveTrueOrderByDisplayNameAsc();
 }
