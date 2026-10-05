@@ -36,6 +36,7 @@ requires an authenticated session (`anyRequest().authenticated()`).
 | Method | Path | Purpose | Authority |
 |---|---|---|---|
 | GET | `/tickets` | my tickets (all statuses I created) | authenticated |
+| GET | `/tickets/handled` | tickets I'm/was an actor on (approved, assigned, resolved, routed to me) — any status incl. closed | authenticated |
 | GET | `/tickets/team` | my team's tickets | `TICKET_VIEW_TEAM` |
 | GET | `/tickets/department` | department tickets | `TICKET_VIEW_DEPARTMENT` |
 | GET | `/tickets/security` | security tickets | `TICKET_VIEW_SECURITY` |

@@ -131,6 +131,23 @@ class RequestRoutingTest {
     }
 
     @Test
+    void handledScopeListsTicketsIAmAnActorOn() {
+        Employee imacReq = employee("E-RT-IMAC3", "rt.imac3", "IMAC Requester 3", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        Ticket t = ticketService.save(as(imacReq), imacRequest());
+        // teamLead is the first hierarchy approver (routed to him); approving keeps him the resolved actor.
+        ticketService.applyAction(as(teamLead), t.getTicketId(), "APPROVE", "Approved by team lead for the imac", null);
+        org.springframework.data.domain.Page<Ticket> handled = ticketService.search(as(teamLead), "handled",
+                null, null, null, null, org.springframework.data.domain.PageRequest.of(0, 20));
+        boolean found = false;
+        for (Ticket x : handled.getContent()) {
+            if (x.getTicketId().equals(t.getTicketId())) {
+                found = true;
+            }
+        }
+        assertTrue(found, "an approver sees the ticket in My Handled, regardless of status");
+    }
+
+    @Test
     void imacCannotBeRaisedWithoutThePermission() {
         // requester is a plain EMPLOYEE without TICKET_RAISE_IMAC.
         assertThrows(org.springframework.security.access.AccessDeniedException.class,

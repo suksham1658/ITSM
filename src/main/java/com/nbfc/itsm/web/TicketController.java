@@ -83,6 +83,19 @@ public class TicketController {
         return list(user, "mine", "myTickets", "My Tickets", q, status, priority, typeId, page, size, model);
     }
 
+    /** Every ticket this person is/was an actor on — approved, assigned, resolved or routed to — any status. */
+    @GetMapping("/tickets/handled")
+    public String handled(@AuthenticationPrincipal ItsmUserPrincipal user,
+                          @RequestParam(value = "q", required = false) String q,
+                          @RequestParam(value = "status", required = false) String status,
+                          @RequestParam(value = "priority", required = false) String priority,
+                          @RequestParam(value = "typeId", required = false) Long typeId,
+                          @RequestParam(value = "page", defaultValue = "0") int page,
+                          @RequestParam(value = "size", defaultValue = "20") int size,
+                          Model model) {
+        return list(user, "handled", "handledTickets", "My Handled", q, status, priority, typeId, page, size, model);
+    }
+
     @GetMapping("/tickets/team")
     @PreAuthorize("hasAuthority('TICKET_VIEW_TEAM')")
     public String team(@AuthenticationPrincipal ItsmUserPrincipal user,
@@ -348,6 +361,7 @@ public class TicketController {
         model.addAttribute("emptyMessage", "No tickets match these filters.");
         model.addAttribute("listPath",
                 "mine".equals(scope) ? "/tickets"
+                        : "handled".equals(scope) ? "/tickets/handled"
                         : "team".equals(scope) ? "/tickets/team"
                         : "department".equals(scope) ? "/tickets/department"
                         : "security".equals(scope) ? "/tickets/security"
