@@ -25,9 +25,8 @@
       <form id="auditFilter" class="filter-panel" method="get" th:action="@{/audit}">
         <div class="af-field">
           <label for="af-user">User</label>
-          <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
-            <input id="af-user" type="search" name="user" th:value="${f.user}" maxlength="100"
-                   placeholder="Name or employee no"/></div>
+          <input id="af-user" class="form-control" type="search" name="user" th:value="${f.user}" maxlength="100"
+                 placeholder="Name or employee no"/>
         </div>
         <div class="af-field">
           <label for="af-ticket">Ticket</label>

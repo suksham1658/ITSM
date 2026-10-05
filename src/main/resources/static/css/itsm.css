@@ -533,6 +533,8 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
 .filter-panel .form-control:focus,
 .filter-panel .fb-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(28,106,141,.16);background:var(--bg-card);outline:none;}
 .filter-panel ::placeholder{color:var(--slate-400);}
+/* Audit filter: centre the text inside each box (User, Ticket, Module, Action, Result). */
+#auditFilter .form-control{text-align:center;text-align-last:center;}
 /* Excel export button (green) */
 .btn-excel{background:var(--success);border-color:var(--success);color:#fff;}
 .btn-excel:hover,.btn-excel:focus{background:#19744A;border-color:#19744A;color:#fff;}
