@@ -3,6 +3,7 @@ package com.nbfc.itsm.web;
 import com.nbfc.itsm.admin.RoleAdminService;
 import com.nbfc.itsm.admin.RoleForm;
 import com.nbfc.itsm.domain.ConfigChangeRequest;
+import com.nbfc.itsm.domain.Permission;
 import com.nbfc.itsm.domain.Role;
 import com.nbfc.itsm.exception.ItsmException;
 import com.nbfc.itsm.security.ItsmUserPrincipal;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
@@ -69,6 +71,11 @@ public class AdminRoleController {
                          Model model,
                          RedirectAttributes ra) {
         try {
+            if (isSystemAdministrator(maker)) {
+                Role r = roleAdminService.createNow(form, maker);
+                ra.addFlashAttribute("message", "Role '" + r.getName() + "' created and applied immediately.");
+                return "redirect:/admin/roles/" + r.getRoleId();
+            }
             ConfigChangeRequest ccr = roleAdminService.proposeCreate(form, maker);
             ra.addFlashAttribute("message", "Role proposed as change request #" + ccr.getConfigChangeRequestId()
                     + ". A different administrator must approve it in Config approvals before it can be assigned.");
@@ -92,6 +99,11 @@ public class AdminRoleController {
                          Model model,
                          RedirectAttributes ra) {
         try {
+            if (isSystemAdministrator(maker)) {
+                roleAdminService.updateNow(id, form, maker);
+                ra.addFlashAttribute("message", "Role updated and applied immediately.");
+                return "redirect:/admin/roles/" + id;
+            }
             ConfigChangeRequest ccr = roleAdminService.proposeUpdate(id, form, maker);
             ra.addFlashAttribute("message", "Change proposed as request #" + ccr.getConfigChangeRequestId()
                     + ". It takes effect after a different administrator approves it.");
@@ -99,6 +111,25 @@ public class AdminRoleController {
         } catch (ItsmException ex) {
             return form(model, roleAdminService.role(id), form, ex.getMessage());
         }
+    }
+
+    /** System Administrator: add a brand-new permission (applied immediately, assignable to roles). */
+    @PostMapping("/permissions")
+    @PreAuthorize(CAN_DELETE)
+    public String addPermission(@RequestParam("code") String code,
+                                @RequestParam(value = "description", required = false) String description,
+                                @AuthenticationPrincipal ItsmUserPrincipal actor, RedirectAttributes ra) {
+        try {
+            Permission p = roleAdminService.addPermission(code, description, actor);
+            ra.addFlashAttribute("message", "Permission '" + p.getCode() + "' added. It can now be assigned to any role.");
+        } catch (ItsmException ex) {
+            ra.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/roles";
+    }
+
+    private static boolean isSystemAdministrator(ItsmUserPrincipal user) {
+        return user != null && user.getRoleCodes() != null && user.getRoleCodes().contains("SYSTEM_ADMINISTRATOR");
     }
 
     /** Confirmation page: either "Delete role?" or "Cannot delete role" with the reasons. */

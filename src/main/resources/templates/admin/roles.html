@@ -13,7 +13,7 @@
       <div>
         <div class="breadcrumb">IT Nexa / Administration / <span>Roles &amp; Permissions</span></div>
         <h1>Roles &amp; Permissions</h1>
-        <p class="page-sub" th:text="${#lists.size(roles)} + ' roles configured. Creating a role or changing its permissions needs approval from a second administrator.'">8 roles configured.</p>
+        <p class="page-sub" th:text="${#lists.size(roles)} + ' roles configured. The System Administrator applies role and permission changes immediately; other admins propose changes for a second administrator to approve.'">8 roles configured.</p>
       </div>
       <div sec:authorize="hasAuthority('ADMIN_USER_MANAGE') and hasAuthority('ADMIN_MASTERDATA_PROPOSE')">
         <a class="btn btn-accent btn-sm" th:href="@{/admin/roles/new}"><i class="fa-solid fa-plus"></i> New Role</a>
@@ -39,6 +39,20 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="card card-pad" sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="margin-bottom:18px;">
+        <h3 style="font-size:14px;margin:0 0 10px;"><i class="fa-solid fa-key"></i> Add a new permission</h3>
+        <form method="post" th:action="@{/admin/roles/permissions}" class="filter-panel">
+            <div class="af-field"><label for="permCode">Code</label>
+                <input class="form-control" id="permCode" name="code" maxlength="64" placeholder="e.g. TICKET_EXPORT" required="required"/></div>
+            <div class="af-field af-grow"><label for="permDesc">Description</label>
+                <input class="form-control" id="permDesc" name="description" maxlength="256" placeholder="What this permission allows"/></div>
+            <div class="af-actions">
+                <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add permission</button>
+            </div>
+        </form>
+        <p class="page-sub" style="margin:8px 2px 0;">New permissions become assignable to roles right away and are granted to the System Administrator automatically. Wiring a permission to actually guard a page/action is a separate development step.</p>
     </div>
 
     <div class="card" th:if="${roles == null or #lists.isEmpty(roles)}">
