@@ -113,7 +113,9 @@ class RequestRoutingTest {
 
     @Test
     void imacRoutesToImacFlowApprovalThenServiceDesk() {
-        Ticket t = ticketService.save(as(requester), imacRequest());
+        // IMAC may be raised only by someone the admin granted TICKET_RAISE_IMAC (here via System Administrator).
+        Employee imacReq = employee("E-RT-IMAC", "rt.imac", "IMAC Requester", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        Ticket t = ticketService.save(as(imacReq), imacRequest());
         WorkflowInstance inst = instanceRepository.findByTicketId(t.getTicketId()).orElseThrow(IllegalStateException::new);
         assertEquals("IMAC_FLOW", inst.getWorkflowDefinition().getCode(), "IMAC ticket uses the IMAC workflow");
         assertEquals("Pending Approval", t.getStatusCode());
@@ -126,6 +128,23 @@ class RequestRoutingTest {
         WorkflowInstanceStage next = current(t);
         assertEquals("ASSIGNMENT", next.getStageType());
         assertEquals("SERVICE_DESK", next.getActorStrategy());
+    }
+
+    @Test
+    void imacCannotBeRaisedWithoutThePermission() {
+        // requester is a plain EMPLOYEE without TICKET_RAISE_IMAC.
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> ticketService.save(as(requester), imacRequest()));
+    }
+
+    @Test
+    void imacDetailsAreSavedAndVisible() {
+        Employee imacReq = employee("E-RT-IMAC2", "rt.imac2", "IMAC Requester 2", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        Ticket t = ticketService.save(as(imacReq), imacRequest());
+        com.nbfc.itsm.domain.ImacDetail d = ticketService.imacDetailFor(t.getTicketId());
+        assertEquals("rt.imac2 user", d.getUsername());
+        assertEquals("HOST-123", d.getHostname());
+        assertEquals("16 GB", d.getRam());
     }
 
     @Test
@@ -242,6 +261,11 @@ class RequestRoutingTest {
         f.setSubCategoryId(sub.getSubCategoryId());
         f.setSubject("Move workstation to the new floor");
         f.setDescription("Please move my desktop and monitor to the 3rd floor seat.");
+        f.setImacUsername("rt.imac2 user");
+        f.setImacSapId("SAP-9001");
+        f.setImacHostname("HOST-123");
+        f.setImacRam("16 GB");
+        f.setImacMake("Dell");
         f.setIntent("submit");
         return f;
     }

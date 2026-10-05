@@ -21,6 +21,7 @@ public final class PermissionCatalog {
 
     static {
         add("TICKET_CREATE", "General", "Raise requests", "Raise Request");
+        add("TICKET_RAISE_IMAC", "General", "Raise IMAC requests (Install/Move/Add/Change)", "Raise Request → IMAC");
         add("TICKET_VIEW_OWN", "General", "View own tickets", "My Tickets");
         add("KB_READ", "General", "Read knowledge base", "Knowledge Base");
 

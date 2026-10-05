@@ -195,6 +195,19 @@
     toggleSerial();
   }
 
+  // ---- Raise Request: IMAC details appear only when the ticket type is IMAC ----
+  var typeSel = document.getElementById("ticketTypeId");
+  var imacSection = document.getElementById("imacSection");
+  if (typeSel && imacSection) {
+    function toggleImac() {
+      var opt = typeSel.options[typeSel.selectedIndex];
+      var show = !!opt && opt.getAttribute("data-code") === imacSection.getAttribute("data-imac-type");
+      imacSection.hidden = !show;
+    }
+    typeSel.addEventListener("change", toggleImac);
+    toggleImac();
+  }
+
   // ---- Raise Request: warn before upload when a PDF is larger than allowed ----
   var attachment = document.getElementById("attachment");
   if (attachment && attachment.getAttribute("data-pdf-max-mb")) {

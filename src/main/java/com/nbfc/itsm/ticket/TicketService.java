@@ -5,6 +5,8 @@ import com.nbfc.itsm.domain.Category;
 import com.nbfc.itsm.domain.CategoryRepository;
 import com.nbfc.itsm.domain.Employee;
 import com.nbfc.itsm.domain.EmployeeRepository;
+import com.nbfc.itsm.domain.ImacDetail;
+import com.nbfc.itsm.domain.ImacDetailRepository;
 import com.nbfc.itsm.domain.SubCategory;
 import com.nbfc.itsm.domain.SubCategoryRepository;
 import com.nbfc.itsm.domain.Ticket;
@@ -78,6 +80,7 @@ public class TicketService {
     private final NotificationService notificationService;
     private final AttachmentService attachmentService;
     private final com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository;
+    private final ImacDetailRepository imacDetailRepository;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTypeRepository ticketTypeRepository,
@@ -96,7 +99,8 @@ public class TicketService {
                          AuditRecorder auditRecorder,
                          NotificationService notificationService,
                          AttachmentService attachmentService,
-                         com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository) {
+                         com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository,
+                         ImacDetailRepository imacDetailRepository) {
         this.ticketRepository = ticketRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -115,7 +119,12 @@ public class TicketService {
         this.notificationService = notificationService;
         this.attachmentService = attachmentService;
         this.assignmentLogRepository = assignmentLogRepository;
+        this.imacDetailRepository = imacDetailRepository;
     }
+
+    /** Permission a user needs to raise an IMAC request; the ticket type whose code is this. */
+    public static final String IMAC_TYPE = "IMAC";
+    public static final String IMAC_PERMISSION = "TICKET_RAISE_IMAC";
 
     /**
      * Raise Request with an optional attachment: the file is checked first (PDF at most 5 MB) so a bad file
@@ -144,17 +153,22 @@ public class TicketService {
         Employee requester = employeeRepository.findById(principal.getEmployeeId())
                 .orElseThrow(() -> new ItsmException("EMPLOYEE_NOT_FOUND", "Employee not found."));
         Ticket ticket = applyForm(new Ticket(), form, requester);
+        if (isImac(ticket) && !has(principal, IMAC_PERMISSION)) {
+            throw new AccessDeniedException("You do not have access to raise IMAC requests. Ask the System Administrator.");
+        }
         boolean draft = form.getIntent() != null && "draft".equalsIgnoreCase(form.getIntent());
         if (draft) {
             ticket.setStatusCode("Draft");
             ticket.setPublicNumber("DRAFT-" + requester.getEmployeeId() + "-" + UUID.randomUUID().toString().substring(0, 8));
             ticket = ticketRepository.save(ticket);
+            upsertImacDetail(ticket, form);
             auditRecorder.recordTicket("CREATE_DRAFT", ticket.getTicketId(), null, ticket.getPublicNumber());
             return ticket;
         }
         ticket.setStatusCode("Pending Approval");
         ticket.setPublicNumber(ticketNumberService.allocate());
         ticket = ticketRepository.save(ticket);
+        upsertImacDetail(ticket, form);
         auditRecorder.recordTicket("CREATE", ticket.getTicketId(), null, ticket.getPublicNumber());
         workflowEngine.startOnSubmit(ticket);
         return ticketRepository.findById(ticket.getTicketId()).orElse(ticket);
@@ -170,9 +184,13 @@ public class TicketService {
             throw new AccessDeniedException("Only the requester can submit this draft.");
         }
         applyForm(ticket, form, ticket.getRequester());
+        if (isImac(ticket) && !has(principal, IMAC_PERMISSION)) {
+            throw new AccessDeniedException("You do not have access to raise IMAC requests. Ask the System Administrator.");
+        }
         ticket.setPublicNumber(ticketNumberService.allocate());
         ticket.setStatusCode("Pending Approval");
         ticket = ticketRepository.save(ticket);
+        upsertImacDetail(ticket, form);
         auditRecorder.recordTicket("SUBMIT", ticket.getTicketId(), "Draft", ticket.getPublicNumber());
         workflowEngine.startOnSubmit(ticket);
         return ticketRepository.findById(ticket.getTicketId()).orElse(ticket);
@@ -803,6 +821,50 @@ public class TicketService {
         ticket.setRequester(requester);
         ticket.setDepartment(requester.getDepartment());
         return ticket;
+    }
+
+    private boolean isImac(Ticket t) {
+        return t.getTicketType() != null && IMAC_TYPE.equalsIgnoreCase(t.getTicketType().getCode());
+    }
+
+    /** Saves (or updates) the IMAC detail row for an IMAC ticket; no-op for other ticket types. */
+    private void upsertImacDetail(Ticket ticket, TicketForm form) {
+        if (!isImac(ticket)) {
+            return;
+        }
+        ImacDetail d = imacDetailRepository.findByTicketId(ticket.getTicketId()).orElse(new ImacDetail());
+        d.setTicketId(ticket.getTicketId());
+        d.setUsername(trimToLen(form.getImacUsername(), 128));
+        d.setUserSapId(trimToLen(form.getImacSapId(), 64));
+        d.setAsset(trimToLen(form.getImacAsset(), 128));
+        d.setMake(trimToLen(form.getImacMake(), 128));
+        d.setModel(trimToLen(form.getImacModel(), 128));
+        d.setGrade(trimToLen(form.getImacGrade(), 64));
+        d.setDepartment(trimToLen(form.getImacDepartment(), 128));
+        d.setSerialNo(trimToLen(form.getImacSerialNo(), 128));
+        d.setRam(trimToLen(form.getImacRam(), 64));
+        d.setContactNo(trimToLen(form.getImacContactNo(), 64));
+        d.setOfficeAddress(trimToLen(form.getImacOfficeAddress(), 256));
+        d.setLocation(trimToLen(form.getImacLocation(), 128));
+        d.setHostname(trimToLen(form.getImacHostname(), 128));
+        imacDetailRepository.save(d);
+    }
+
+    /** IMAC detail for a ticket (for the detail page), or null. */
+    @Transactional(readOnly = true)
+    public ImacDetail imacDetailFor(Long ticketId) {
+        return imacDetailRepository.findByTicketId(ticketId).orElse(null);
+    }
+
+    private static String trimToLen(String s, int max) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        return t.length() > max ? t.substring(0, max) : t;
     }
 
     private void hydrate(Ticket t) {

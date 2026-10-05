@@ -25,6 +25,7 @@
             <select class="form-control" id="ticketTypeId" name="ticketTypeId" required="required">
               <option value="">Select type</option>
               <option th:each="t : ${ticketTypes}" th:value="${t.ticketTypeId}" th:text="${t.name}"
+                      th:attr="data-code=${t.code}"
                       th:selected="${form.ticketTypeId == t.ticketTypeId}">Incident</option>
             </select></div>
           <div class="form-group"><label for="categorySelect">Category <span class="req">*</span></label>
@@ -56,6 +57,38 @@
                 <span>Not Available</span>
               </label>
             </div>
+          </div>
+        </div>
+        <!-- IMAC details: shown (and filled) only when the ticket type is IMAC; itsm.js toggles it by the type's data-code. -->
+        <div id="imacSection" data-imac-type="IMAC" hidden>
+          <div class="form-section-title">IMAC Details</div>
+          <div class="form-grid">
+            <div class="form-group"><label for="imacUsername">Username</label>
+              <input type="text" class="form-control" id="imacUsername" name="imacUsername" maxlength="128" th:value="${form.imacUsername}"/></div>
+            <div class="form-group"><label for="imacSapId">User SAP ID</label>
+              <input type="text" class="form-control" id="imacSapId" name="imacSapId" maxlength="64" th:value="${form.imacSapId}"/></div>
+            <div class="form-group"><label for="imacAsset">Asset</label>
+              <input type="text" class="form-control" id="imacAsset" name="imacAsset" maxlength="128" th:value="${form.imacAsset}"/></div>
+            <div class="form-group"><label for="imacMake">Make</label>
+              <input type="text" class="form-control" id="imacMake" name="imacMake" maxlength="128" th:value="${form.imacMake}"/></div>
+            <div class="form-group"><label for="imacModel">Model</label>
+              <input type="text" class="form-control" id="imacModel" name="imacModel" maxlength="128" th:value="${form.imacModel}"/></div>
+            <div class="form-group"><label for="imacGrade">Grade</label>
+              <input type="text" class="form-control" id="imacGrade" name="imacGrade" maxlength="64" th:value="${form.imacGrade}"/></div>
+            <div class="form-group"><label for="imacDepartment">Department</label>
+              <input type="text" class="form-control" id="imacDepartment" name="imacDepartment" maxlength="128" th:value="${form.imacDepartment}"/></div>
+            <div class="form-group"><label for="imacSerialNo">Serial No</label>
+              <input type="text" class="form-control" id="imacSerialNo" name="imacSerialNo" maxlength="128" th:value="${form.imacSerialNo}"/></div>
+            <div class="form-group"><label for="imacRam">RAM</label>
+              <input type="text" class="form-control" id="imacRam" name="imacRam" maxlength="64" th:value="${form.imacRam}"/></div>
+            <div class="form-group"><label for="imacContactNo">Contact No</label>
+              <input type="text" class="form-control" id="imacContactNo" name="imacContactNo" maxlength="64" th:value="${form.imacContactNo}"/></div>
+            <div class="form-group"><label for="imacLocation">Location</label>
+              <input type="text" class="form-control" id="imacLocation" name="imacLocation" maxlength="128" th:value="${form.imacLocation}"/></div>
+            <div class="form-group"><label for="imacHostname">Hostname</label>
+              <input type="text" class="form-control" id="imacHostname" name="imacHostname" maxlength="128" th:value="${form.imacHostname}"/></div>
+            <div class="form-group span-2"><label for="imacOfficeAddress">Office Address</label>
+              <input type="text" class="form-control" id="imacOfficeAddress" name="imacOfficeAddress" maxlength="256" th:value="${form.imacOfficeAddress}"/></div>
           </div>
         </div>
         <div class="form-section-title">Request Details</div>
