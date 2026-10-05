@@ -5,6 +5,7 @@
 <div id="loginScreen">
   <span class="login-orb o1" aria-hidden="true"></span>
   <span class="login-orb o2" aria-hidden="true"></span>
+  <img class="login-logo-tr" th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/>
   <div class="login-stage">
     <div class="login-panel">
       <div class="login-card-brand">
@@ -39,11 +40,8 @@
       </form>
       <p class="login-note">Authorised users only · Access is logged</p>
     </div>
-    <div class="login-logo-side">
-      <img th:src="@{/images/authum-logo.png}" src="/images/authum-logo.png" alt="Authum"/>
-      <div class="login-foot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
-    </div>
   </div>
+  <div class="login-pagefoot"><span th:text="${companyName} ?: 'Authum'">Authum</span> · Internal use only</div>
 </div>
 </body>
 </html>

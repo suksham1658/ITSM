@@ -1437,3 +1437,23 @@ tr.sla-past td{color:var(--slate-400);}
   .login-stage{flex-direction:column-reverse;gap:26px;}
   .login-logo-side img{width:150px;}
 }
+
+/* ---------- Login v2: transparent glossy card, logo top-right, shinier page ---------- */
+#loginScreen{background:
+  radial-gradient(1100px 520px at 72% -12%, rgba(255,255,255,.60), rgba(255,255,255,0) 62%),
+  radial-gradient(900px 480px at 8% 112%, rgba(120,200,235,.45), rgba(120,200,235,0) 60%),
+  linear-gradient(135deg,#BEE7F6 0%, var(--sky) 45%, var(--sky-600) 100%);}
+.login-logo-tr{position:absolute;top:22px;right:28px;width:150px;height:auto;z-index:4;
+  filter:drop-shadow(0 10px 22px rgba(11,47,69,.28));}
+.login-pagefoot{position:absolute;left:0;right:0;bottom:16px;text-align:center;z-index:2;
+  color:var(--sky-ink);opacity:.72;font-size:12px;letter-spacing:.3px;}
+.login-stage .login-panel{
+  background:linear-gradient(140deg, rgba(255,255,255,.52), rgba(255,255,255,.30));
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.60);border-top:4px solid var(--sky-700);
+  box-shadow:0 30px 72px rgba(11,47,69,.34), inset 0 1px 0 rgba(255,255,255,.85);
+  position:relative;overflow:hidden;}
+.login-stage .login-panel::before{content:"";position:absolute;top:0;left:0;right:0;height:48%;
+  background:linear-gradient(to bottom, rgba(255,255,255,.42), rgba(255,255,255,0));pointer-events:none;z-index:0;}
+.login-stage .login-panel>*{position:relative;z-index:1;}
+@media (max-width:720px){.login-logo-tr{width:112px;top:16px;right:16px;}}
