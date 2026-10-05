@@ -420,4 +420,38 @@
       refresh();
     })(stageForms[sf]);
   }
+
+  // ---- Floating horizontal scrollbar for wide tables ([data-hscroll]) ----
+  // A sticky proxy bar pinned near the bottom of the screen, kept in sync with the real
+  // scroll container, so you can drag sideways without scrolling to the end of the table.
+  var hScrollers = document.querySelectorAll("[data-hscroll]");
+  for (var hsi = 0; hsi < hScrollers.length; hsi++) {
+    (function (scroller) {
+      var proxy = document.createElement("div");
+      proxy.className = "hscroll-proxy";
+      proxy.setAttribute("aria-hidden", "true");
+      var inner = document.createElement("div");
+      proxy.appendChild(inner);
+      scroller.parentNode.insertBefore(proxy, scroller.nextSibling);
+
+      var syncing = false;
+      function refreshSize() {
+        inner.style.width = scroller.scrollWidth + "px";
+        var overflow = scroller.scrollWidth > scroller.clientWidth + 1;
+        proxy.style.display = overflow ? "block" : "none";
+        scroller.classList.toggle("has-floating-scroll", overflow);
+        if (overflow) { proxy.scrollLeft = scroller.scrollLeft; }
+      }
+      proxy.addEventListener("scroll", function () {
+        if (syncing) { return; }
+        syncing = true; scroller.scrollLeft = proxy.scrollLeft; syncing = false;
+      });
+      scroller.addEventListener("scroll", function () {
+        if (syncing) { return; }
+        syncing = true; proxy.scrollLeft = scroller.scrollLeft; syncing = false;
+      });
+      refreshSize();
+      window.addEventListener("resize", refreshSize);
+    })(hScrollers[hsi]);
+  }
 })();
