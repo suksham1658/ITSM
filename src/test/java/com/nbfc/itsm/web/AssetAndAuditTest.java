@@ -112,7 +112,11 @@ class AssetAndAuditTest {
                 .andExpect(header().string("Content-Type", containsString("ms-excel")))
                 .andExpect(header().string("Content-Disposition", containsString("audit-trail.xls")))
                 .andExpect(content().string(containsString("ss:Name=\"Audit Trail\"")))
-                .andExpect(content().string(containsString("Time (IST)")));
+                .andExpect(content().string(containsString("Time (IST)")))
+                // header row is bold black (styled)
+                .andExpect(content().string(containsString("ss:ID=\"hdr\"")))
+                .andExpect(content().string(containsString("ss:Bold=\"1\"")))
+                .andExpect(content().string(containsString("<Cell ss:StyleID=\"hdr\">")));
     }
 
     private static UsernamePasswordAuthenticationToken token(ItsmUserPrincipal p) {

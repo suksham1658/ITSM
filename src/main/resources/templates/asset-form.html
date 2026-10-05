@@ -20,7 +20,7 @@
     <div class="card" style="max-width:760px;">
       <form method="post" th:object="${form}"
             th:action="${editing} ? @{/assets/{id}(id=*{assetId})} : @{/assets}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-grid-2">
 
           <div class="form-group">
             <label>Asset tag <span class="req">*</span></label>

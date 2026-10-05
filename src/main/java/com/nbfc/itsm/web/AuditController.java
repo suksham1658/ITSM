@@ -95,10 +95,21 @@ public class AuditController {
         w.println("<?mso-application progid=\"Excel.Sheet\"?>");
         w.println("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
         w.println(" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+        // Header style: bold, black text, light-grey fill with a thin border.
+        w.println("<Styles>");
+        w.println("<Style ss:ID=\"hdr\">"
+                + "<Font ss:Bold=\"1\" ss:Color=\"#000000\"/>"
+                + "<Interior ss:Color=\"#D9D9D9\" ss:Pattern=\"Solid\"/>"
+                + "<Alignment ss:Vertical=\"Center\"/>"
+                + "<Borders><Border ss:Position=\"Bottom\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\" ss:Color=\"#000000\"/></Borders>"
+                + "</Style>");
+        w.println("</Styles>");
         w.println("<Worksheet ss:Name=\"Audit Trail\"><Table>");
         w.print("<Row>");
         for (String col : COLUMNS) {
-            cell(w, col);
+            w.print("<Cell ss:StyleID=\"hdr\"><Data ss:Type=\"String\">");
+            w.print(xml(col));
+            w.print("</Data></Cell>");
         }
         w.println("</Row>");
         for (AuditTrailService.Row r : rows) {
