@@ -17,13 +17,13 @@
       </div>
       <div class="page-header-actions">
         <button form="auditFilter" type="submit" th:formaction="@{/audit/export.xls}" formmethod="get"
-                data-no-loader class="btn btn-outline"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                data-no-loader class="btn btn-excel"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
       </div>
     </div>
 
     <div class="card">
       <form id="auditFilter" class="audit-filters" method="get" th:action="@{/audit}">
-        <div class="af-field af-grow">
+        <div class="af-field">
           <label for="af-user">User</label>
           <div class="fb-search"><i class="fa-solid fa-magnifying-glass"></i>
             <input id="af-user" type="search" name="user" th:value="${f.user}" maxlength="100"
@@ -55,18 +55,6 @@
             <option value="FAILURE" th:selected="${f.result == 'FAILURE'}">Failure</option>
             <option value="FAILED" th:selected="${f.result == 'FAILED'}">Failed</option>
           </select>
-        </div>
-        <div class="af-field af-grow">
-          <label for="af-text">Details contain</label>
-          <input id="af-text" class="form-control" type="search" name="text" th:value="${f.text}" maxlength="100" placeholder="Text in old / new value"/>
-        </div>
-        <div class="af-field">
-          <label for="af-from">From</label>
-          <input id="af-from" class="form-control" type="date" name="from" th:value="${f.from}"/>
-        </div>
-        <div class="af-field">
-          <label for="af-to">To</label>
-          <input id="af-to" class="form-control" type="date" name="to" th:value="${f.to}"/>
         </div>
         <div class="af-actions">
           <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>

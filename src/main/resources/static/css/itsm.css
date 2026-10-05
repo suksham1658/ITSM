@@ -521,6 +521,21 @@ button.sidebar-collapse-btn:focus-visible{outline:2px solid rgba(255,255,255,.5)
 .af-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;align-items:center;
   border-top:1px solid var(--slate-100);padding-top:13px;margin-top:3px;}
 @media (max-width:640px){.af-field.af-grow{grid-column:auto;}.af-actions{justify-content:stretch;}.af-actions .btn{flex:1;justify-content:center;}}
+/* Modern, light-themed, equal-height filter controls */
+.audit-filters .form-control,
+.audit-filters .fb-search{height:40px;box-sizing:border-box;background:var(--accent-light);
+  border:1px solid var(--slate-200);border-radius:10px;font-size:13px;color:var(--slate-700);transition:border-color .15s,box-shadow .15s,background .15s;}
+.audit-filters .form-control{width:100%;padding:0 12px;}
+.audit-filters select.form-control{cursor:pointer;}
+.audit-filters .fb-search{display:flex;align-items:center;gap:8px;padding:0 12px;}
+.audit-filters .fb-search i{color:var(--accent);font-size:13px;}
+.audit-filters .fb-search input{border:0;background:transparent;outline:none;height:100%;width:100%;font-size:13px;color:var(--slate-700);}
+.audit-filters .form-control:focus,
+.audit-filters .fb-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(28,106,141,.16);background:var(--bg-card);outline:none;}
+.audit-filters ::placeholder{color:var(--slate-400);}
+/* Excel export button (green) */
+.btn-excel{background:var(--success);border-color:var(--success);color:#fff;}
+.btn-excel:hover,.btn-excel:focus{background:#19744A;border-color:#19744A;color:#fff;}
 
 .audit-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 2px 14px;}
 .audit-immutable{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--slate-500);
