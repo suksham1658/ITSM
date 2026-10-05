@@ -55,6 +55,14 @@
             <option value="FAILED" th:selected="${f.result == 'FAILED'}">Failed</option>
           </select>
         </div>
+        <div class="af-field">
+          <label for="af-from">From</label>
+          <input id="af-from" class="form-control" type="date" name="from" th:value="${f.from}"/>
+        </div>
+        <div class="af-field">
+          <label for="af-to">To</label>
+          <input id="af-to" class="form-control" type="date" name="to" th:value="${f.to}"/>
+        </div>
         <div class="af-actions">
           <a class="btn btn-outline btn-sm" th:href="@{/audit}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
           <button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-filter"></i> Apply filters</button>
