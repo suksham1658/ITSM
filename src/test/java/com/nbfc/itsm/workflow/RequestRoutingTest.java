@@ -153,27 +153,19 @@ class RequestRoutingTest {
     private com.nbfc.itsm.admin.LocationService locationService;
 
     @Test
-    void imacFormAllocatesIncrementingHostnamesAndKeepsThem() {
-        com.nbfc.itsm.domain.Location kol = new com.nbfc.itsm.domain.Location();
-        kol.setName("Kolkata"); kol.setAddress("Addr K"); kol.setActive(true);
-        kol = locationRepository.save(kol);
-        com.nbfc.itsm.domain.Location bhu = new com.nbfc.itsm.domain.Location();
-        bhu.setName("Bhubaneswar"); bhu.setAddress("Addr B"); bhu.setActive(true);
-        bhu = locationRepository.save(bhu);
+    void imacNextHostnamePreviewDoesNotConsume() {
+        com.nbfc.itsm.domain.Location kol = saveLocation("Kolkata", "Addr K");
 
-        // The form's /locations/{id}/info endpoint allocates on each selection:
-        String h1 = locationService.allocateHostname(kol.getName());
-        String h2 = locationService.allocateHostname(bhu.getName());
-        assertEquals("AUTH-KOL-0000001", h1);
-        assertEquals("AUTH-BHU-0000002", h2, "second selection gets the next number");
+        // The form's /locations/{id}/info endpoint only previews the next number from the DB;
+        // selecting the location does not consume it, so the same value comes back until a ticket is submitted.
+        assertEquals("AUTH-KOL-0000001", locationService.nextHostname("Kolkata"));
+        assertEquals("AUTH-KOL-0000001", locationService.nextHostname("Kolkata"), "preview does not consume the number");
 
-        // Submitting with the allocated hostname keeps that number (not re-numbered).
+        // Submitting an IMAC for Kolkata takes 0000001; only then does the next preview advance to 0000002.
         Employee r = employee("E-RT-H2", "rt.h2", "Req H2", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
-        TicketForm f = imacRequest();
-        f.setImacLocationId(bhu.getLocationId());
-        f.setImacHostname(h2);
-        Ticket t = ticketService.save(as(r), f);
-        assertEquals("AUTH-BHU-0000002", ticketService.imacDetailFor(t.getTicketId()).getHostname());
+        Ticket t = raiseImac(r, kol);
+        assertEquals("AUTH-KOL-0000001", host(t));
+        assertEquals("AUTH-KOL-0000002", locationService.nextHostname("Kolkata"), "advances only after a ticket is submitted");
     }
 
     @Test
@@ -196,23 +188,18 @@ class RequestRoutingTest {
     }
 
     @Test
-    void imacHostnameNumberIncrementsAcrossTickets() {
-        com.nbfc.itsm.domain.Location mum = new com.nbfc.itsm.domain.Location();
-        mum.setName("Mumbai"); mum.setAddress("Addr M"); mum.setActive(true);
-        mum = locationRepository.save(mum);
-        com.nbfc.itsm.domain.Location del = new com.nbfc.itsm.domain.Location();
-        del.setName("Delhi"); del.setAddress("Addr D"); del.setActive(true);
-        del = locationRepository.save(del);
+    void imacHostnameCountsPerLocation() {
+        com.nbfc.itsm.domain.Location mum = saveLocation("Mumbai", "Addr M");
+        com.nbfc.itsm.domain.Location del = saveLocation("Delhi", "Addr D");
+        Employee r = employee("E-RT-H1", "rt.h1", "Req H1", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
 
-        Employee r1 = employee("E-RT-H1", "rt.h1", "Req H1", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
-        TicketForm f1 = imacRequest(); f1.setImacLocationId(mum.getLocationId());
-        Ticket t1 = ticketService.save(as(r1), f1);
-        TicketForm f2 = imacRequest(); f2.setImacLocationId(del.getLocationId());
-        Ticket t2 = ticketService.save(as(r1), f2);
+        Ticket m1 = raiseImac(r, mum);
+        Ticket m2 = raiseImac(r, mum);
+        Ticket d1 = raiseImac(r, del);
 
-        assertEquals("AUTH-MUM-0000001", ticketService.imacDetailFor(t1.getTicketId()).getHostname());
-        assertEquals("AUTH-DEL-0000002", ticketService.imacDetailFor(t2.getTicketId()).getHostname(),
-                "the running number auto-increments across tickets");
+        assertEquals("AUTH-MUM-0000001", host(m1));
+        assertEquals("AUTH-MUM-0000002", host(m2), "Mumbai's own count");
+        assertEquals("AUTH-DEL-0000001", host(d1), "Delhi counts separately from Mumbai");
     }
 
     @Test
@@ -353,6 +340,25 @@ class RequestRoutingTest {
         f.setImacMake("Dell");
         f.setIntent("submit");
         return f;
+    }
+
+    private com.nbfc.itsm.domain.Location saveLocation(String name, String address) {
+        com.nbfc.itsm.domain.Location l = new com.nbfc.itsm.domain.Location();
+        l.setName(name);
+        l.setAddress(address);
+        l.setActive(true);
+        return locationRepository.save(l);
+    }
+
+    /** Raise an IMAC ticket for the given requester against the given location (hostname is generated per-location). */
+    private Ticket raiseImac(Employee requester, com.nbfc.itsm.domain.Location location) {
+        TicketForm f = imacRequest();
+        f.setImacLocationId(location.getLocationId());
+        return ticketService.save(as(requester), f);
+    }
+
+    private String host(Ticket t) {
+        return ticketService.imacDetailFor(t.getTicketId()).getHostname();
     }
 
     private ItsmUserPrincipal as(Employee e) {

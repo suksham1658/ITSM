@@ -876,15 +876,13 @@ public class TicketService {
         com.nbfc.itsm.domain.Location loc = form.getImacLocationId() == null ? null
                 : locationRepository.findById(form.getImacLocationId()).orElse(null);
         if (loc != null) {
-            // Location drives the address and a generated, non-editable hostname (AUTH-<loc3>-NNNNNNN).
+            // Location drives the address and a per-location hostname AUTH-<loc3>-NNNNNNN. The number is this
+            // location's last in the DB + 1, computed at submit (not for drafts), so it is sequential with no gaps.
             d.setLocation(trimToLen(loc.getName(), 128));
             d.setOfficeAddress(trimToLen(loc.getAddress(), 2000));
-            String formHost = trimToLen(form.getImacHostname(), 128);
-            if (com.nbfc.itsm.admin.LocationService.isHostnameFor(formHost, loc.getName())) {
-                // Already allocated for this location when it was picked on the form — keep that number.
-                d.setHostname(formHost);
-            } else if (d.getHostname() == null || !d.getHostname().startsWith("AUTH-")) {
-                d.setHostname(trimToLen(locationService.allocateHostname(loc.getName()), 128));
+            boolean draft = "Draft".equals(ticket.getStatusCode());
+            if (!draft && !com.nbfc.itsm.admin.LocationService.isHostnameFor(d.getHostname(), loc.getName())) {
+                d.setHostname(trimToLen(locationService.nextHostname(loc.getName()), 128));
             }
         } else {
             d.setLocation(trimToLen(form.getImacLocation(), 128));
