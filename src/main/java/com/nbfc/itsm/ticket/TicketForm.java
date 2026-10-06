@@ -153,6 +153,10 @@ public class TicketForm {
     private String imacOfficeAddress;
     private String imacLocation;
     private String imacHostname;
+    private Long imacLocationId;
+
+    public Long getImacLocationId() { return imacLocationId; }
+    public void setImacLocationId(Long v) { this.imacLocationId = v; }
 
     public String getImacUsername() { return imacUsername; }
     public void setImacUsername(String v) { this.imacUsername = v; }

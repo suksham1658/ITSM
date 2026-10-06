@@ -81,6 +81,8 @@ public class TicketService {
     private final AttachmentService attachmentService;
     private final com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository;
     private final ImacDetailRepository imacDetailRepository;
+    private final com.nbfc.itsm.domain.LocationRepository locationRepository;
+    private final com.nbfc.itsm.admin.LocationService locationService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketTypeRepository ticketTypeRepository,
@@ -100,7 +102,9 @@ public class TicketService {
                          NotificationService notificationService,
                          AttachmentService attachmentService,
                          com.nbfc.itsm.domain.TicketAssignmentLogRepository assignmentLogRepository,
-                         ImacDetailRepository imacDetailRepository) {
+                         ImacDetailRepository imacDetailRepository,
+                         com.nbfc.itsm.domain.LocationRepository locationRepository,
+                         com.nbfc.itsm.admin.LocationService locationService) {
         this.ticketRepository = ticketRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -120,6 +124,8 @@ public class TicketService {
         this.attachmentService = attachmentService;
         this.assignmentLogRepository = assignmentLogRepository;
         this.imacDetailRepository = imacDetailRepository;
+        this.locationRepository = locationRepository;
+        this.locationService = locationService;
     }
 
     /** Permission a user needs to raise an IMAC request; the ticket type whose code is this. */
@@ -867,9 +873,23 @@ public class TicketService {
         d.setSerialNo(trimToLen(form.getImacSerialNo(), 128));
         d.setRam(trimToLen(form.getImacRam(), 64));
         d.setContactNo(trimToLen(form.getImacContactNo(), 64));
-        d.setOfficeAddress(trimToLen(form.getImacOfficeAddress(), 256));
-        d.setLocation(trimToLen(form.getImacLocation(), 128));
-        d.setHostname(trimToLen(form.getImacHostname(), 128));
+        com.nbfc.itsm.domain.Location loc = form.getImacLocationId() == null ? null
+                : locationRepository.findById(form.getImacLocationId()).orElse(null);
+        if (loc != null) {
+            // Location drives the address and a generated, non-editable hostname (AUTH-<loc3>-NNNNNNN).
+            String prevLocation = d.getLocation();
+            d.setLocation(trimToLen(loc.getName(), 128));
+            d.setOfficeAddress(trimToLen(loc.getAddress(), 256));
+            boolean needHostname = d.getHostname() == null || !d.getHostname().startsWith("AUTH-")
+                    || !loc.getName().equals(prevLocation);
+            if (needHostname) {
+                d.setHostname(trimToLen(locationService.allocateHostname(loc.getName()), 128));
+            }
+        } else {
+            d.setLocation(trimToLen(form.getImacLocation(), 128));
+            d.setOfficeAddress(trimToLen(form.getImacOfficeAddress(), 256));
+            d.setHostname(trimToLen(form.getImacHostname(), 128));
+        }
         imacDetailRepository.save(d);
     }
 

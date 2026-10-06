@@ -208,6 +208,22 @@
     toggleImac();
   }
 
+  // ---- Raise Request: picking an IMAC location fills in the address and hostname (read-only) ----
+  var imacLoc = document.getElementById("imacLocation");
+  var imacHost = document.getElementById("imacHostname");
+  var imacAddr = document.getElementById("imacOfficeAddress");
+  if (imacLoc && imacLoc.tagName === "SELECT" && imacHost && imacAddr) {
+    var infoBase = imacLoc.getAttribute("data-info-base") || "/locations/";
+    imacLoc.addEventListener("change", function () {
+      var id = imacLoc.value;
+      if (!id) { imacHost.value = ""; imacAddr.value = ""; return; }
+      fetch(infoBase + encodeURIComponent(id) + "/info", { headers: { "Accept": "application/json" }, credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d) { imacHost.value = d.hostname || ""; imacAddr.value = d.address || ""; } })
+        .catch(function () {});
+    });
+  }
+
   // ---- Raise Request: warn before upload when a PDF is larger than allowed ----
   var attachment = document.getElementById("attachment");
   if (attachment && attachment.getAttribute("data-pdf-max-mb")) {

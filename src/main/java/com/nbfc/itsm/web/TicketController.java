@@ -54,6 +54,7 @@ public class TicketController {
     private final AttachmentService attachmentService;
     private final EmployeeRepository employeeRepository;
     private final WorkflowEngine workflowEngine;
+    private final com.nbfc.itsm.admin.LocationService locationService;
 
     public TicketController(TicketService ticketService,
                             TicketTypeRepository ticketTypeRepository,
@@ -61,7 +62,8 @@ public class TicketController {
                             SubCategoryRepository subCategoryRepository,
                             AttachmentService attachmentService,
                             EmployeeRepository employeeRepository,
-                            WorkflowEngine workflowEngine) {
+                            WorkflowEngine workflowEngine,
+                            com.nbfc.itsm.admin.LocationService locationService) {
         this.ticketService = ticketService;
         this.ticketTypeRepository = ticketTypeRepository;
         this.categoryRepository = categoryRepository;
@@ -69,6 +71,7 @@ public class TicketController {
         this.attachmentService = attachmentService;
         this.employeeRepository = employeeRepository;
         this.workflowEngine = workflowEngine;
+        this.locationService = locationService;
     }
 
     @GetMapping("/tickets")
@@ -93,7 +96,7 @@ public class TicketController {
                           @RequestParam(value = "page", defaultValue = "0") int page,
                           @RequestParam(value = "size", defaultValue = "20") int size,
                           Model model) {
-        return list(user, "handled", "handledTickets", "My Handled", q, status, priority, typeId, page, size, model);
+        return list(user, "handled", "handledTickets", "Ticket History", q, status, priority, typeId, page, size, model);
     }
 
     @GetMapping("/tickets/team")
@@ -380,6 +383,7 @@ public class TicketController {
         for (SubCategory s : subs) {
             s.getCategory().getCategoryId();
         }
+        model.addAttribute("locations", locationService.active());
         model.addAttribute("ticketTypes", types);
         model.addAttribute("categories", categories);
         model.addAttribute("subCategories", subs);

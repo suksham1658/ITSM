@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head th:replace="fragments/head :: head(${pageTitle})"></head>
+<body>
+<div id="sidebarBackdrop" data-action="close-mobile-sidebar"></div>
+<div id="app">
+<aside th:replace="fragments/sidebar :: sidebar(${nav})"></aside>
+<div id="mainCol">
+<header th:replace="fragments/header :: header"></header>
+<main id="pageContent">
+<div th:replace="fragments/alerts :: flash"></div>
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">IT Nexa / Administration / <span>Locations</span></div>
+        <h1>Locations</h1>
+        <p class="page-sub">Sites and their address. On the IMAC form, picking a location fills in the address and the hostname (AUTH-&lt;first 3 letters&gt;-NNNNNNN).</p>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+      <h3 style="font-size:14px;margin:0 0 10px;"><i class="fa-solid fa-plus"></i> Add a location</h3>
+      <form method="post" th:action="@{/admin/locations}" class="filter-panel">
+        <div class="af-field"><label for="newName">Name</label>
+          <input class="form-control" id="newName" name="name" maxlength="128" placeholder="e.g. Mumbai HO" required="required"/></div>
+        <div class="af-field af-grow"><label for="newAddr">Address</label>
+          <input class="form-control" id="newAddr" name="address" maxlength="512" placeholder="Full office address"/></div>
+        <div class="af-field"><label for="newSort">Sort</label>
+          <input class="form-control" id="newSort" name="sortOrder" type="number" value="0" style="width:90px;"/></div>
+        <div class="af-actions"><button type="submit" class="btn btn-accent btn-sm"><i class="fa-solid fa-plus"></i> Add location</button></div>
+      </form>
+    </div>
+
+    <div class="card" th:if="${#lists.isEmpty(locations)}">
+      <div class="empty-state"><i class="fa-solid fa-location-dot"></i><h3>No locations</h3><p>Add your first location above.</p></div>
+    </div>
+
+    <div class="grid grid-2" th:if="${!#lists.isEmpty(locations)}">
+      <div class="card card-pad" th:each="l : ${locations}">
+        <form method="post" th:action="@{/admin/locations/{id}(id=${l.locationId})}">
+          <div class="form-grid">
+            <div class="form-group"><label>Name</label>
+              <input class="form-control" name="name" th:value="${l.name}" maxlength="128" required="required"/></div>
+            <div class="form-group"><label>Sort</label>
+              <input class="form-control" name="sortOrder" type="number" th:value="${l.sortOrder}" style="width:90px;"/></div>
+            <div class="form-group span-2"><label>Address</label>
+              <input class="form-control" name="address" th:value="${l.address}" maxlength="512"/></div>
+            <div class="form-group"><label style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" name="active" value="true" th:checked="${l.active}"/> Active</label></div>
+            <div class="form-group"><label>Hostname pattern</label>
+              <span class="mono text-muted" style="font-size:12px;">AUTH-&lt;first 3 letters&gt;-NNNNNNN</span></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button type="submit" class="btn btn-accent btn-sm"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+          </div>
+        </form>
+        <form method="post" th:action="@{/admin/locations/{id}/delete(id=${l.locationId})}"
+              data-confirm="Delete this location? IMAC tickets already raised keep their stored address/hostname." style="margin-top:8px;">
+          <button type="submit" class="btn btn-outline btn-sm btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+        </form>
+      </div>
+    </div>
+</main>
+</div>
+</div>
+<div th:replace="fragments/modal :: modal"></div>
+<th:block th:replace="fragments/scripts :: scripts"></th:block>
+</body>
+</html>

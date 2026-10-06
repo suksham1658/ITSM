@@ -147,6 +147,28 @@ class RequestRoutingTest {
         assertTrue(found, "an approver sees the ticket in My Handled, regardless of status");
     }
 
+    @Autowired
+    private com.nbfc.itsm.domain.LocationRepository locationRepository;
+
+    @Test
+    void imacLocationDrivesAddressAndGeneratedHostname() {
+        com.nbfc.itsm.domain.Location loc = new com.nbfc.itsm.domain.Location();
+        loc.setName("Mumbai");
+        loc.setAddress("Plot 1, Andheri East, Mumbai 400069");
+        loc.setActive(true);
+        loc = locationRepository.save(loc);
+
+        Employee imacReq = employee("E-RT-IMAC4", "rt.imac4", "IMAC Requester 4", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        TicketForm f = imacRequest();
+        f.setImacLocationId(loc.getLocationId());
+        Ticket t = ticketService.save(as(imacReq), f);
+
+        com.nbfc.itsm.domain.ImacDetail d = ticketService.imacDetailFor(t.getTicketId());
+        assertEquals("Mumbai", d.getLocation());
+        assertEquals("Plot 1, Andheri East, Mumbai 400069", d.getOfficeAddress(), "address mapped from the location");
+        assertEquals("AUTH-MUM-0000001", d.getHostname(), "hostname AUTH-<loc3>-NNNNNNN, generated non-editable");
+    }
+
     @Test
     void imacCannotBeRaisedWithoutThePermission() {
         // requester is a plain EMPLOYEE without TICKET_RAISE_IMAC.
