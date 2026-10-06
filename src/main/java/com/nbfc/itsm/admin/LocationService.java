@@ -15,7 +15,8 @@ import java.util.Locale;
 /**
  * Locations master (System Administrator / LOCATION_MANAGE): add/edit/delete sites with their address.
  * Also generates the IMAC hostname from the location: {@code AUTH-<first 3 letters of location>-<7-digit seq>},
- * with a single running sequence (0000001, 0000002, …).
+ * where the number is counted per location from the database (this location's highest issued + 1), so each
+ * city/state has its own gap-free running count.
  */
 @Service
 public class LocationService {
