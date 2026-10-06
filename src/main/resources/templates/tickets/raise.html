@@ -89,7 +89,7 @@
                 <option th:each="loc : ${locations}" th:value="${loc.locationId}" th:text="${loc.name}"
                         th:selected="${form.imacLocationId == loc.locationId}">Site</option>
               </select></div>
-            <div class="form-group"><label for="imacHostname">Hostname <span class="text-muted">(auto)</span></label>
+            <div class="form-group"><label for="imacHostname">Hostname <span class="text-muted">(auto — the running number is assigned when you submit)</span></label>
               <input type="text" class="form-control" id="imacHostname" name="imacHostname" maxlength="128"
                      th:value="${form.imacHostname}" readonly="readonly" placeholder="Set from the location"/></div>
             <div class="form-group span-2"><label for="imacOfficeAddress">Office Address <span class="text-muted">(from location)</span></label>

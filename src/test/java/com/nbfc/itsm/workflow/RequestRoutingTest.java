@@ -170,6 +170,26 @@ class RequestRoutingTest {
     }
 
     @Test
+    void imacHostnameNumberIncrementsAcrossTickets() {
+        com.nbfc.itsm.domain.Location mum = new com.nbfc.itsm.domain.Location();
+        mum.setName("Mumbai"); mum.setAddress("Addr M"); mum.setActive(true);
+        mum = locationRepository.save(mum);
+        com.nbfc.itsm.domain.Location del = new com.nbfc.itsm.domain.Location();
+        del.setName("Delhi"); del.setAddress("Addr D"); del.setActive(true);
+        del = locationRepository.save(del);
+
+        Employee r1 = employee("E-RT-H1", "rt.h1", "Req H1", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        TicketForm f1 = imacRequest(); f1.setImacLocationId(mum.getLocationId());
+        Ticket t1 = ticketService.save(as(r1), f1);
+        TicketForm f2 = imacRequest(); f2.setImacLocationId(del.getLocationId());
+        Ticket t2 = ticketService.save(as(r1), f2);
+
+        assertEquals("AUTH-MUM-0000001", ticketService.imacDetailFor(t1.getTicketId()).getHostname());
+        assertEquals("AUTH-DEL-0000002", ticketService.imacDetailFor(t2.getTicketId()).getHostname(),
+                "the running number auto-increments across tickets");
+    }
+
+    @Test
     void imacCannotBeRaisedWithoutThePermission() {
         // requester is a plain EMPLOYEE without TICKET_RAISE_IMAC.
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
