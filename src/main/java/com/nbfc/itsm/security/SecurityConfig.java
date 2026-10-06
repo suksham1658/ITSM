@@ -98,6 +98,7 @@ public class SecurityConfig {
                     .antMatchers("/admin/categories", "/admin/sla", "/admin/workflow", "/admin/workflow/**", "/admin/config")
                         .hasAuthority("ADMIN_MASTERDATA_PROPOSE")
                     .antMatchers("/admin/catalog/**", "/admin/sla/**").hasAuthority("ROLE_SYSTEM_ADMINISTRATOR")
+                    .antMatchers("/admin/locations", "/admin/locations/**").hasAuthority("LOCATION_MANAGE")
                     .antMatchers("/admin/roles").hasAuthority("ADMIN_USER_MANAGE")
                     .antMatchers("/admin/**").hasAuthority("ADMIN_USER_MANAGE")
                     .anyRequest().authenticated()

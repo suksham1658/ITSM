@@ -71,7 +71,8 @@ public class CatalogSeedService {
             {"ADMIN_SYSTEM", "System settings"},
             {"ASSET_MANAGE", "Manage assets"},
             {"AD_ACCOUNT_UNLOCK", "Unlock locked Active Directory accounts"},
-            {"TICKET_RAISE_IMAC", "Raise IMAC requests"}
+            {"TICKET_RAISE_IMAC", "Raise IMAC requests"},
+            {"LOCATION_MANAGE", "Manage locations"}
     };
 
     private final DepartmentRepository departmentRepository;

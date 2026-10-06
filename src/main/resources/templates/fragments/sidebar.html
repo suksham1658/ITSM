@@ -21,7 +21,7 @@
         <a class="nav-item" th:classappend="${nav == 'dashboard'} ? ' active'" th:href="@{/}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_CREATE')" th:classappend="${nav == 'raise'} ? ' active'" th:href="@{/tickets/raise}"><i class="fa-solid fa-circle-plus"></i><span>Raise Request</span></a>
         <a class="nav-item" th:classappend="${nav == 'myTickets'} ? ' active'" th:href="@{/tickets}"><i class="fa-solid fa-ticket"></i><span>My Tickets</span></a>
-        <a class="nav-item" sec:authorize="hasAnyAuthority('TICKET_APPROVE_ASSIGNED_STAGE','TICKET_FULFIL','TICKET_ASSIGN','TICKET_VIEW_QUEUE_ALL')" th:classappend="${nav == 'handledTickets'} ? ' active'" th:href="@{/tickets/handled}"><i class="fa-solid fa-clipboard-check"></i><span>My Handled</span></a>
+        <a class="nav-item" sec:authorize="hasAnyAuthority('TICKET_APPROVE_ASSIGNED_STAGE','TICKET_FULFIL','TICKET_ASSIGN','TICKET_VIEW_QUEUE_ALL')" th:classappend="${nav == 'handledTickets'} ? ' active'" th:href="@{/tickets/handled}"><i class="fa-solid fa-clipboard-check"></i><span>Ticket History</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_TEAM')" th:classappend="${nav == 'teamRequests'} ? ' active'" th:href="@{/tickets/team}"><i class="fa-solid fa-people-group"></i><span>Team Requests</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_APPROVE_ASSIGNED_STAGE')" th:classappend="${nav == 'approvals'} ? ' active'" th:href="@{/approvals}"><i class="fa-solid fa-check-double"></i><span>Approvals</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_DEPARTMENT')" th:classappend="${nav == 'deptRequests'} ? ' active'" th:href="@{/tickets/department}"><i class="fa-solid fa-building"></i><span>Department Requests</span></a>
@@ -37,12 +37,13 @@
         <a class="nav-item" sec:authorize="hasAuthority('TICKET_VIEW_SECURITY')" th:classappend="${nav == 'risk'} ? ' active'" th:href="@{/risk}"><i class="fa-solid fa-triangle-exclamation"></i><span>Risk Dashboard</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('REPORT_VIEW')" th:classappend="${nav == 'reports'} ? ' active'" th:href="@{/reports}"><i class="fa-solid fa-chart-line"></i><span>Reports</span></a>
 
-        <div class="sidebar-section-label" sec:authorize="hasAnyAuthority('ADMIN_USER_MANAGE','ADMIN_MASTERDATA_PROPOSE','ADMIN_MASTERDATA_APPROVE','AUDIT_VIEW','ASSET_MANAGE')">Administration</div>
+        <div class="sidebar-section-label" sec:authorize="hasAnyAuthority('ADMIN_USER_MANAGE','ADMIN_MASTERDATA_PROPOSE','ADMIN_MASTERDATA_APPROVE','AUDIT_VIEW','ASSET_MANAGE','LOCATION_MANAGE')">Administration</div>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminUsers'} ? ' active'" th:href="@{/admin/users}"><i class="fa-solid fa-users"></i><span>Users</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_USER_MANAGE')" th:classappend="${nav == 'adminRoles'} ? ' active'" th:href="@{/admin/roles}"><i class="fa-solid fa-user-shield"></i><span>Roles &amp; Permissions</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminCategories'} ? ' active'" th:href="@{/admin/categories}"><i class="fa-solid fa-tags"></i><span>Categories</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminSLA'} ? ' active'" th:href="@{/admin/sla}"><i class="fa-solid fa-stopwatch"></i><span>SLA Config</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_PROPOSE')" th:classappend="${nav == 'adminWorkflow'} ? ' active'" th:href="@{/admin/workflow}"><i class="fa-solid fa-diagram-project"></i><span>Workflow Config</span></a>
+        <a class="nav-item" sec:authorize="hasAuthority('LOCATION_MANAGE')" th:classappend="${nav == 'adminLocations'} ? ' active'" th:href="@{/admin/locations}"><i class="fa-solid fa-location-dot"></i><span>Locations</span></a>
         <a class="nav-item" sec:authorize="hasAuthority('ADMIN_MASTERDATA_APPROVE')" th:classappend="${nav == 'adminChangeQueue'} ? ' active'" th:href="@{/admin/change-requests}"><i class="fa-solid fa-user-check"></i><span>Config approvals</span>
             <span class="nav-badge" th:if="${pendingConfigCount != null and pendingConfigCount > 0}" th:text="${pendingConfigCount}">0</span>
         </a>

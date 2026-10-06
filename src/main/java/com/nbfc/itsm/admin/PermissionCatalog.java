@@ -46,6 +46,7 @@ public final class PermissionCatalog {
         add("ADMIN_MASTERDATA_APPROVE", "Administration", "Approve configuration changes (checker)",
                 "Config approvals");
         add("ADMIN_SYSTEM", "Administration", "System settings (non-secret)", "System Configuration");
+        add("LOCATION_MANAGE", "Administration", "Manage locations (add/edit/delete)", "Locations");
     }
 
     private PermissionCatalog() {

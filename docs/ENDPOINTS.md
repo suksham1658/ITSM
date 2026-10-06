@@ -132,6 +132,19 @@ Reads need `ADMIN_MASTERDATA_PROPOSE`; **catalog edits and SLA edits need `ROLE_
 `POST /admin/workflow/new`, stage edits `POST /admin/workflow/{id}/stages[/{stageId}[/delete|/move]]`,
 rule edits `POST /admin/workflow/rules[/{ruleId}[/delete]]`.
 
+## Locations — `LocationController` (authority `LOCATION_MANAGE`)
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/admin/locations` | list locations |
+| POST | `/admin/locations` | add a location (name, address, sort) |
+| POST | `/admin/locations/{id}` | edit a location |
+| POST | `/admin/locations/{id}/delete` | delete a location |
+| GET | `/locations/{id}/info` | JSON {name, address, hostname} — used by the IMAC raise form (authority `TICKET_CREATE`) |
+
+`LOCATION_MANAGE` is granted to the System Administrator by default and assignable to any role.
+On the IMAC form, choosing a location fills the **Office Address** (from the location) and a
+read-only **Hostname** `AUTH-<first 3 letters of location>-NNNNNNN` (single running sequence).
+
 ## License — `LicenseController` (authority `ROLE_SYSTEM_ADMINISTRATOR`)
 | Method | Path | Purpose |
 |---|---|---|
