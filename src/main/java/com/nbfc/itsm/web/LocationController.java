@@ -84,7 +84,8 @@ public class LocationController {
         Map<String, String> out = new LinkedHashMap<String, String>();
         out.put("name", l.getName());
         out.put("address", l.getAddress() == null ? "" : l.getAddress());
-        out.put("hostname", locationService.peekHostname(l.getName()));
+        // Allocate the next number now so the form shows the real, incrementing hostname (e.g. KOL-…1, BHU-…2).
+        out.put("hostname", locationService.allocateHostname(l.getName()));
         return out;
     }
 }
