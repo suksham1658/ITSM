@@ -877,12 +877,13 @@ public class TicketService {
                 : locationRepository.findById(form.getImacLocationId()).orElse(null);
         if (loc != null) {
             // Location drives the address and a generated, non-editable hostname (AUTH-<loc3>-NNNNNNN).
-            String prevLocation = d.getLocation();
             d.setLocation(trimToLen(loc.getName(), 128));
             d.setOfficeAddress(trimToLen(loc.getAddress(), 2000));
-            boolean needHostname = d.getHostname() == null || !d.getHostname().startsWith("AUTH-")
-                    || !loc.getName().equals(prevLocation);
-            if (needHostname) {
+            String formHost = trimToLen(form.getImacHostname(), 128);
+            if (com.nbfc.itsm.admin.LocationService.isHostnameFor(formHost, loc.getName())) {
+                // Already allocated for this location when it was picked on the form — keep that number.
+                d.setHostname(formHost);
+            } else if (d.getHostname() == null || !d.getHostname().startsWith("AUTH-")) {
                 d.setHostname(trimToLen(locationService.allocateHostname(loc.getName()), 128));
             }
         } else {

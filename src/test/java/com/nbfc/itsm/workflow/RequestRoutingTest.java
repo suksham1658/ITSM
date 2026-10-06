@@ -149,6 +149,32 @@ class RequestRoutingTest {
 
     @Autowired
     private com.nbfc.itsm.domain.LocationRepository locationRepository;
+    @Autowired
+    private com.nbfc.itsm.admin.LocationService locationService;
+
+    @Test
+    void imacFormAllocatesIncrementingHostnamesAndKeepsThem() {
+        com.nbfc.itsm.domain.Location kol = new com.nbfc.itsm.domain.Location();
+        kol.setName("Kolkata"); kol.setAddress("Addr K"); kol.setActive(true);
+        kol = locationRepository.save(kol);
+        com.nbfc.itsm.domain.Location bhu = new com.nbfc.itsm.domain.Location();
+        bhu.setName("Bhubaneswar"); bhu.setAddress("Addr B"); bhu.setActive(true);
+        bhu = locationRepository.save(bhu);
+
+        // The form's /locations/{id}/info endpoint allocates on each selection:
+        String h1 = locationService.allocateHostname(kol.getName());
+        String h2 = locationService.allocateHostname(bhu.getName());
+        assertEquals("AUTH-KOL-0000001", h1);
+        assertEquals("AUTH-BHU-0000002", h2, "second selection gets the next number");
+
+        // Submitting with the allocated hostname keeps that number (not re-numbered).
+        Employee r = employee("E-RT-H2", "rt.h2", "Req H2", teamLead, "EMPLOYEE", "SYSTEM_ADMINISTRATOR");
+        TicketForm f = imacRequest();
+        f.setImacLocationId(bhu.getLocationId());
+        f.setImacHostname(h2);
+        Ticket t = ticketService.save(as(r), f);
+        assertEquals("AUTH-BHU-0000002", ticketService.imacDetailFor(t.getTicketId()).getHostname());
+    }
 
     @Test
     void imacLocationDrivesAddressAndGeneratedHostname() {

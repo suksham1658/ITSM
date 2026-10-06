@@ -135,6 +135,15 @@ public class LocationService {
         return "AUTH-" + loc3(locationName) + "-" + String.format("%07d", seq);
     }
 
+    /** True if {@code hostname} is an AUTH-&lt;loc3&gt;-NNNNNNN value for this location (i.e. was generated for it). */
+    public static boolean isHostnameFor(String hostname, String locationName) {
+        if (hostname == null) {
+            return false;
+        }
+        String prefix = "AUTH-" + loc3(locationName) + "-";
+        return hostname.startsWith(prefix) && hostname.substring(prefix.length()).matches("\\d+");
+    }
+
     /** First three letters (A–Z) of the location name, upper-case; "LOC" if the name has no letters. */
     static String loc3(String locationName) {
         String letters = locationName == null ? "" : locationName.toUpperCase(Locale.ROOT).replaceAll("[^A-Z]", "");
