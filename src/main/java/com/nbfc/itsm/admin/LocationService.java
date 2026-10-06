@@ -60,7 +60,7 @@ public class LocationService {
         }
         Location l = new Location();
         l.setName(n);
-        l.setAddress(clean(address, 512));
+        l.setAddress(clean(address, 2000));
         l.setActive(true);
         l.setSortOrder(sortOrder);
         l = locationRepository.save(l);
@@ -77,7 +77,7 @@ public class LocationService {
             throw new ItsmException("LOCATION_EXISTS", "Another location already uses the name \"" + n + "\".");
         }
         l.setName(n);
-        l.setAddress(clean(address, 512));
+        l.setAddress(clean(address, 2000));
         l.setActive(active);
         l.setSortOrder(sortOrder);
         l = locationRepository.save(l);

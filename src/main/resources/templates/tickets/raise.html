@@ -93,8 +93,9 @@
               <input type="text" class="form-control" id="imacHostname" name="imacHostname" maxlength="128"
                      th:value="${form.imacHostname}" readonly="readonly" placeholder="Set from the location"/></div>
             <div class="form-group span-2"><label for="imacOfficeAddress">Office Address <span class="text-muted">(from location)</span></label>
-              <input type="text" class="form-control" id="imacOfficeAddress" name="imacOfficeAddress" maxlength="256"
-                     th:value="${form.imacOfficeAddress}" readonly="readonly" placeholder="Set from the location"/></div>
+              <textarea class="form-control" id="imacOfficeAddress" name="imacOfficeAddress" maxlength="2000" rows="2"
+                        style="resize:vertical;min-height:42px;" readonly="readonly" placeholder="Set from the location"
+                        th:text="${form.imacOfficeAddress}"></textarea></div>
           </div>
         </div>
         <div class="form-section-title">Request Details</div>
