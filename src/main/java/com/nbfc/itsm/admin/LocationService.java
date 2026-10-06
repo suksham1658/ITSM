@@ -3,8 +3,6 @@ package com.nbfc.itsm.admin;
 import com.nbfc.itsm.audit.AuditRecorder;
 import com.nbfc.itsm.domain.Location;
 import com.nbfc.itsm.domain.LocationRepository;
-import com.nbfc.itsm.domain.SystemSetting;
-import com.nbfc.itsm.domain.SystemSettingRepository;
 import com.nbfc.itsm.exception.ItsmException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -22,17 +20,15 @@ import java.util.Locale;
 @Service
 public class LocationService {
 
-    /** Running IMAC hostname sequence, kept in system_setting. */
-    static final String SEQ_KEY = "imac.hostname-seq";
-
     private final LocationRepository locationRepository;
-    private final SystemSettingRepository settingRepository;
+    private final com.nbfc.itsm.domain.ImacDetailRepository imacDetailRepository;
     private final AuditRecorder auditRecorder;
 
-    public LocationService(LocationRepository locationRepository, SystemSettingRepository settingRepository,
+    public LocationService(LocationRepository locationRepository,
+                           com.nbfc.itsm.domain.ImacDetailRepository imacDetailRepository,
                            AuditRecorder auditRecorder) {
         this.locationRepository = locationRepository;
-        this.settingRepository = settingRepository;
+        this.imacDetailRepository = imacDetailRepository;
         this.auditRecorder = auditRecorder;
     }
 
@@ -96,39 +92,29 @@ public class LocationService {
 
     // ------------------------------------------------------------------ IMAC hostname
 
-    /** The hostname the next IMAC ticket for this location would get (does not consume the number). */
+    /**
+     * The next hostname for this location: {@code AUTH-<first 3 letters>-NNNNNNN}, where the number is one more
+     * than the highest already issued for this location (a per-location count, read from the database). It is not
+     * stored/consumed — the same value comes back until an IMAC ticket for this location is actually submitted, so
+     * there are no gaps and the number equals how many assets have been provided for that location.
+     */
     @Transactional(readOnly = true)
-    public String peekHostname(String locationName) {
-        return format(locationName, lastSeq() + 1);
-    }
-
-    /** Allocates (consumes) the next hostname for this location. */
-    @Transactional
-    public String allocateHostname(String locationName) {
-        long next = lastSeq() + 1;
-        SystemSetting row = settingRepository.findById(SEQ_KEY).orElse(null);
-        if (row == null) {
-            row = new SystemSetting();
-            row.setSettingKey(SEQ_KEY);
-            row.setCategory("imac");
-            row.setDescription("Last IMAC hostname sequence (AUTH-<loc>-NNNNNNN).");
-            row.setSecret(false);
-        }
-        row.setSettingValue(Long.toString(next));
-        settingRepository.save(row);
-        return format(locationName, next);
-    }
-
-    private long lastSeq() {
-        SystemSetting row = settingRepository.findById(SEQ_KEY).orElse(null);
-        if (row != null && row.getSettingValue() != null) {
-            try {
-                return Long.parseLong(row.getSettingValue().trim());
-            } catch (NumberFormatException ignored) {
-                return 0;
+    public String nextHostname(String locationName) {
+        String prefix = "AUTH-" + loc3(locationName) + "-";
+        long max = 0;
+        for (String h : imacDetailRepository.findHostnamesLike(prefix + "%")) {
+            if (h != null && h.startsWith(prefix)) {
+                try {
+                    long n = Long.parseLong(h.substring(prefix.length()));
+                    if (n > max) {
+                        max = n;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // not a numeric suffix; skip
+                }
             }
         }
-        return 0;
+        return format(locationName, max + 1);
     }
 
     static String format(String locationName, long seq) {
