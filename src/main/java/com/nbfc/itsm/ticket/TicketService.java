@@ -879,7 +879,7 @@ public class TicketService {
             // Location drives the address and a generated, non-editable hostname (AUTH-<loc3>-NNNNNNN).
             String prevLocation = d.getLocation();
             d.setLocation(trimToLen(loc.getName(), 128));
-            d.setOfficeAddress(trimToLen(loc.getAddress(), 256));
+            d.setOfficeAddress(trimToLen(loc.getAddress(), 2000));
             boolean needHostname = d.getHostname() == null || !d.getHostname().startsWith("AUTH-")
                     || !loc.getName().equals(prevLocation);
             if (needHostname) {
@@ -887,7 +887,7 @@ public class TicketService {
             }
         } else {
             d.setLocation(trimToLen(form.getImacLocation(), 128));
-            d.setOfficeAddress(trimToLen(form.getImacOfficeAddress(), 256));
+            d.setOfficeAddress(trimToLen(form.getImacOfficeAddress(), 2000));
             d.setHostname(trimToLen(form.getImacHostname(), 128));
         }
         imacDetailRepository.save(d);

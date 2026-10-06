@@ -53,7 +53,7 @@ public class ImacDetail {
     @Column(name = "contact_no", length = 64)
     private String contactNo;
 
-    @Column(name = "office_address", length = 256)
+    @Column(name = "office_address", length = 2000)
     private String officeAddress;
 
     @Column(name = "location", length = 128)

@@ -20,7 +20,7 @@ public class Location {
     @Column(name = "name", nullable = false, length = 128)
     private String name;
 
-    @Column(name = "address", length = 512)
+    @Column(name = "address", length = 2000)
     private String address;
 
     @Column(name = "is_active", nullable = false)
