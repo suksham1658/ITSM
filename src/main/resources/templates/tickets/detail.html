@@ -137,9 +137,10 @@
 
         <!-- Closed automatically: the requester can still re-open it for a limited time. -->
         <div class="card card-pad confirm-card" style="margin-bottom:16px;" id="reopen" th:if="${detail.canReopen}">
-          <h3 style="font-size:15px;margin-bottom:4px;"><i class="fa-solid fa-clock-rotate-left"></i> Closed automatically — is your issue resolved?</h3>
-          <p class="phase-note" style="margin-top:0;">This ticket was closed because it was not confirmed in time.
-            If you are not satisfied you can re-open it until <b th:text="${@ui.dateTime(detail.reopenUntil)}">05 Oct 2026, 18:00</b> (IST).</p>
+          <h3 style="font-size:15px;margin-bottom:4px;"><i class="fa-solid fa-clock-rotate-left"></i> This ticket has been closed</h3>
+          <p class="phase-note" style="margin-top:0;">If your issue is resolved, no action is needed.
+            If you are <b>not satisfied</b>, you can re-open it until <b th:text="${@ui.dateTime(detail.reopenUntil)}">05 Oct 2026, 18:00</b> (IST).
+            After that, the ticket is closed permanently.</p>
           <div class="confirm-actions">
             <form th:action="@{/tickets/{id}/confirm-closed(id=${detail.ticket.ticketId})}" method="post">
               <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Yes, it's resolved — keep it closed</button>

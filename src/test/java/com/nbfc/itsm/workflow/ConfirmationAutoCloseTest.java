@@ -59,8 +59,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
 /**
- * Requester confirmation: Resolved / Not resolved; no answer within 48 hours closes the ticket and mails a
- * re-open link; the requester can re-open (back to the implementor) or confirm within 48 hours of closure.
+ * Requester confirmation: Resolved / Not resolved; no answer within the confirmation window (48 hours) closes
+ * the ticket and mails a sign-in-to-re-open link; every closed ticket can be re-opened (back to the implementor)
+ * for one day (24 hours) after closure, after which it is closed permanently.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -142,21 +143,22 @@ class ConfirmationAutoCloseTest {
         try {
             properties.getMail().setPortalUrl("http://itnexa.local:8090/itsm-portal");
             String body = emailService.body(ticketRepository.findById(t.getTicketId()).get(), TicketEmailEvent.Kind.AUTO_CLOSED);
-            assertTrue(body.contains("If you are not satisfied, please re-open this ticket"), body);
-            assertTrue(body.contains("http://itnexa.local:8090/itsm-portal/tickets/" + t.getTicketId() + "/reopen"), body);
-            assertTrue(body.contains("2 days"), body);
+            assertTrue(body.contains("If you are not satisfied"), body);
+            assertTrue(body.contains("re-open it within"), body);
+            assertTrue(body.contains("http://itnexa.local:8090/itsm-portal/login"), body);
+            assertTrue(body.contains("1 day"), body);
         } finally {
             properties.getMail().setPortalUrl(old);
         }
     }
 
     @Test
-    void reopenWithinTwoDaysSendsItBackAndTheLinkExpiresAfterwards() throws Exception {
+    void reopenWithinTheWindowSendsItBackAndTheLinkExpiresAfterwards() throws Exception {
         Ticket t = autoClosed();
         mockMvc.perform(get("/tickets/{id}/reopen", t.getTicketId()).with(authentication(token(requester))))
                 .andExpect(redirectedUrl("/tickets/" + t.getTicketId() + "#reopen"));
         mockMvc.perform(get("/tickets/{id}", t.getTicketId()).with(authentication(token(requester))))
-                .andExpect(content().string(allOf(containsString("Closed automatically — is your issue resolved?"),
+                .andExpect(content().string(allOf(containsString("This ticket has been closed"),
                         containsString("re-open and send back"))));
 
         ticketService.reopen(as(requester), t.getTicketId(), "The printer still jams on page two");
@@ -183,6 +185,31 @@ class ConfirmationAutoCloseTest {
         assertEquals("Closed", status(t));
         assertThrows(ItsmException.class,
                 () -> ticketService.reopen(as(requester), t.getTicketId(), "Changed my mind about this"));
+    }
+
+    @Test
+    void requesterConfirmResolvedClosesButStaysReopenableForOneDay() throws Exception {
+        Ticket t = resolved();
+        // "Yes, it's resolved — close ticket"
+        ticketService.applyAction(as(requester), t.getTicketId(), "APPROVE", null, null);
+        assertEquals("Closed", status(t));
+
+        // The closing e-mail carries the sign-in-to-re-open link.
+        String old = properties.getMail().getPortalUrl();
+        try {
+            properties.getMail().setPortalUrl("http://itnexa.local:8090/itsm-portal");
+            String body = emailService.body(ticketRepository.findById(t.getTicketId()).get(), TicketEmailEvent.Kind.CLOSED);
+            assertTrue(body.contains("http://itnexa.local:8090/itsm-portal/login"), body);
+            assertTrue(body.contains("re-open it within"), body);
+        } finally {
+            properties.getMail().setPortalUrl(old);
+        }
+
+        // The closed ticket still offers re-open within the window; re-opening sends it back to the implementor.
+        mockMvc.perform(get("/tickets/{id}", t.getTicketId()).with(authentication(token(requester))))
+                .andExpect(content().string(containsString("This ticket has been closed")));
+        ticketService.reopen(as(requester), t.getTicketId(), "Actually it is still not working for me");
+        assertEquals("FULFILMENT", current(t).getStageType(), "back with the implementor");
     }
 
     // ------------------------------------------------------------------ helpers
