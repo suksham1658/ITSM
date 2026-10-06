@@ -192,27 +192,39 @@ public class TicketEmailService {
                     .append(now == null ? " and is now being processed." : " and is now with <b>" + esc(now) + "</b>.")
                     .append("</p>");
         } else if (kind == TicketEmailEvent.Kind.AUTO_CLOSED) {
-            int hours = hoursSetting("workflow.reopen-hours", 48);
-            java.time.Instant until = autoClosedAt(t).plus(java.time.Duration.ofHours(hours));
             b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>, as we did not receive your "
                     + "confirmation within ").append(esc(com.nbfc.itsm.workflow.WorkflowEngine.hoursText(
                     hoursSetting("workflow.confirmation-hours", 48)))).append(" of it being resolved.</p>");
-            b.append("<p><b>If you are not satisfied, please re-open this ticket</b>");
-            String url = properties.getMail().getPortalUrl();
-            if (StringUtils.hasText(url)) {
-                String link = url.replaceAll("/+$", "") + "/tickets/" + t.getTicketId() + "/reopen";
-                b.append(": <a href=\"").append(esc(link)).append("\">Re-open ticket ").append(esc(t.getPublicNumber()))
-                        .append("</a>");
-            } else {
-                b.append(" from IT Nexa (open the ticket and choose <b>Not resolved</b>)");
-            }
-            b.append(". The link works until <b>").append(esc(IST.format(until))).append(" IST</b> (")
-                    .append(esc(com.nbfc.itsm.workflow.WorkflowEngine.hoursText(hours))).append(").</p>");
+            appendReopenNote(b, t, autoClosedAt(t));
         } else {
             b.append("<p>Your ").append(esc(typeName(t))).append(" has been <b>closed</b>.</p>");
+            appendReopenNote(b, t, java.time.Instant.now());
         }
         details(b, t, false, null, now, imacOf(t));
         return close(b, t);
+    }
+
+    /**
+     * The "closed — you can still re-open it" paragraph, on every closing e-mail. The requester has one
+     * re-open window ({@code workflow.reopen-hours}, one day) from {@code closedAt}; they sign in to use it,
+     * after which the ticket is closed permanently.
+     */
+    private void appendReopenNote(StringBuilder b, Ticket t, java.time.Instant closedAt) {
+        int hours = hoursSetting("workflow.reopen-hours", 24);
+        java.time.Instant until = (closedAt == null ? java.time.Instant.now() : closedAt)
+                .plus(java.time.Duration.ofHours(hours));
+        b.append("<p>This ticket has been closed. <b>If you are not satisfied</b>, you can re-open it within <b>")
+                .append(esc(com.nbfc.itsm.workflow.WorkflowEngine.hoursText(hours))).append("</b> of closure");
+        String url = properties.getMail().getPortalUrl();
+        if (StringUtils.hasText(url)) {
+            String login = url.replaceAll("/+$", "") + "/login";
+            b.append(" — click this link and sign in to re-open it: <a href=\"").append(esc(login)).append("\">")
+                    .append(esc(login)).append("</a>");
+        } else {
+            b.append(" — sign in to IT Nexa, open the ticket and choose <b>Not resolved</b>");
+        }
+        b.append(". The option is available until <b>").append(esc(IST.format(until)))
+                .append(" IST</b>; after that the ticket is closed permanently.</p>");
     }
 
     private int hoursSetting(String key, int fallback) {

@@ -493,10 +493,10 @@ public class WorkflowEngine {
                 .map(s -> parseInt(s.getSettingValue(), 48)).orElse(48);
     }
 
-    /** Hours the requester may re-open a ticket after an automatic closure (default 48). */
+    /** Hours the requester may re-open a ticket after it is closed (default 24 = one day). */
     public int reopenHours() {
         return settingRepository.findById("workflow.reopen-hours")
-                .map(s -> parseInt(s.getSettingValue(), 48)).orElse(48);
+                .map(s -> parseInt(s.getSettingValue(), 24)).orElse(24);
     }
 
     // ------------------------------------------------------------------ requester confirmation: auto-close / re-open
@@ -558,17 +558,35 @@ public class WorkflowEngine {
         return true;
     }
 
-    /** Until when the requester may still re-open this automatically closed ticket, or null. */
+    /**
+     * Until when the requester may still re-open this closed ticket, or null. Every closed ticket gets a
+     * re-open window of {@link #reopenHours()} (one day) from the moment it closed — whether the requester
+     * confirmed it resolved, it auto-closed for no answer, or the flow closed directly. The window is gone
+     * once the requester has finally confirmed it ({@link #CONFIRMED}, "keep it closed").
+     */
     public java.time.Instant reopenUntil(Ticket ticket, List<WorkflowInstanceStage> stages) {
         if (!"Closed".equals(ticket.getStatusCode())) {
             return null;
         }
         for (WorkflowInstanceStage s : stages) {
-            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode()) && s.getActedAtUtc() != null) {
-                return s.getActedAtUtc().plus(java.time.Duration.ofHours(reopenHours()));
+            if (CONFIRMED.equals(s.getActionCode())) {
+                return null; // the requester already said "keep it closed" — no re-open any more
             }
         }
-        return null;
+        // Close time = the requester-confirmation step's action time (requester confirmed, or it auto-closed);
+        // if the flow had no confirmation step, the closure step's time.
+        java.time.Instant closedAt = null;
+        WorkflowInstanceStage conf = lastStageOfType(stages, "CONFIRMATION");
+        if (conf != null && "Completed".equals(conf.getStatusCode())) {
+            closedAt = conf.getActedAtUtc();
+        }
+        if (closedAt == null) {
+            WorkflowInstanceStage cl = lastStageOfType(stages, "CLOSURE");
+            if (cl != null && "Completed".equals(cl.getStatusCode())) {
+                closedAt = cl.getActedAtUtc();
+            }
+        }
+        return closedAt == null ? null : closedAt.plus(java.time.Duration.ofHours(reopenHours()));
     }
 
     /** "Not resolved" after an automatic closure: the ticket goes back to the implementor. Requester only. */
@@ -582,19 +600,18 @@ public class WorkflowEngine {
                 .orElseThrow(() -> new ItsmException("WORKFLOW_MISSING", "Ticket has no workflow instance."));
         List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
         assertReopenable(ticket, stages);
-        WorkflowInstanceStage confirmation = null;
-        for (WorkflowInstanceStage s : stages) {
-            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode())) {
-                confirmation = s;
-            }
+        // The pivot is the requester-confirmation step (however it closed); if the flow had none, the closure step.
+        WorkflowInstanceStage pivot = lastStageOfType(stages, "CONFIRMATION");
+        if (pivot == null) {
+            pivot = lastStageOfType(stages, "CLOSURE");
         }
-        WorkflowInstanceStage work = previousCompleted(stages, confirmation);
+        WorkflowInstanceStage work = previousCompleted(stages, pivot);
         if (work == null) {
             throw new ItsmException("REOPEN_TARGET", "There is no implementation step to send this ticket back to.");
         }
         boolean after = false;
         for (WorkflowInstanceStage s : stages) {
-            if (s == confirmation) {
+            if (s == pivot) {
                 after = true;
                 continue;
             }
@@ -604,10 +621,10 @@ public class WorkflowEngine {
                 s.setActedAtUtc(null);
             }
         }
-        confirmation.setStatusCode("Pending");
-        confirmation.setActionCode("REOPENED");
-        confirmation.setRemarks("Re-opened by the requester: " + trim(reason));
-        confirmation.setActedAtUtc(TimeUtc.now());
+        pivot.setStatusCode("Pending");
+        pivot.setActionCode("REOPENED");
+        pivot.setRemarks("Re-opened by the requester: " + trim(reason));
+        pivot.setActedAtUtc(TimeUtc.now());
         work.setStatusCode("Current");
         work.setActionCode(null);
         instance.setStatusCode("InProgress");
@@ -633,11 +650,14 @@ public class WorkflowEngine {
                 .orElseThrow(() -> new ItsmException("WORKFLOW_MISSING", "Ticket has no workflow instance."));
         List<WorkflowInstanceStage> stages = instanceStageRepository.findByWorkflowInstanceOrderByStageOrderAsc(instance);
         assertReopenable(ticket, stages);
-        for (WorkflowInstanceStage s : stages) {
-            if ("CONFIRMATION".equals(s.getStageType()) && AUTO_CLOSE.equals(s.getActionCode())) {
-                s.setActionCode(CONFIRMED);
-                s.setRemarks("Requester confirmed the issue is resolved (after automatic closure).");
-            }
+        // Lock the re-open window: mark the confirmation step (however it closed), or the closure step, CONFIRMED.
+        WorkflowInstanceStage finalise = lastStageOfType(stages, "CONFIRMATION");
+        if (finalise == null) {
+            finalise = lastStageOfType(stages, "CLOSURE");
+        }
+        if (finalise != null) {
+            finalise.setActionCode(CONFIRMED);
+            finalise.setRemarks("Requester confirmed the issue is resolved; ticket stays closed.");
         }
         instanceStageRepository.saveAll(stages);
         auditRecorder.recordTicket(CONFIRMED, ticket.getTicketId(), "Closed", "Closed");
@@ -653,12 +673,23 @@ public class WorkflowEngine {
     private void assertReopenable(Ticket ticket, List<WorkflowInstanceStage> stages) {
         java.time.Instant until = reopenUntil(ticket, stages);
         if (until == null) {
-            throw new ItsmException("REOPEN_NOT_ALLOWED", "This ticket was not closed automatically, or it was already confirmed.");
+            throw new ItsmException("REOPEN_NOT_ALLOWED", "This ticket is not open for re-opening (it was already confirmed as resolved, or it is not closed).");
         }
         if (TimeUtc.now().isAfter(until)) {
             throw new ItsmException("REOPEN_EXPIRED", "The re-open period (" + hoursText(reopenHours())
                     + " after closure) has ended. Please raise a new request.");
         }
+    }
+
+    /** The last stage of the given type in the list, or null. */
+    private static WorkflowInstanceStage lastStageOfType(List<WorkflowInstanceStage> stages, String stageType) {
+        WorkflowInstanceStage found = null;
+        for (WorkflowInstanceStage s : stages) {
+            if (stageType.equals(s.getStageType())) {
+                found = s;
+            }
+        }
+        return found;
     }
 
     /** 48 -> "2 days", 36 -> "36 hours". */
