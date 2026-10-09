@@ -123,6 +123,7 @@
           <div class="confirm-actions">
             <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post">
               <input type="hidden" name="actionCode" value="APPROVE"/>
+              <input type="hidden" name="redirect" value="handled"/>
               <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Yes, it's resolved — close ticket</button>
             </form>
             <form th:action="@{/tickets/{id}/action(id=${detail.ticket.ticketId})}" method="post" class="confirm-no">
@@ -161,7 +162,7 @@
             <div class="form-group">
               <label>Action</label>
               <select class="form-control" name="actionCode" id="actionCode" required="required">
-                <option th:each="a : ${detail.allowed}" th:value="${a.actionCode}" th:text="${@ui.actionLabel(a.actionCode)}">Approve</option>
+                <option th:each="a : ${detail.allowed}" th:if="${a.actionCode != 'HOLD'}" th:value="${a.actionCode}" th:text="${@ui.actionLabel(a.actionCode)}">Approve</option>
               </select>
             </div>
             <div class="form-group" th:if="${deskStep and !assignees.empty}" id="implementorPicker">
@@ -180,7 +181,7 @@
                 </label>
               </div>
             </div>
-            <div class="form-group" th:if="${!deskStep and !assignees.empty}">
+            <div class="form-group" th:if="${!deskStep and !assignees.empty}" id="reassignPicker">
               <label for="assigneeId">Hand over to <span class="text-muted" th:if="${assigneePoolName != null}"
                      th:text="'(' + ${assigneePoolName} + ')'">(IT Implementors)</span></label>
               <select class="form-control" id="assigneeId" name="assigneeId">

@@ -342,8 +342,18 @@
       }
       actionBtn.textContent = code ? code.charAt(0) + code.slice(1).toLowerCase().replace("_", " ") : "Submit action";
     };
-    actionSelect.addEventListener("change", paintAction);
+    // The assignee pickers only make sense for the action that uses them: the "Send to implementor(s)"
+    // list for ASSIGN, the "Hand over to" picker for REASSIGN. Hidden for Resolve / Accept / Start, etc.
+    var togglePickers = function () {
+      var code = (actionSelect.value || "").toUpperCase();
+      var assignPicker = document.getElementById("implementorPicker");
+      var reassignPicker = document.getElementById("reassignPicker");
+      if (assignPicker) { assignPicker.style.display = (code === "ASSIGN") ? "" : "none"; }
+      if (reassignPicker) { reassignPicker.style.display = (code === "REASSIGN") ? "" : "none"; }
+    };
+    actionSelect.addEventListener("change", function () { paintAction(); togglePickers(); });
     paintAction();
+    togglePickers();
   }
 
   var actionForm = document.getElementById("ticketActionForm");
@@ -372,6 +382,30 @@
         }
       }
     });
+  }
+
+  // Keep the sidebar scrolled where the user left it across full-page navigations, so clicking a
+  // menu item does not jump the sidebar back to the top; the selected item stays in place.
+  var sideNav = document.querySelector(".sidebar-nav");
+  if (sideNav) {
+    var SB_KEY = "itsm.sidebarScroll";
+    try {
+      var savedScroll = sessionStorage.getItem(SB_KEY);
+      if (savedScroll !== null) {
+        sideNav.scrollTop = parseInt(savedScroll, 10) || 0;
+      } else {
+        var activeItem = sideNav.querySelector(".nav-item.active");
+        if (activeItem && activeItem.scrollIntoView) { activeItem.scrollIntoView({ block: "nearest" }); }
+      }
+    } catch (e) {}
+    var saveSidebarScroll = function () {
+      try { sessionStorage.setItem(SB_KEY, String(sideNav.scrollTop)); } catch (e) {}
+    };
+    var navLinks = sideNav.querySelectorAll("a.nav-item");
+    for (var ni = 0; ni < navLinks.length; ni++) {
+      navLinks[ni].addEventListener("click", saveSidebarScroll);
+    }
+    window.addEventListener("beforeunload", saveSidebarScroll);
   }
 
   // Role switcher and other selects that post their form on change (CSP forbids inline onchange).
