@@ -124,9 +124,6 @@ public class SystemSettingsService implements ApplicationRunner {
         text("smtp", "mail.from-name", "Sender name", "Shown as the sender, e.g. IT Service Desk.", mail::getFromName, mail::setFromName, null);
         text("smtp", "mail.portal-url", "Portal address for links", "Adds \"Open the ticket\" links, e.g. http://10.65.x.x:8090/itsm-portal. Blank = no link.",
                 mail::getPortalUrl, mail::setPortalUrl, "url-optional");
-        text("smtp", "mail.portal-link-text", "Portal link text (masks the URL)",
-                "The words shown for portal links in e-mails instead of the raw address, e.g. \"the IT Nexa portal\".",
-                mail::getPortalLinkText, mail::setPortalLinkText, null);
 
         number("session", "session.idle-timeout-minutes", "Idle timeout (minutes)", "Signed out after this long without a click (new sessions).",
                 5, 480, () -> idleMinutes, v -> idleMinutes = v);
