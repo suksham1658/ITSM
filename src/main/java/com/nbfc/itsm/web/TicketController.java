@@ -283,6 +283,7 @@ public class TicketController {
                          @RequestParam(value = "remarks", required = false) String remarks,
                          @RequestParam(value = "assigneeId", required = false) Long assigneeId,
                          @RequestParam(value = "assigneeIds", required = false) List<Long> assigneeIds,
+                         @RequestParam(value = "redirect", required = false) String redirect,
                          RedirectAttributes ra) {
         try {
             List<Long> chosen = new ArrayList<Long>();
@@ -294,6 +295,11 @@ public class TicketController {
             }
             ticketService.applyActionFor(user, id, actionCode, remarks, chosen);
             ra.addFlashAttribute("message", new UiText().actionLabel(actionCode) + " recorded.");
+            // Requester confirmation ("Yes, it's resolved"): take them to Ticket History, where the just-closed
+            // ticket sits with its one-day re-open option.
+            if ("handled".equals(redirect)) {
+                return "redirect:/tickets/handled";
+            }
         } catch (ItsmException ex) {
             ra.addFlashAttribute("errorMessage", ex.getMessage());
         }

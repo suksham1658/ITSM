@@ -49,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Implementor's view of a ticket: the requester's directory details (read only), only Reassign / Hold /
+ * Implementor's view of a ticket: the requester's directory details (read only), only Reassign /
  * Resolve, and a workflow history of who assigned or reassigned the ticket to whom, with the comment.
  */
 @SpringBootTest
@@ -98,7 +98,7 @@ class ImplementorViewTest {
     }
 
     @Test
-    void implementorSeesRequesterDetailsAndOnlyReassignHoldResolve() throws Exception {
+    void implementorSeesRequesterDetailsAndOnlyReassignResolve() throws Exception {
         Ticket t = assignedToImpl1();
         mockMvc.perform(get("/tickets/{id}", t.getTicketId()).with(authentication(token(impl1))))
                 .andExpect(status().isOk())
@@ -107,8 +107,8 @@ class ImplementorViewTest {
                         containsString("+91 22 4000 1234"), containsString("Mumbai HO, 5th floor"),
                         containsString("Credit Analyst"),
                         containsString("<option value=\"REASSIGN\">Reassign</option>"),
-                        containsString("<option value=\"HOLD\">Hold</option>"),
                         containsString("<option value=\"RESOLVE\">Resolve</option>"),
+                        not(containsString("value=\"HOLD\"")),
                         not(containsString("value=\"ACCEPT\"")), not(containsString("value=\"START\"")))));
         // The requester does not see a card about themselves.
         mockMvc.perform(get("/tickets/{id}", t.getTicketId()).with(authentication(token(requester))))
