@@ -66,7 +66,7 @@
             <td th:text="${t.subject}">Subject</td>
             <td th:text="${t.ticketType.name}">Type</td>
             <td th:with="reopenable=${t.statusCode == 'Closed' and reopenableIds != null and #sets.contains(reopenableIds, t.ticketId)}">
-              <span th:if="${reopenable}" class="badge badge-waiting" title="Closed, but still re-openable for a limited time — not final yet">Closed · re-open open</span>
+              <span th:if="${reopenable}" class="badge badge-waiting" title="Closed, but still re-openable for a limited time — not final yet">Reopen Eligible</span>
               <span th:unless="${reopenable}" class="badge" th:classappend="${@ui.ticketStatusClass(t.statusCode)}" th:text="${t.statusCode}">Open</span>
             </td>
             <td th:text="${t.priorityCode}">Medium</td>
