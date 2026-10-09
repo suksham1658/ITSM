@@ -170,7 +170,10 @@ public class AdminUserService {
         if (assign && !role.isActive()) {
             throw new ItsmException("ROLE_INACTIVE", "Role " + role.getCode() + " is inactive and cannot be assigned.");
         }
-        if (maker.getEmployeeId().equals(employeeId)) {
+        // A System Administrator is the final authority and may change their own roles too (applied immediately
+        // below). Everyone else must have another administrator make the change. The last-admin lock-out guard
+        // (assertAdminsRemainWithout) still prevents a self-removal that would leave the portal unmanageable.
+        if (maker.getEmployeeId().equals(employeeId) && !isSystemAdministrator(maker)) {
             throw new ItsmException("SELF_ROLE", "You cannot change your own roles; ask another administrator.");
         }
         assertNotPending(assign ? "USER_ROLE_ASSIGN" : "USER_ROLE_REMOVE", employeeId + ":" + roleId,
