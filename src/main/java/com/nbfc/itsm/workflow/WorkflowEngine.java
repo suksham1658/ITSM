@@ -725,11 +725,22 @@ public class WorkflowEngine {
         for (WorkflowStage template : templates) {
             if ("DYNAMIC_HIERARCHY_TO_HOD".equals(template.getActorStrategy())) {
                 List<Employee> hops = managerHops(requester);
+                boolean hodSet = requester.getHod() != null;
                 int hopNo = 1;
                 for (Employee hop : hops) {
                     WorkflowInstanceStage row = baseFrom(template, instance, order);
                     row.setCode(template.getCode() + "_" + hopNo);
-                    row.setLabel(hop.getDisplayName());
+                    // When an HOD is set, make the first step read as the manager and the last as the HOD,
+                    // so that even when they are the same person the two approvals are clearly distinct.
+                    String label = hop.getDisplayName();
+                    if (hodSet && hops.size() > 1) {
+                        if (hopNo == hops.size()) {
+                            label = hop.getDisplayName() + " (HOD)";
+                        } else if (hopNo == 1) {
+                            label = hop.getDisplayName() + " (Manager)";
+                        }
+                    }
+                    row.setLabel(label);
                     row.setStageType("APPROVAL");
                     row.setActorStrategy("LDAP_MANAGER");
                     row.setResolvedEmployee(hop);
@@ -786,14 +797,16 @@ public class WorkflowEngine {
         Employee setHod = requester.getHod();
         if (setHod != null) {
             // An HOD set on Admin > Users always ends the chain: climb to it if it is above the requester,
-            // otherwise go from the immediate manager straight to it.
+            // otherwise go from the immediate manager straight to it. The manager approval and the HOD approval
+            // are always two separate steps — even when the HOD is the same person as the manager.
             List<Employee> hops = pathToHod(requester.getManager(), setHod, cap);
             if (hops == null) {
                 hops = new ArrayList<Employee>();
                 hops.add(requester.getManager());
-                if (!requester.getManager().getEmployeeId().equals(setHod.getEmployeeId())) {
-                    hops.add(setHod);
-                }
+            }
+            if (hops.size() == 1) {
+                // The immediate manager IS the HOD (or the HOD is off the chain): add the HOD as its own step.
+                hops.add(setHod);
             }
             for (Employee hop : hops) {
                 requireActive(hop);
