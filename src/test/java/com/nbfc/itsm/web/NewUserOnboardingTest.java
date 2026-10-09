@@ -221,14 +221,29 @@ class NewUserOnboardingTest {
     }
 
     @Test
-    void administratorsCannotChangeTheirOwnRolesOrRemoveTheLastAdministrator() throws Exception {
+    void systemAdministratorMayChangeOwnRolesButLastAdminIsProtected() throws Exception {
         Employee sysAdmin = employeeRepository.findByEmployeeNo("E-ONB-SYS").orElseThrow(IllegalStateException::new);
         Role sys = role("SYSTEM_ADMINISTRATOR");
+
+        // A NON-System-Administrator admin still cannot change their own roles.
+        Employee itAdmin = employee("E-ONB-ITA", "onb.ita", "Onboarding IT Admin");
+        grant(itAdmin, "IT_ADMIN");
+        MockHttpSession itAdminSession = sessionFor(portalUserService.toPrincipal(itAdmin));
+        Role deskRole = role("IT_SERVICE_DESK");
+        mockMvc.perform(post("/admin/users/{id}/propose-role", itAdmin.getEmployeeId())
+                        .session(itAdminSession).with(csrf())
+                        .param("roleId", String.valueOf(deskRole.getRoleId()))
+                        .param("assign", "true"))
+                .andExpect(flash().attribute("errorMessage", containsString("cannot change your own roles")));
+
+        // A System Administrator MAY change their own roles; it is applied immediately (final authority).
         mockMvc.perform(post("/admin/users/{id}/propose-role", sysAdmin.getEmployeeId())
                         .session(sysAdminSession).with(csrf())
-                        .param("roleId", String.valueOf(sys.getRoleId()))
-                        .param("assign", "false"))
-                .andExpect(flash().attribute("errorMessage", containsString("cannot change your own roles")));
+                        .param("roleId", String.valueOf(deskRole.getRoleId()))
+                        .param("assign", "true"))
+                .andExpect(status().is3xxRedirection());
+        assertTrue(assignmentRepository.findByEmployeeAndRole(sysAdmin, deskRole).isPresent(),
+                "System Administrator can grant a role to themselves");
 
         // Only one active administrator left: another admin may not propose removing that person's role.
         Employee other = employee("E-ONB-OTH", "onb.other", "Onboarding Other Admin");
