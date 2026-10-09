@@ -304,9 +304,11 @@ public class TicketService {
                 }
                 java.time.Instant until = workflowEngine.reopenUntil(ticket, stages);
                 detail.setReopenUntil(until);
-                detail.setCanReopen(until != null && ticket.getRequester() != null
-                        && ticket.getRequester().getEmployeeId().equals(principal.getEmployeeId())
-                        && com.nbfc.itsm.util.TimeUtc.now().isBefore(until));
+                boolean windowOpen = "Closed".equals(ticket.getStatusCode()) && until != null
+                        && com.nbfc.itsm.util.TimeUtc.now().isBefore(until);
+                detail.setReopenWindowOpen(windowOpen);
+                detail.setCanReopen(windowOpen && ticket.getRequester() != null
+                        && ticket.getRequester().getEmployeeId().equals(principal.getEmployeeId()));
                 if (current != null && actor != null) {
                     boolean can = false;
                     try {
@@ -900,6 +902,27 @@ public class TicketService {
             d.setHostname(trimToLen(form.getImacHostname(), 128));
         }
         imacDetailRepository.save(d);
+    }
+
+    /** Of the given tickets, the ids of those that are Closed but still within their re-open window now. */
+    @Transactional(readOnly = true)
+    public java.util.Set<Long> reopenableTicketIds(java.util.Collection<Ticket> tickets) {
+        java.util.Set<Long> out = new java.util.HashSet<Long>();
+        java.time.Instant now = com.nbfc.itsm.util.TimeUtc.now();
+        for (Ticket t : tickets) {
+            if (!"Closed".equals(t.getStatusCode()) || t.getWorkflowInstanceId() == null) {
+                continue;
+            }
+            WorkflowInstance inst = instanceRepository.findById(t.getWorkflowInstanceId()).orElse(null);
+            if (inst == null) {
+                continue;
+            }
+            java.time.Instant until = workflowEngine.reopenUntil(t, workflowEngine.loadStages(inst));
+            if (until != null && now.isBefore(until)) {
+                out.add(t.getTicketId());
+            }
+        }
+        return out;
     }
 
     /** IMAC detail for a ticket (for the detail page), or null. */

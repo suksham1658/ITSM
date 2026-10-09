@@ -34,6 +34,11 @@ public class TicketDetail {
     private java.time.Instant reopenUntil;
     /** The viewer is the requester and the re-open period is still running. */
     private boolean canReopen;
+    /** The ticket is Closed but still within its re-open window (closed, not yet final) — for any viewer. */
+    private boolean reopenWindowOpen;
+
+    public boolean isReopenWindowOpen() { return reopenWindowOpen; }
+    public void setReopenWindowOpen(boolean reopenWindowOpen) { this.reopenWindowOpen = reopenWindowOpen; }
     /** IT Service Desk / System Administrator may change the priority (SLA recalculated). */
     private boolean canChangePriority;
     /** Which workflow this ticket is following (read inside the transaction; the association is lazy). */

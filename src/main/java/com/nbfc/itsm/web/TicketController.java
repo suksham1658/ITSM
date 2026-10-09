@@ -362,6 +362,7 @@ public class TicketController {
         model.addAttribute("nav", nav);
         model.addAttribute("pageTitle", title);
         model.addAttribute("tickets", result);
+        model.addAttribute("reopenableIds", ticketService.reopenableTicketIds(result.getContent()));
         model.addAttribute("q", q);
         model.addAttribute("status", status);
         model.addAttribute("priority", priority);
