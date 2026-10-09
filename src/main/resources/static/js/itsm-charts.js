@@ -120,7 +120,7 @@
     var max = maxOf(series) || 1;
     var padL = 36;
     var padB = 36;
-    var padT = 12;
+    var padT = 22; // headroom so the count label above the tallest bar is not clipped
     var padR = 12;
     var plotW = w - padL - padR;
     var plotH = h - padT - padB;
@@ -151,10 +151,19 @@
           ctx.lineWidth = 1;
           ctx.stroke();
         }
+        // Count on top of each bar.
+        if (val > 0) {
+          ctx.fillStyle = "#334155";
+          ctx.font = "600 11px 'IBM Plex Sans', sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "bottom";
+          ctx.fillText(String(val), x + Math.max(4, barW - 4) / 2, Math.max(y - 3, 10));
+        }
       }
       ctx.fillStyle = "#64748B";
       ctx.font = "11px 'IBM Plex Sans', sans-serif";
       ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
       ctx.fillText(fitText(ctx, String(labels[g]), groupW - 6), padL + g * groupW + groupW / 2, h - 12);
     }
     legend(ctx.canvas, payload);
