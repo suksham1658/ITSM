@@ -128,6 +128,28 @@ public class AdminWorkflowController {
         }
     }
 
+    @PostMapping("/{id}/activate")
+    public String activate(@PathVariable("id") Long id, RedirectAttributes ra) {
+        try {
+            WorkflowDefinition d = design.activate(id);
+            ra.addFlashAttribute("message", d.getCode() + " v" + d.getVersionNo() + " is now active.");
+        } catch (ItsmException | AccessDeniedException ex) {
+            ra.addFlashAttribute("errorMessage", message(ex));
+        }
+        return "redirect:/admin/workflow";
+    }
+
+    @PostMapping("/{id}/deactivate")
+    public String deactivate(@PathVariable("id") Long id, RedirectAttributes ra) {
+        try {
+            WorkflowDefinition d = design.deactivate(id);
+            ra.addFlashAttribute("message", d.getCode() + " v" + d.getVersionNo() + " is now inactive; no new ticket will use it.");
+        } catch (ItsmException | AccessDeniedException ex) {
+            ra.addFlashAttribute("errorMessage", message(ex));
+        }
+        return "redirect:/admin/workflow?retired=true";
+    }
+
     // ------------------------------------------------------------------ stages
 
     @PostMapping("/{id}/stages")

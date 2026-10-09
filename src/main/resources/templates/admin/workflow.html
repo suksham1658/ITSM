@@ -33,7 +33,7 @@
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Code</th><th>Name</th><th>Version</th><th>Status</th><th>Stages</th><th>Rules</th><th>Tickets</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Name</th><th>Version</th><th>Status</th><th>Used by (active rules)</th><th>Stages</th><th>Rules</th><th>Tickets</th><th></th></tr></thead>
           <tbody>
           <tr th:each="w : ${workflows}">
             <td class="cell-id" th:text="${w.definition.code}">SR</td>
@@ -41,12 +41,25 @@
             <td th:text="'v' + ${w.definition.versionNo}">v1</td>
             <td><span class="badge" th:classappend="${@ui.configStatusClass(w.definition.statusCode)}" th:text="${w.definition.statusCode}">Active</span>
               <span class="badge badge-draft" th:if="${w.draft != null}" th:text="'draft v' + ${w.draft.versionNo}">draft</span></td>
-            <td style="max-width:360px;font-size:12px;" th:text="${w.flow}">flow</td>
+            <td style="max-width:260px;font-size:12px;">
+              <span th:if="${w.usedBy != ''}" th:text="${w.usedBy}">Rule (p40)</span>
+              <span th:if="${w.usedBy == ''}" class="phase-note" style="margin:0;">— not used —</span></td>
+            <td style="max-width:320px;font-size:12px;" th:text="${w.flow}">flow</td>
             <td th:text="${w.ruleCount}">1</td>
             <td th:text="${w.ticketCount}">0</td>
             <td style="text-align:right;white-space:nowrap;">
               <a class="btn btn-outline btn-xs" th:href="@{/admin/workflow/{id}(id=${w.definition.workflowDefinitionId})}">
                 <i class="fa-regular fa-eye"></i> Open</a>
+              <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="display:inline;"
+                    th:if="${w.definition.statusCode == 'Active'}"
+                    th:action="@{/admin/workflow/{id}/deactivate(id=${w.definition.workflowDefinitionId})}" method="post">
+                <button type="submit" class="btn btn-danger-outline btn-xs"><i class="fa-solid fa-toggle-off"></i> Deactivate</button>
+              </form>
+              <form sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')" style="display:inline;"
+                    th:if="${w.definition.statusCode == 'Retired'}"
+                    th:action="@{/admin/workflow/{id}/activate(id=${w.definition.workflowDefinitionId})}" method="post">
+                <button type="submit" class="btn btn-success-outline btn-xs"><i class="fa-solid fa-toggle-on"></i> Activate</button>
+              </form>
             </td>
           </tr>
           </tbody>

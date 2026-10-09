@@ -265,14 +265,17 @@ class RequestRoutingTest {
     }
 
     @Test
-    void hodSameAsManagerIsOneStep() {
+    void hodSameAsManagerStillShowsTwoApprovals() {
+        // When the manager and the HOD are the same person, the manager approval and the HOD approval are
+        // still two separate steps (both resolved to that person).
         Employee boss = employee("E-RT-BOS", "rt.boss", "Boss", null, "EMPLOYEE");
         Employee me = employee("E-RT-ME3", "rt.me3", "Requester", boss, "EMPLOYEE");
         me.setHod(boss);
         employeeRepository.save(me);
 
         Ticket sr = ticketService.save(as(me), serviceRequest());
-        assertEquals(java.util.Collections.singletonList("Boss"), hierarchyApprovers(sr));
+        assertEquals(java.util.Arrays.asList("Boss", "Boss"), hierarchyApprovers(sr),
+                "manager step then HOD step, both the same person");
     }
 
     // ------------------------------------------------------------------ helpers

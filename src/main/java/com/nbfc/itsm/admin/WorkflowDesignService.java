@@ -138,8 +138,15 @@ public class WorkflowDesignService {
                 continue;
             }
             List<WorkflowStage> stages = stageRepository.findByWorkflowDefinitionOrderByStageOrderAsc(d);
-            out.add(new WorkflowSummary(d, flowText(stages), ruleRepository.findByWorkflowDefinition(d).size(),
-                    instanceRepository.countByWorkflowDefinition(d), draftOf(d)));
+            List<WorkflowRule> rules = ruleRepository.findByWorkflowDefinition(d);
+            List<String> activeRuleNames = new ArrayList<String>();
+            for (WorkflowRule r : rules) {
+                if (ACTIVE.equals(r.getStatusCode())) {
+                    activeRuleNames.add(r.getName() + " (p" + r.getPriority() + ")");
+                }
+            }
+            out.add(new WorkflowSummary(d, flowText(stages), rules.size(),
+                    instanceRepository.countByWorkflowDefinition(d), draftOf(d), String.join(", ", activeRuleNames)));
         }
         return out;
     }
@@ -338,6 +345,49 @@ public class WorkflowDesignService {
         audit("PUBLISH", draft.getCode() + " v" + draft.getVersionNo() + " active; rules moved=" + moved
                 + "; flow=" + flowText(stageRepository.findByWorkflowDefinitionOrderByStageOrderAsc(draft)));
         return draft;
+    }
+
+    /** Turn an old / off workflow back on (Active) so rules can route tickets to it again. */
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    @Transactional
+    public WorkflowDefinition activate(Long id) {
+        WorkflowDefinition d = definition(id);
+        if (ACTIVE.equals(d.getStatusCode())) {
+            return d;
+        }
+        if (DRAFT.equals(d.getStatusCode())) {
+            throw new ItsmException("WF_DRAFT", "This is a draft — use Publish to make it active.");
+        }
+        for (WorkflowDefinition other : definitionRepository.findByCodeOrderByVersionNoDesc(d.getCode())) {
+            if (!other.getWorkflowDefinitionId().equals(d.getWorkflowDefinitionId()) && ACTIVE.equals(other.getStatusCode())) {
+                throw new ItsmException("WF_CODE_ACTIVE", "Another version of " + d.getCode()
+                        + " is already active — deactivate it first.");
+            }
+        }
+        d.setStatusCode(ACTIVE);
+        definitionRepository.save(d);
+        audit("ACTIVATE", d.getCode() + " v" + d.getVersionNo() + " activated");
+        return d;
+    }
+
+    /** Turn a workflow off so new tickets no longer use it — only when no active rule still routes to it. */
+    @PreAuthorize("hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')")
+    @Transactional
+    public WorkflowDefinition deactivate(Long id) {
+        WorkflowDefinition d = definition(id);
+        if (!ACTIVE.equals(d.getStatusCode())) {
+            return d;
+        }
+        for (WorkflowRule r : ruleRepository.findByWorkflowDefinition(d)) {
+            if (ACTIVE.equals(r.getStatusCode())) {
+                throw new ItsmException("WF_IN_USE", "An active rule (\"" + r.getName()
+                        + "\") still routes tickets to this workflow. Point that rule at another workflow, or set the rule Inactive, first.");
+            }
+        }
+        d.setStatusCode(RETIRED);
+        definitionRepository.save(d);
+        audit("DEACTIVATE", d.getCode() + " v" + d.getVersionNo() + " deactivated");
+        return d;
     }
 
     /** Deletes a Draft (never used by a ticket: only Active workflows are matched). Returns the Active version, if any. */
@@ -824,13 +874,16 @@ public class WorkflowDesignService {
         private final int ruleCount;
         private final long ticketCount;
         private final WorkflowDefinition draft;
+        private final String usedBy;
 
-        WorkflowSummary(WorkflowDefinition definition, String flow, int ruleCount, long ticketCount, WorkflowDefinition draft) {
+        WorkflowSummary(WorkflowDefinition definition, String flow, int ruleCount, long ticketCount,
+                        WorkflowDefinition draft, String usedBy) {
             this.definition = definition;
             this.flow = flow;
             this.ruleCount = ruleCount;
             this.ticketCount = ticketCount;
             this.draft = draft;
+            this.usedBy = usedBy;
         }
 
         public WorkflowDefinition getDefinition() { return definition; }
@@ -838,5 +891,7 @@ public class WorkflowDesignService {
         public int getRuleCount() { return ruleCount; }
         public long getTicketCount() { return ticketCount; }
         public WorkflowDefinition getDraft() { return draft; }
+        /** Active rules that route tickets to this workflow (blank = no active rule uses it). */
+        public String getUsedBy() { return usedBy; }
     }
 }
