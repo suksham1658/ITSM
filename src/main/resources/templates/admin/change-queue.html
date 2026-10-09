@@ -44,13 +44,17 @@
                         </th:block>
                     </td>
                     <td th:unless="${currentUser != null and c.requestedBy.employeeId == currentUser.employeeId}">
-                        <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-success btn-xs"><i class="fa-solid fa-check"></i> Approve</button>
-                        </form>
-                        <form th:action="@{/admin/change-requests/{id}/reject(id=${c.configChangeRequestId})}" method="post" style="display:inline-flex;gap:6px;margin-top:6px;">
-                            <input type="text" class="form-control" name="reason" required="required" th:attr="minlength=${limits.rejectReasonMin},maxlength=${limits.rejectReasonMax}" placeholder="Reason (at least 10 characters)" aria-label="Rejection remarks" style="min-width:200px;"/>
-                            <button type="submit" class="btn btn-danger btn-xs"><i class="fa-solid fa-xmark"></i> Reject</button>
-                        </form>
+                        <!-- Only a System Administrator may approve or reject a pending change. -->
+                        <span class="text-muted" style="font-size:11px;" sec:authorize="!hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">Awaiting System Administrator approval</span>
+                        <th:block sec:authorize="hasAuthority('ROLE_SYSTEM_ADMINISTRATOR')">
+                            <form th:action="@{/admin/change-requests/{id}/approve(id=${c.configChangeRequestId})}" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-xs"><i class="fa-solid fa-check"></i> Approve</button>
+                            </form>
+                            <form th:action="@{/admin/change-requests/{id}/reject(id=${c.configChangeRequestId})}" method="post" style="display:inline-flex;gap:6px;margin-top:6px;">
+                                <input type="text" class="form-control" name="reason" required="required" th:attr="minlength=${limits.rejectReasonMin},maxlength=${limits.rejectReasonMax}" placeholder="Reason (at least 10 characters)" aria-label="Rejection remarks" style="min-width:200px;"/>
+                                <button type="submit" class="btn btn-danger btn-xs"><i class="fa-solid fa-xmark"></i> Reject</button>
+                            </form>
+                        </th:block>
                     </td>
                 </tr>
                 </tbody>

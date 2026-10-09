@@ -57,7 +57,10 @@ class RoleAdminServiceTest {
     void setUp() {
         catalogSeedService.ensureSeeded();
         maker = admin("E-RMAKER", "role.maker", "Role Maker");
-        checker = admin("E-RCHECK", "role.checker", "Role Checker");
+        // Only a System Administrator may approve a pending change, so the checker is a System Administrator.
+        Employee ck = employee("E-RCHECK", "role.checker", "Role Checker");
+        grant(ck, "SYSTEM_ADMINISTRATOR");
+        checker = portalUserService.toPrincipal(ck);
     }
 
     @AfterEach
@@ -87,12 +90,12 @@ class RoleAdminServiceTest {
     }
 
     @Test
-    void makerCannotApproveOwnRoleChange() {
+    void nonSystemAdministratorCannotApproveRoleChange() {
         actAs(maker);
         ConfigChangeRequest ccr = roleAdminService.proposeCreate(form("Self Approved Role", "KB_READ"), maker);
-        ItsmException ex = assertThrows(ItsmException.class,
+        // An IT Admin (maker or any other non-System-Administrator) cannot approve — only a System Administrator can.
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 () -> adminUserService.approve(ccr.getConfigChangeRequestId(), maker));
-        assertEquals("CCR_SAME_USER", ex.getCode());
         assertFalse(roleRepository.findByCode("SELF_APPROVED_ROLE").isPresent());
     }
 
@@ -158,8 +161,9 @@ class RoleAdminServiceTest {
 
     @Test
     void cannotRemoveTheLastAdministratorPermission() {
+        // Leave only the IT Admin maker active, so IT_ADMIN is the sole holder of the guarded permission.
         for (Employee e : employeeRepository.findAll()) {
-            if (!e.getEmployeeId().equals(maker.getEmployeeId()) && !e.getEmployeeId().equals(checker.getEmployeeId())) {
+            if (!e.getEmployeeId().equals(maker.getEmployeeId())) {
                 e.setPortalActive(false);
             }
         }
@@ -184,6 +188,8 @@ class RoleAdminServiceTest {
 
     @Test
     void readShowsHoldersAndGroupedPermissions() {
+        // A second IT Admin so the holder count is clearly more than one (the checker is a System Administrator).
+        grant(employee("E-RMAKER2", "role.maker2", "Role Maker 2"), "IT_ADMIN");
         actAs(maker);
         Role itAdmin = roleRepository.findByCode("IT_ADMIN").orElseThrow(IllegalStateException::new);
         RoleAdminService.RoleDetail detail = roleAdminService.get(itAdmin.getRoleId());
