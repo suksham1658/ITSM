@@ -162,6 +162,16 @@ public class ItsmProperties {
         private String fromName = "IT Service Desk";
         /** Portal address for the "Open ticket" link, e.g. http://10.65.x.x:8090/itsm-portal (blank: no link). */
         private String portalUrl = "";
+        /** Masking text shown for portal links in e-mails instead of the raw URL, e.g. "the IT Nexa portal". */
+        private String portalLinkText = "the IT Nexa portal";
+
+        public String getPortalLinkText() {
+            return portalLinkText;
+        }
+
+        public void setPortalLinkText(String portalLinkText) {
+            this.portalLinkText = portalLinkText;
+        }
 
         public boolean isEnabled() {
             return enabled;

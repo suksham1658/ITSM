@@ -218,8 +218,13 @@ public class TicketEmailService {
         String url = properties.getMail().getPortalUrl();
         if (StringUtils.hasText(url)) {
             String login = url.replaceAll("/+$", "") + "/login";
-            b.append(" — click this link and sign in to re-open it: <a href=\"").append(esc(login)).append("\">")
-                    .append(esc(login)).append("</a>");
+            // Show friendly words as the link text so the raw address is masked (System Configuration: Portal link text).
+            String linkText = properties.getMail().getPortalLinkText();
+            if (!StringUtils.hasText(linkText)) {
+                linkText = "the portal sign-in page";
+            }
+            b.append(" — <a href=\"").append(esc(login)).append("\">sign in to ")
+                    .append(esc(linkText)).append("</a> to re-open it");
         } else {
             b.append(" — sign in to IT Nexa, open the ticket and choose <b>Not resolved</b>");
         }
