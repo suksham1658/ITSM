@@ -316,9 +316,10 @@ public class AdminUserService {
         if (!"PendingApproval".equals(ccr.getStatusCode())) {
             throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
         }
-        // Maker and checker differ, except for a System Administrator (final authority), who may confirm their own.
-        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId()) && !isSystemAdministrator(checker)) {
-            throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
+        // Only a System Administrator may approve a pending configuration change (e.g. an IT Admin's role change).
+        if (!isSystemAdministrator(checker)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only a System Administrator can approve configuration changes.");
         }
         apply(ccr, checker);
         ccr.setStatusCode("Applied");
@@ -335,8 +336,10 @@ public class AdminUserService {
         if (!"PendingApproval".equals(ccr.getStatusCode())) {
             throw new ItsmException("CCR_NOT_PENDING", "Request is not pending");
         }
-        if (ccr.getRequestedBy().getEmployeeId().equals(checker.getEmployeeId()) && !isSystemAdministrator(checker)) {
-            throw new ItsmException("CCR_SAME_USER", "Maker and checker must be different administrators");
+        // Only a System Administrator may reject a pending configuration change.
+        if (!isSystemAdministrator(checker)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only a System Administrator can reject configuration changes.");
         }
         if (reason == null || reason.trim().length() == 0) {
             throw new ItsmException("REASON_REQUIRED", "Rejection remarks are required");

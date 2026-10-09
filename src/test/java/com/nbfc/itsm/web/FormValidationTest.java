@@ -185,7 +185,7 @@ class FormValidationTest {
 
     @Test
     void rejectionReasonMustBeMeaningful() throws Exception {
-        ItsmUserPrincipal checker = principal("E-VAL-CHK", "val.chk", "Validation Checker", "IT_ADMIN");
+        ItsmUserPrincipal checker = principal("E-VAL-CHK", "val.chk", "Validation Checker", "SYSTEM_ADMINISTRATOR");
         ConfigChangeRequest ccr = new ConfigChangeRequest();
         ccr.setChangeType("USER_PORTAL_ACTIVE");
         ccr.setEntityName("employee");

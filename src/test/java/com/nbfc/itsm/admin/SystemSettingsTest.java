@@ -78,8 +78,9 @@ class SystemSettingsTest {
         ConfigChangeRequest ccr = settings.propose("ldap.connect-timeout-ms", "4500", as(maker));
         assertEquals(originalTimeout, props.getLdap().getConnectTimeoutMs(), "nothing changes before approval");
 
-        ItsmException self = assertThrows(ItsmException.class, () -> adminUserService.approve(ccr.getConfigChangeRequestId(), as(maker)));
-        assertEquals("CCR_SAME_USER", self.getCode());
+        // The IT Admin maker cannot approve it — only a System Administrator can.
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> adminUserService.approve(ccr.getConfigChangeRequestId(), as(maker)));
 
         adminUserService.approve(ccr.getConfigChangeRequestId(), as(checker));
         assertEquals(4500, props.getLdap().getConnectTimeoutMs(), "applied at runtime");
