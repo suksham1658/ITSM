@@ -17,7 +17,8 @@
           <div class="ticket-hero-id" th:text="${detail.ticket.publicNumber}">ITSM-2026-000001</div>
           <div class="ticket-hero-title" th:text="${detail.ticket.subject}">Subject</div>
           <div class="ticket-hero-badges">
-            <span class="badge" th:classappend="${@ui.ticketStatusClass(detail.ticket.statusCode)}" th:text="${detail.ticket.statusCode}">Open</span>
+            <span th:if="${detail.reopenWindowOpen}" class="badge badge-waiting" title="Closed, but still re-openable until the deadline shown below — not final yet">Closed · re-open open</span>
+            <span th:unless="${detail.reopenWindowOpen}" class="badge" th:classappend="${@ui.ticketStatusClass(detail.ticket.statusCode)}" th:text="${detail.ticket.statusCode}">Open</span>
             <span class="badge badge-outline" th:text="${detail.ticket.ticketType.name}">Type</span>
             <span class="badge" th:classappend="${detail.ticket.priorityCode != null} ? ${'badge-' + #strings.toLowerCase(detail.ticket.priorityCode)} : ''"
                   th:text="${detail.ticket.priorityCode}">Medium</span>
