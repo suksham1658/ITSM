@@ -175,7 +175,7 @@
     var max = maxOf(series) || 1;
     var padL = 36;
     var padB = 36;
-    var padT = 12;
+    var padT = 22; // headroom so the value above the highest point is not clipped
     var padR = 12;
     var plotW = w - padL - padR;
     var plotH = h - padT - padB;
@@ -202,10 +202,24 @@
         }
       }
       ctx.stroke();
+      // A dot and the value above each point.
+      ctx.fillStyle = series[s].color || "#0E7C86";
+      ctx.font = "600 11px 'IBM Plex Sans', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      for (var p = 0; p < data.length; p++) {
+        var px = padL + (p / n) * plotW;
+        var py = padT + plotH - ((Number(data[p]) || 0) / max) * plotH;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(String(Number(data[p]) || 0), px, Math.max(py - 5, 10));
+      }
     }
     ctx.fillStyle = "#64748B";
     ctx.font = "11px 'IBM Plex Sans', sans-serif";
     ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
     for (var l = 0; l < labels.length; l++) {
       ctx.fillText(String(labels[l]).slice(0, 10), padL + (l / n) * plotW, h - 12);
     }
