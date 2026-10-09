@@ -36,6 +36,23 @@ public class TicketDetail {
     private boolean canReopen;
     /** IT Service Desk / System Administrator may change the priority (SLA recalculated). */
     private boolean canChangePriority;
+    /** Which workflow this ticket is following (read inside the transaction; the association is lazy). */
+    private String workflowName;
+    private String workflowCode;
+    private Integer workflowVersion;
+    private String workflowStatus;
+    private Long workflowDefinitionId;
+
+    public String getWorkflowName() { return workflowName; }
+    public void setWorkflowName(String workflowName) { this.workflowName = workflowName; }
+    public String getWorkflowCode() { return workflowCode; }
+    public void setWorkflowCode(String workflowCode) { this.workflowCode = workflowCode; }
+    public Integer getWorkflowVersion() { return workflowVersion; }
+    public void setWorkflowVersion(Integer workflowVersion) { this.workflowVersion = workflowVersion; }
+    public String getWorkflowStatus() { return workflowStatus; }
+    public void setWorkflowStatus(String workflowStatus) { this.workflowStatus = workflowStatus; }
+    public Long getWorkflowDefinitionId() { return workflowDefinitionId; }
+    public void setWorkflowDefinitionId(Long workflowDefinitionId) { this.workflowDefinitionId = workflowDefinitionId; }
 
     public boolean isCanChangePriority() {
         return canChangePriority;

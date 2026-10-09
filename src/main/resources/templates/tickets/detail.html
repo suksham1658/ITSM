@@ -283,13 +283,12 @@
         </div>
         <div class="card card-pad">
           <h3 style="font-size:14px;margin-bottom:12px;">Workflow</h3>
-          <p class="phase-note" th:if="${detail.instance != null and detail.instance.workflowDefinition != null}"
-             style="margin:-4px 0 12px;">
+          <p class="phase-note" th:if="${detail.workflowName != null}" style="margin:-4px 0 12px;">
             <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
-            Following: <b th:text="${detail.instance.workflowDefinition.name}">Workflow</b>
-            <span class="mono" th:text="'(' + ${detail.instance.workflowDefinition.code} + ' · v' + ${detail.instance.workflowDefinition.versionNo} + ' · #' + ${detail.instance.workflowDefinition.workflowDefinitionId} + ')'">(SR · v1 · #3)</span>
-            <span class="badge" th:classappend="${@ui.configStatusClass(detail.instance.workflowDefinition.statusCode)}"
-                  th:text="${detail.instance.workflowDefinition.statusCode}">Active</span>
+            Following: <b th:text="${detail.workflowName}">Workflow</b>
+            <span class="mono" th:text="'(' + ${detail.workflowCode} + ' · v' + ${detail.workflowVersion} + ' · #' + ${detail.workflowDefinitionId} + ')'">(SR · v1 · #3)</span>
+            <span class="badge" th:classappend="${@ui.configStatusClass(detail.workflowStatus)}"
+                  th:text="${detail.workflowStatus}">Active</span>
           </p>
           <ol class="wf-rail">
             <li th:each="s : ${detail.stages}" th:classappend="${'wf-' + #strings.toLowerCase(s.statusCode)}">

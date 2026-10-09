@@ -266,6 +266,16 @@ public class TicketService {
             WorkflowInstance instance = instanceRepository.findById(ticket.getWorkflowInstanceId()).orElse(null);
             detail.setInstance(instance);
             if (instance != null) {
+                // The definition is a lazy association and open-in-view is off, so read it here (inside the
+                // transaction) into plain fields the ticket page can show — which workflow this ticket follows.
+                com.nbfc.itsm.domain.WorkflowDefinition def = instance.getWorkflowDefinition();
+                if (def != null) {
+                    detail.setWorkflowName(def.getName());
+                    detail.setWorkflowCode(def.getCode());
+                    detail.setWorkflowVersion(def.getVersionNo());
+                    detail.setWorkflowStatus(def.getStatusCode());
+                    detail.setWorkflowDefinitionId(def.getWorkflowDefinitionId());
+                }
                 List<WorkflowInstanceStage> stages = workflowEngine.loadStages(instance);
                 for (WorkflowInstanceStage s : stages) {
                     if (s.getResolvedEmployee() != null) {
