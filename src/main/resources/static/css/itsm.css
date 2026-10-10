@@ -1595,3 +1595,58 @@ tr.sla-past td{color:var(--slate-400);}
   .login-stage .login-panel:hover,
   #loginScreen .btn-primary:hover{transform:none;}
 }
+
+/* ============================================================
+   LOGIN — brighter, glossier clear-glass finish (APPEARANCE ONLY).
+   Clearer (more transparent) panel fill so the backdrop shows through,
+   a bright hairline so the rounded corners stay crisp and visible, a
+   glossy top sheen + diagonal streak, and a more luminous page behind.
+   Same sky palette; layout, sizes and markup untouched.
+============================================================ */
+/* Brighter, more luminous page so the glass does not look dull. */
+#loginScreen{
+  background:
+    radial-gradient(1200px 560px at 72% -12%, rgba(255,255,255,.80), rgba(255,255,255,0) 60%),
+    radial-gradient(900px 520px at 6% 112%, rgba(150,216,246,.60), rgba(150,216,246,0) 60%),
+    linear-gradient(135deg, #CFEFFC 0%, var(--sky) 42%, var(--sky-600) 100%);
+}
+/* Clear glass: low fill, bright visible edge, glossy inner highlight + crisp outer rim. */
+.login-stage .login-panel{
+  background:linear-gradient(150deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 55%, rgba(255,255,255,.11));
+  -webkit-backdrop-filter:blur(22px) saturate(185%) brightness(1.06);
+  backdrop-filter:blur(22px) saturate(185%) brightness(1.06);
+  border:1.5px solid rgba(255,255,255,.78);
+  border-radius:22px;
+  box-shadow:
+    0 30px 72px rgba(11,47,69,.30),
+    0 2px 10px rgba(11,47,69,.10),
+    inset 0 1px 1px rgba(255,255,255,.90),
+    inset 0 0 22px rgba(255,255,255,.10),
+    0 0 0 1px rgba(255,255,255,.14);
+}
+.login-stage .login-panel:hover{
+  transform:translateY(-4px);
+  box-shadow:
+    0 42px 92px rgba(11,47,69,.36),
+    0 4px 14px rgba(11,47,69,.12),
+    inset 0 1px 1px rgba(255,255,255,.95),
+    inset 0 0 26px rgba(255,255,255,.12),
+    0 0 0 1px rgba(255,255,255,.18);
+}
+/* Gloss: a bright specular band across the top plus a diagonal light streak. */
+.login-stage .login-panel::before{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.06) 18%, rgba(255,255,255,0) 34%),
+    linear-gradient(125deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.30) 30%, rgba(255,255,255,.07) 50%, rgba(255,255,255,0) 70%);
+}
+/* Slightly brighter glow orbs behind the glass for extra shine. */
+.login-orb.o1{background:rgba(255,255,255,.70);}
+.login-orb.o2{background:rgba(140,210,245,.65);}
+/* Fields: a touch glossier, still readable through the clearer glass. */
+#loginScreen .input-icon-wrap .form-control{
+  background:rgba(255,255,255,.34);
+  border:1px solid rgba(255,255,255,.70);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+}
+#loginScreen .input-icon-wrap:hover .form-control{background:rgba(255,255,255,.55);}
+#loginScreen .input-icon-wrap .form-control:focus{background:rgba(255,255,255,.85);}
