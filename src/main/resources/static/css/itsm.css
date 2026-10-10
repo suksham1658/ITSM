@@ -1675,3 +1675,33 @@ tr.sla-past td{color:var(--slate-400);}
 }
 .pw-toggle:hover,.pw-toggle:focus-visible{opacity:1;}
 .pw-toggle i{font-size:14px;}
+
+/* ============================================================
+   LOGIN — crystal-clear panel + proper password eye (fixes).
+============================================================ */
+/* Crystal clear: fully transparent, no frosting/blur, only the border visible. */
+.login-stage .login-panel{
+  background:transparent;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  border:1.5px solid rgba(255,255,255,.90);
+  box-shadow:0 16px 40px rgba(11,47,69,.18);
+}
+.login-stage .login-panel::before{background:none;}
+
+/* The eye button sits at the RIGHT of the password box, centered. */
+.pw-toggle{
+  position:absolute; right:8px; left:auto; top:50%; transform:translateY(-50%);
+  display:inline-flex; align-items:center; justify-content:center;
+  width:30px; height:30px; padding:0; margin:0;
+  background:none; border:0; border-radius:6px; cursor:pointer;
+  color:var(--sky-ink); opacity:.65; z-index:3;
+  transition:opacity .15s ease, background-color .15s ease;
+}
+.pw-toggle:hover,.pw-toggle:focus-visible{opacity:1; background:rgba(11,47,69,.08);}
+/* Override the generic ".input-icon-wrap i" (which pins icons absolute-left) for the eye. */
+#loginScreen .input-icon-wrap .pw-toggle i,
+.pw-toggle i{
+  position:static; left:auto; top:auto; transform:none;
+  font-size:15px; line-height:1; color:inherit; pointer-events:none;
+}
