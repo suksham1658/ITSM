@@ -102,6 +102,19 @@
     "history-back": function (el) {
       if (document.referrer && window.history.length > 1) { window.history.back(); }
       else { window.location.href = el.getAttribute("href"); }
+    },
+    // Show / hide the password field (data-target = the input's id).
+    "toggle-password": function (el) {
+      var input = document.getElementById(el.getAttribute("data-target"));
+      if (!input) { return; }
+      var reveal = input.type === "password";
+      input.type = reveal ? "text" : "password";
+      el.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+      var icon = el.querySelector("i");
+      if (icon) {
+        icon.classList.toggle("fa-eye", !reveal);
+        icon.classList.toggle("fa-eye-slash", reveal);
+      }
     }
   };
 

@@ -1650,3 +1650,28 @@ tr.sla-past td{color:var(--slate-400);}
 }
 #loginScreen .input-icon-wrap:hover .form-control{background:rgba(255,255,255,.55);}
 #loginScreen .input-icon-wrap .form-control:focus{background:rgba(255,255,255,.85);}
+
+/* ============================================================
+   LOGIN — fully transparent glass panel: only the border is visible
+   (clear glass with backdrop blur, no fill, no sheen). Plus the
+   show/hide password eye. Appearance only; layout untouched.
+============================================================ */
+.login-stage .login-panel{
+  background:transparent;
+  -webkit-backdrop-filter:blur(16px) saturate(150%);
+  backdrop-filter:blur(16px) saturate(150%);
+  border:1.5px solid rgba(255,255,255,.85);
+  box-shadow:0 18px 44px rgba(11,47,69,.20);
+}
+/* Drop the fill/sheen overlay so nothing but the glass + border shows. */
+.login-stage .login-panel::before{background:none;}
+
+/* Show/hide password eye, pinned to the right of the password field. */
+#loginScreen #password{padding-right:42px;}
+.pw-toggle{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  background:none; border:0; padding:4px 6px; cursor:pointer; line-height:1;
+  color:var(--sky-800); opacity:.75; transition:opacity .15s ease;
+}
+.pw-toggle:hover,.pw-toggle:focus-visible{opacity:1;}
+.pw-toggle i{font-size:14px;}
