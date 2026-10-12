@@ -1833,14 +1833,14 @@ tr.sla-past td{color:var(--slate-400);}
    LOGIN — new background image; card on the RIGHT, logo centered.
 ============================================================ */
 #loginScreen{
-  background:#0A1A2F url("../images/login-bg.png") center center / cover no-repeat;
-  justify-content:flex-end;                 /* card to the extreme right */
-  padding-right:clamp(24px, 6vw, 110px);    /* gutter from the right edge */
+  background:#0A1A2F url("../images/login-bg.jpg") center center / cover no-repeat;
+  justify-content:flex-start;               /* card to the extreme left */
+  padding-left:clamp(24px, 6vw, 110px);     /* gutter from the left edge */
 }
-.login-stage{justify-content:flex-end;}
-/* Authum logo at the top, extreme left. */
+.login-stage{justify-content:flex-start;}
+/* Authum logo at the top, extreme right. */
 .login-logo-tr{
-  left:28px; right:auto; transform:none;
+  left:auto; right:28px; transform:none;
 }
 /* Friendly greeting above the IT Nexa wordmark. */
 .login-hello{
