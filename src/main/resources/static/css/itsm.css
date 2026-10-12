@@ -1828,3 +1828,17 @@ tr.sla-past td{color:var(--slate-400);}
   border-radius:12px;
   box-shadow:0 8px 22px rgba(0,0,0,.35);
 }
+
+/* ============================================================
+   LOGIN — new background image; card on the RIGHT, logo centered.
+============================================================ */
+#loginScreen{
+  background:#0A1A2F url("../images/login-bg.png") center center / cover no-repeat;
+  justify-content:flex-end;                 /* card to the extreme right */
+  padding-right:clamp(24px, 6vw, 110px);    /* gutter from the right edge */
+}
+.login-stage{justify-content:flex-end;}
+/* Authum logo centered at the top. */
+.login-logo-tr{
+  left:50%; right:auto; transform:translateX(-50%);
+}
