@@ -1821,3 +1821,10 @@ tr.sla-past td{color:var(--slate-400);}
 #loginScreen .input-icon-wrap .form-control:focus{background:rgba(255,255,255,.95);}
 /* Footer text sits on the dark image, so make it light. */
 .login-pagefoot{color:rgba(255,255,255,.82);}
+/* Authum logo on a white plate so it reads cleanly on the dark background. */
+.login-logo-tr{
+  background:#ffffff;
+  padding:10px 16px;
+  border-radius:12px;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);
+}
