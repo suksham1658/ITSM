@@ -1778,3 +1778,46 @@ tr.sla-past td{color:var(--slate-400);}
   box-shadow:0 18px 32px rgba(28,106,141,.42), inset 0 1px 0 rgba(255,255,255,.45);
   filter:saturate(1.08);
 }
+
+/* ============================================================
+   LOGIN — custom dark background image + card aligned to the left.
+   Relative url() so it resolves under the /itsm-portal context path.
+============================================================ */
+#loginScreen{
+  background:#0A1A2F url("../images/login-bg.avif") center center / cover no-repeat;
+  justify-content:flex-start;            /* card to the left instead of centre */
+  padding-left:clamp(24px, 6vw, 110px);  /* gutter so it is left but not glued to the edge */
+}
+.login-stage{
+  justify-content:flex-start;
+  margin:0;
+  width:100%;
+  max-width:440px;
+}
+/* On a dark backdrop the card must stay readable: a bright frosted-glass panel. */
+.login-stage .login-panel{
+  background:linear-gradient(135deg, rgba(255,255,255,.60), rgba(255,255,255,.46));
+  -webkit-backdrop-filter:blur(20px) saturate(140%);
+  backdrop-filter:blur(20px) saturate(140%);
+  border:1px solid rgba(255,255,255,.65);
+  border-top-color:rgba(255,255,255,.92);
+  box-shadow:
+    0 30px 72px rgba(0,0,0,.48),
+    0 10px 24px rgba(0,0,0,.30),
+    inset 0 1px 1px rgba(255,255,255,.92);
+}
+.login-stage .login-panel::before{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,0) 30%),
+    linear-gradient(125deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.22) 30%, rgba(255,255,255,.04) 48%, rgba(255,255,255,0) 64%);
+}
+.login-stage .login-panel::after{background:none;}
+/* Readable fields on the light card. */
+#loginScreen .input-icon-wrap .form-control{
+  background:rgba(255,255,255,.58);
+  border:1px solid rgba(255,255,255,.80);
+}
+#loginScreen .input-icon-wrap:hover .form-control{background:rgba(255,255,255,.72);}
+#loginScreen .input-icon-wrap .form-control:focus{background:rgba(255,255,255,.95);}
+/* Footer text sits on the dark image, so make it light. */
+.login-pagefoot{color:rgba(255,255,255,.82);}
