@@ -1842,3 +1842,9 @@ tr.sla-past td{color:var(--slate-400);}
 .login-logo-tr{
   left:28px; right:auto; transform:none;
 }
+/* Friendly greeting above the IT Nexa wordmark. */
+.login-hello{
+  font-family:var(--font-display);
+  font-size:18px; font-weight:600; letter-spacing:.3px;
+  color:var(--sky-ink); margin-bottom:4px;
+}
