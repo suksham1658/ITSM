@@ -1838,7 +1838,7 @@ tr.sla-past td{color:var(--slate-400);}
   padding-right:clamp(24px, 6vw, 110px);    /* gutter from the right edge */
 }
 .login-stage{justify-content:flex-end;}
-/* Authum logo centered at the top. */
+/* Authum logo at the top, extreme left. */
 .login-logo-tr{
-  left:50%; right:auto; transform:translateX(-50%);
+  left:28px; right:auto; transform:none;
 }
